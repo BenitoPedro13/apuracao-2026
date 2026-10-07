@@ -1,0 +1,181 @@
+# Workflow Guidelines — Apuração 2026
+
+> Ported from the `blessed-moon` / `renewable-pulse` workflow (plan before you touch anything,
+> lean on official CLIs and generators, treat documentation as part of the deliverable),
+> retargeted to this project. Section 0 is project-specific; sections 1–4 are the portable rules.
+>
+> **The philosophy in one line:** plan before you write, lean on existing tooling while you
+> work, and treat documentation as part of the deliverable when you finish.
+
+---
+
+## 0. Project context — Apuração 2026
+
+A live, public dashboard for counting the votes in Brazil's 2026 elections: a national
+headline, a municipality-level map, regional breakdowns, a turnout panel, an "over the count"
+chart and a **timeline scrubber that replays the count**. It also serves as a deliberate
+exercise in **distributed, data-heavy systems**: polling ingestion against a rate-limited
+CDN, an append-only history of every published version, idempotent projections, and fan-out
+to many concurrent readers on election night. Visual reference: seuimposto.com's
+"Apuração 2026 by pandora" (screenshot the user shared on 2026-10-07).
+
+**Hard deadline: the 2nd round is on Sunday 2026-10-25.** It covers president (Lula × Flávio
+Bolsonaro) plus governor in AC, AM, DF, ES, RJ, RN and TO. Anything not live and load-tested
+by then waits for post-election replay and analysis. Scope decisions are made against this
+date.
+
+**Status:** research phase. No app code yet. Read in this order:
+
+1. `docs/research/01-tse-results-feed.md`: the verified facts about the TSE feed (URLs,
+   file shapes, caching, rate limits, codes), with real captured files in
+   `docs/research/samples/`.
+2. `docs/architecture.md`: the system design. **Not written yet. Writing it is the next
+   task.**
+3. `docs/tasks/`: one task document per unit of work (§1).
+
+**Hard constraint: every number shown traces back to a real TSE-published file.** No
+synthetic, simulated or interpolated vote counts, anywhere. A gap (an unrecorded period, a
+failed fetch) is shown as missing, never smoothed over. Replaying real captured files is
+fine. Fabricating a count is not.
+
+### Stack
+
+**Undecided. Choosing it is part of `docs/architecture.md`.** Defaults to start from (and to
+justify or reject explicitly there, not adopt by reflex):
+
+| Layer | Default | Notes |
+|---|---|---|
+| Monorepo | pnpm workspaces + Turborepo | same as `renewable-pulse` |
+| Ingestion | Go *or* TS | decide on merit, not habit |
+| History / log | append-only, immutable raw snapshots | the core of the system; see invariants |
+| Web | Next.js (App Router), shadcn/ui, TanStack Query | frontend rules are in the user's global `~/.claude/CLAUDE.md` and apply here unchanged |
+| Contracts | Zod in `packages/contracts` | any non-TS service hand-mirrors the shape |
+
+Version numbers are a snapshot, not a pin. Verify against each tool's current docs before
+installing (§2.0).
+
+### How to write in this repo
+
+- **Never invent a TSE field, file name, URL or behavior.** Write `[VERIFY: what to check and
+  where]` inline instead, and resolve it against a real response captured into
+  `docs/research/samples/` before code depends on it.
+- **Be specific to the point of discomfort:** exact URLs, exact poll intervals, exact
+  numbers. No acceptance criterion may rest on "works" or "fast enough". State the
+  requests per second, the p95 latency, the number of concurrent readers.
+- **Sources over memory.** Anything about the TSE, IBGE, a library or a hosting platform is
+  checked against the live source, and the source is linked.
+
+### Invariants — never break these without changing the spec first
+
+1. **Real data only** (the hard constraint above).
+2. **Raw snapshots are immutable and kept forever.** Every distinct version of every TSE
+   file we fetch is stored byte-for-byte, keyed by its identity (path + `idg`/ETag/content
+   hash). Everything else (aggregates, map views, the timeline) is a *projection* that can be
+   rebuilt from the raw log. A projection is never the source of truth.
+3. **Idempotent ingestion.** Fetching or processing the same file version twice changes
+   nothing.
+4. **Be a polite client to the TSE.** Conditional GETs (`If-None-Match`), polling no faster
+   than the CDN's `max-age`, a hard request budget per cycle well under the published rate
+   limit, and backoff on 4xx/5xx. Our readers are never proxied straight through to the TSE.
+5. **Readers never touch the ingestion path.** Viewer traffic is served from precomputed,
+   cacheable artifacts. A traffic spike must not be able to slow ingestion, and an ingestion
+   stall must not take the site down (it shows "last updated at …").
+6. **Missing is not zero.** "No sections counted yet", "fetch failed" and "zero votes" are
+   three different states in contracts and UI.
+7. **WCAG 2.2 AA.** The map is never the only way to read a result (a table/list alternative
+   is required), and color (party red/blue) is never the only carrier of meaning.
+
+### Tests
+
+- **Integration tests against real infrastructure** (testcontainers or equivalent), never a
+  mocked database or broker.
+- **Parsers are tested against the real captured files** in `docs/research/samples/`, never
+  hand-built fixtures.
+- **Idempotency is a test:** ingest the same file version twice and assert nothing changed.
+- **Replay is a test:** rebuild a projection from the raw log and assert it equals the live
+  projection.
+- **Load claims need a load test** with medians of repeated runs, never a single run.
+
+---
+
+## 1. Plan before executing — write a task document first
+
+**Rule:** Before editing or creating **any** code file, write a task document at
+`docs/tasks/TASK-<slug>.md`. No exceptions for "small" changes.
+
+Required sections, in order:
+
+1. **Current scenario**: how it works today, and what's missing or blocked.
+2. **Planned changes**: file by file, plus alternatives considered and rejected.
+3. **Why**: what it unblocks and what it costs.
+4. **Affected files**: a table of `File | Change type | Notes`.
+5. **Verification**: the exact commands and observations that prove it works.
+
+Write the document, summarize it in 2–3 lines, and wait for alignment on anything
+significant before writing code. Keep it in sync if the plan changes. The task document is
+the contract.
+
+## 2. Use CLIs, generators, and SDKs — don't write everything by hand
+
+### 2.0 Assume your framework knowledge is outdated — check first, every time
+
+1. Go to the tool's own current docs first (Next.js, Turborepo, shadcn/ui, the chosen
+   database/broker/host).
+2. Use the official CLI to scaffold: `pnpm create next-app@latest`, `pnpm dlx shadcn@latest
+   add …`, `pnpm dlx create-turbo@latest`, and so on.
+3. Take the current stable major as authoritative over anything written here, and update
+   this file's stack table to match (§3).
+4. One package manager (**pnpm**), never mixed.
+
+Hand-writing is for what no generator covers: the poller, the diffing, the projections, the
+map rendering. Match the style of the surrounding code.
+
+## 3. Update documentation after executing
+
+A task isn't done until every doc it affects is updated:
+
+- **`CLAUDE.md`**: if the stack, architecture or an invariant changes.
+- **`docs/architecture.md`**: if a `[VERIFY]` resolves or scope changes.
+- **`docs/research/`**: if a new fact about the TSE is observed (add the captured sample too).
+- **`.env.example`**: every environment variable the code reads.
+- **`README.md`**: status line, setup and scripts.
+
+When unsure, grep for the thing you changed across these files.
+
+## 4. Project conventions
+
+Monorepo (pnpm workspaces + Turborepo). The proposed layout, to be confirmed in
+`docs/architecture.md`:
+
+```
+apps/
+  ingest/       poller: coverage-file diffing → conditional fetches → raw snapshot log
+  project/      builds projections (national/UF/municipality views, timeline) from the log
+  web/          Next.js dashboard
+packages/
+  contracts/    Zod schemas for TSE file shapes (parsed) and our published views
+  tse/          TSE URL builders, codes, string-number parsing; one place, no duplication
+  config/       shared tsconfig / eslint / prettier
+infra/          local stack (docker compose) + deployment
+docs/
+  research/     verified facts + samples/ (real captured TSE files)
+  tasks/        task documents (§1)
+  architecture.md
+```
+
+### 4.1 Commit conventions
+
+- **Commit automatically once a task document's work is complete and verified** (build,
+  lint and tests passing). Don't wait to be asked each time. This doesn't cover destructive
+  git operations (force-push, `reset --hard`), which still need explicit confirmation.
+- **No `Co-Authored-By` trailer.** User preference for every repo.
+
+---
+
+## TL;DR
+
+Research (`docs/research/`) → architecture (`docs/architecture.md`) → task doc
+(`docs/tasks/TASK-<slug>.md`) → align → build with official generators → update docs →
+commit (no `Co-Authored-By`). **Never broken:** real TSE data only, raw snapshots immutable
+and replayable, idempotent ingestion, polite to the TSE, readers isolated from ingestion,
+missing ≠ zero, WCAG 2.2 AA. **Deadline:** 2nd round, 2026-10-25.

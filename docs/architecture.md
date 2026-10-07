@@ -148,17 +148,17 @@ is detected via the coverage file before the municipal file's own edge copy refr
         ▼
   CloudFront  dXXXX.cloudfront.net   ──►  browsers (poll pointer every 20 s; immutable views)
         ▲
-  CloudWatch Synthetics canaries (outside the VPC) + alarms → SNS → email/SMS
+  canary Lambdas (sa-east-1 + us-east-1) + alarms → SNS → email/SMS
 ```
 
 ### 3.2 Each component and whether the numbers require it
 
 | Component | Job | Required by the numbers? |
 |---|---|---|
-| **recorder** (TS, Node 24, Fargate ARM 0.5 vCPU / 1 GB, ×2) | Polls the TSE politely, stores raw versions, emits observations | **Yes.** Two of them is a choice for redundancy on a night that can't be repeated: the standby costs ~$12 for the window. |
+| **recorder** (TS, Node 24, Fargate ARM 0.25 vCPU / 0.5 GB; 1 from 10-11, a 2nd only 10-23 → 10-26) | Polls the TSE politely, stores raw versions, emits observations | **Yes.** The standby is a choice for redundancy on a night that can't be repeated. It runs 3 days, ~$1.20. |
 | **S3 raw bucket** with Object Lock | The immutable source of truth (invariant 2) | **Yes.** |
-| **projector** (TS, Fargate ARM 1 vCPU / 2 GB, ×2) | Folds observations into views and publishes them | **Yes**, as a process. It could live inside the recorder. Splitting it is what lets the broker sit in between (§3.3). |
-| **MSK (Kafka)** 3 brokers | Ordered, replicated log of observations between recorder and projector | **No.** ~50k messages over a night is ~3 msg/s. Here for learning, by the user's choice. See §3.3 for how it is kept from hurting. |
+| **projector** (TS, Fargate ARM 0.5 vCPU / 1 GB; 1 from 10-18, a 2nd only 10-23 → 10-26) | Folds observations into views and publishes them | **Yes**, as a process. It could live inside the recorder. Splitting it is what lets the broker sit in between (§3.3). |
+| **MSK (Kafka)** 3 brokers, **switched on only for the rehearsal and the night** (§11) | Ordered, replicated log of observations between recorder and projector | **No.** ~50k messages over a night is ~3 msg/s. Here for learning, by the user's choice. See §3.3 for how it is kept from hurting. Development uses Redpanda in local Docker. |
 | **S3 public bucket + CloudFront** | Serves the site and all data to readers | **Yes**: it is the whole fan-out design (§6). |
 | **Database** (Postgres, DynamoDB, …) | — | **No, and not added.** The projector's state is ~10 MB in memory, checkpointed to S3. |
 | **Stream processor** (Flink, Kafka Streams, …) | — | **No, and not added on the night.** The fold is a pure function in `packages/views`. A stream processor is a lab exercise (§3.3). |
@@ -436,7 +436,7 @@ absorbs any multiple of traffic.
 | Path | Cache-Control | Content |
 |---|---|---|
 | `/`, `/_next/…` | HTML `max-age=60`; hashed assets `max-age=31536000, immutable` | Next.js static export |
-| `/data/v1/latest.json` | `public, max-age=5, s-maxage=5, stale-while-revalidate=30, stale-if-error=86400` | the **pointer**: `{epoch, seq, manifest: sha256, publishedAt, tse: {generatedAt, totalizedAt}, health: {lastTseSuccessAt, breakerOpen, mode: "kafka"|"s3"}}` |
+| `/data/v1/latest.json` | `public, max-age=5, s-maxage=5, stale-while-revalidate=30, stale-if-error=86400` | the **pointer**: `{epoch, seq, manifest: sha256, publishedAt, tse: {generatedAt, totalizedAt}, health: {lastTseSuccessAt, breakerOpen, mode: "kafka"|"s3"}, pollSeconds}` (`pollSeconds` lets the runbook slow every client down without a deploy, §11.2) |
 | `/data/v1/{epoch}/m/{seq:012d}.json` | `max-age=31536000, immutable` | **manifest**: hashes of every view at this `seq`, plus the timeline and feed chunk hashes |
 | `/data/v1/o/{sha256}.json` | `max-age=31536000, immutable` | a **view** (content-addressed, gzip/brotli by CloudFront) |
 | `/data/v1/{epoch}/index.json` | `max-age=30` | list of `seq`s with `tseTotalizedAt` (for the scrubber's track); also rebuilt as immutable chunks |
@@ -462,7 +462,7 @@ absorbs any multiple of traffic.
   client leaves, per the user's global frontend rules. There's no server, so there's
   nothing for readers to overload.
 - **TanStack Query**, one `queryOptions` factory per endpoint: `latestPointerQuery`
-  (`refetchInterval: 20_000`, paused when the tab is hidden), `manifestQuery(epoch, seq)` and
+  (`refetchInterval` = the pointer's `pollSeconds`, default 20 s, paused when the tab is hidden), `manifestQuery(epoch, seq)` and
   `viewQuery(hash)` with `staleTime: Infinity` (immutable). All wrapped in named hooks
   (`useNationalResult()`, `useMapFrame(seq)`).
 - **Replay = URL state**: `?seq=…` selects a manifest. A replay link is shareable and
@@ -677,8 +677,10 @@ metrics agent). Metrics:
 | `recon_drift_votes` | check id | §7.4 |
 | `pointer_age_s` | from canaries | what a reader sees |
 
-**Synthetic canaries** (CloudWatch Synthetics, every 1 min, from `sa-east-1` and
-`us-east-1`): fetch `latest.json` through CloudFront and alarm on age.
+**Canaries:** a small scheduled Lambda (EventBridge, every 1 min) in `sa-east-1` and in
+`us-east-1` fetches `latest.json` through CloudFront and publishes `pointer_age_s`. That's
+~90k invocations over the window, inside the Lambda free tier. CloudWatch Synthetics would
+do the same for ~$10 more, and was dropped for cost.
 
 ### 10.2 Alarms (SNS → email + SMS to the user)
 
@@ -699,9 +701,15 @@ metrics agent). Metrics:
 - **T-3 days:** freeze features. Run the dress rehearsal. Confirm alarms reach the phone.
 - **From 2026-10-20, daily:** check whether `6258`/`6260` exist. When they do, capture a
   sample of each file type into `docs/research/samples/` and resolve the §4.1 `[VERIFY]`.
-- **T-1 day:** scale the recorders and projectors to their final size, check the MSK cluster
-  health, set the Budget alarm, and write the "not started" pointer (status
-  `not_published`).
+- **T-1 day (Sat 10-24, 12:00 BRT):** switch the night stack on (`cdk deploy -c night=on`:
+  MSK + standby recorder + standby projector). MSK takes ~30 min to create
+  `[VERIFY: creation time in sa-east-1]`, and was already created once successfully on 10-22.
+  Check cluster health, switch the projector from S3 mode to Kafka mode, set the Budget alarm,
+  and write the "not started" pointer (status `not_published`). If MSK fails to come up, the
+  night runs in S3 mode, and nothing else changes.
+- **Mon 10-26, 12:00 BRT:** switch the night stack off (`cdk deploy -c night=off`). Stop the
+  primary recorder and projector on 10-27 after the final state is confirmed. The buckets and
+  CloudFront stay, and cost cents.
 - **Election day:** recording starts whenever the files appear (auto-discovery). Polls
   close at 17:00 BRT (`[VERIFY: unified closing time]`). Watch the dashboard from 16:30. Stop
   watching when every file is `final`. Keep recording until 2026-10-26 12:00 BRT.
@@ -720,7 +728,11 @@ metrics agent). Metrics:
 - **IaC: AWS CDK (TypeScript)** in `infra/`: VPC (public subnets for Fargate with public IPs,
   no NAT gateway; private subnets for MSK; S3 gateway endpoint), the two buckets, MSK,
   ECS cluster + services, CloudFront (OAC, Origin Shield sa-east-1, cache policies per path,
-  error TTL 0 on `/data/*`), Synthetics, alarms, SNS, Budget.
+  error TTL 0 on `/data/*`), canary Lambdas, alarms, SNS, Budget.
+- **The night stack is a switch, not a separate system:** a CDK context flag `night=on|off`
+  creates or deletes MSK and the two standby tasks. Everything that costs money by the hour
+  is behind it, except the one primary recorder and projector. Turning it on is tested on
+  10-15 (smoke test) and 10-22 (rehearsal) before it matters.
 - **CI** (GitHub Actions): lint, typecheck, unit + integration tests (testcontainers) on
   every push. On `main`: build ARM images to ECR, `cdk deploy`. The web app is built with
   `next build` (static export) and synced to the public bucket. Hashed assets go first, then
@@ -732,29 +744,63 @@ metrics agent). Metrics:
 
 ## 11. Hosting and cost (AWS, sa-east-1, paid from credits)
 
-Prices are AWS's published São Paulo rates (research 02 §7). "Window" = the full stack
-running 2026-10-15 → 2026-11-01 (17 days). Before 10-15 a smaller dev stack runs (1
-recorder, 1 projector, MSK can wait until Phase 2).
+**Principle: AWS bills per hour that something is switched on, used or not. So nothing runs
+before it has a job.** Only the recorder has a job weeks ahead (finding the 2nd-round files,
+and soaking against the real TSE). Kafka and the standbys only have a job on the rehearsal
+and the night. Development and integration tests run on local Docker (Redpanda + MinIO) at
+no cost.
 
-| Item | Rate | Window cost |
+Prices are AWS's published São Paulo rates (research 02 §7).
+
+### 11.1 What runs when
+
+| Resource | Size | Switched on | Hours | Cost |
+|---|---|---|---|---|
+| Recorder (primary) | Fargate ARM 0.25 vCPU / 0.5 GB ($0.017/h) | Sun 10-11 → Tue 10-27 | 384 | ≈ $6.50 |
+| Projector (primary) | Fargate ARM 0.5 vCPU / 1 GB ($0.034/h) | Sun 10-18 → Mon 10-26 (S3 mode until the night) | 192 | ≈ $6.50 |
+| Recorder + projector (standbys) | same sizes ($0.051/h together) | Sat 10-24 12:00 → Mon 10-26 12:00 | 48 | ≈ $2.50 |
+| **MSK smoke test** (auth, networking, client) | 3 × `kafka.t3.small` ($0.2208/h) | Thu 10-15, a few hours | ~4 | ≈ $1 |
+| **MSK rehearsal** | same | Thu 10-22, 08:00 → 23:00 | 15 | ≈ $3.30 |
+| **MSK election night** | same | Sat 10-24 12:00 → Mon 10-26 12:00 | 48 | ≈ $10.60 |
+| MSK storage | 3 × 10 GB at $0.19/GB-month, only while the cluster exists | — | — | < $1 |
+| Public IPv4 on tasks | $0.005/h each `[VERIFY: sa-east-1 rate]` | with the tasks | ~670 | ≈ $3.50 |
+| S3 (≤ 5 GB, ~100k PUTs) | — | always | — | < $3 |
+| CloudWatch Logs + metrics, canary Lambdas | `[VERIFY: sa-east-1 log ingestion rate]` | with the tasks | — | ≈ $3 |
+| k6 load generator (EC2, rehearsal week) | one instance, a few hours | 10-19 → 10-21 | ~6 | ≈ $1 |
+| **Total, everything except CloudFront** | | | | **≈ $40** |
+
+The election night itself (24 h with everything on) is about $7 of servers. Most of the
+remaining total is the recorder and projector running quietly for two weeks beforehand, and
+the rehearsal.
+
+If Kafka were dropped (S3 mode only), the total would be **≈ $25**. That is what the
+learning choice costs: ~$15.
+
+### 11.2 CloudFront: the only cost that grows with viewers
+
+It is billed **per request** ($0.022 per 10,000 HTTPS requests in South America, after 10 M
+free per month) and per GB ($0.110 after 1 TB free). Each viewer checks the pointer every
+20 s, so requests, not bytes, are what grow.
+
+| Peak concurrent viewers | Requests / data over a 5-hour night | Cost (pay-as-you-go) |
 |---|---|---|
-| MSK, 3 × `kafka.t3.small` | 3 × $0.0736/h | **≈ $90** |
-| MSK storage, 3 × 10 GB | $0.19/GB-month | ≈ $3 |
-| Fargate ARM: 2 recorders (0.5 vCPU, 1 GB) + 2 projectors (1 vCPU, 2 GB) | $0.0557/vCPU-h, $0.00612/GB-h | **≈ $83** |
-| Public IPv4 for 4 tasks | $0.005/h each `[VERIFY: sa-east-1 rate]` | ≈ $8 |
-| S3 (≤ 5 GB, ~100k PUTs) | — | < $3 |
-| CloudWatch Logs/metrics + Synthetics (2 canaries × 1/min for 4 days) | `[VERIFY: sa-east-1 rates]` | ≈ $15 |
-| **Fixed subtotal** | | **≈ $200** |
-| CloudFront, **5k** peak viewers (9 M req, 51 GB) | free tier 10 M req, 1 TB | **$0** |
-| CloudFront, **50k** peak (90 M req, 510 GB) | $0.022/10k req above 10 M; $0.110/GB above 1 TB | **≈ $176** |
-| CloudFront, **250k** peak (450 M req, 2.5 TB) | same | **≈ $1,130** |
+| 5,000 (realistic) | 9 M / 51 GB | **$0** (free tier) |
+| 50,000 (design peak, §2.3) | 90 M / 510 GB | ≈ $176 |
+| 250,000 (extreme) | 450 M / 2.5 TB | ≈ $1,130 |
 
-Levers if the credits are small: run MSK only from 10-15 to 10-27 (−$35); one projector
-instead of two (−$28); put the distribution on the **CloudFront flat-rate Pro plan ($15/month,
-no overage charges)**, though its 10 M-request allowance tolerates a 3× first spike and then
-"may adjust delivery", and whether credits pay for flat-rate plans is `[VERIFY]`. Raise the
-pointer interval to 30 s under load (−33% requests): this can be flipped remotely by a field
-in `latest.json` that clients obey.
+Two caps, both decided before the night:
+
+1. **Adaptive polling.** `latest.json` carries `pollSeconds` (default 20). If the canary or
+   CloudFront metrics show more than ~10k concurrent viewers, raise it to 45 s from the
+   runbook (one pointer write, no deploy). That roughly halves requests at the cost of up to
+   25 s more staleness, still within the TSE's own 60 s cache.
+2. **CloudFront flat-rate Pro plan ($15/month, no overage charges).** Its 10 M-request
+   allowance tolerates a first spike of 3×, and beyond that "delivery may be adjusted", not
+   billed. It turns the worst case into a fixed $15. `[VERIFY: whether AWS credits pay for
+   flat-rate plans, and that a plan works on the default *.cloudfront.net hostname]`.
+
+**Expected total for the election: ≈ $40, plus $0–15 for CloudFront with either cap in
+place.** An AWS Budget alarm at $60 emails the user if something is left switched on.
 
 ---
 
@@ -819,8 +865,9 @@ Paulo), self-managed Kafka/Redpanda on EC2 for the night (patching and broker re
 become our job on the one night that matters; moved to the lab), Kinesis (less transferable
 learning, no consumer-controlled offsets in the same way), SQS (no replay, no ordering
 across consumers), NATS JetStream (good, but the user's learning target is the Kafka model).
+MSK exists only for ~67 hours in total (smoke test, rehearsal, night; §11.1), about $15.
 `[VERIFY: AWS guidance on kafka.t3.small for production; fall back to kafka.m7g.large ×3
-(≈ $712/month) only if t3.small is unsuitable]`.
+($0.976/h, ≈ $65 for the same 67 hours) only if t3.small is unsuitable]`.
 
 **ADR-5 · No database.** State is ~10 MB, rebuildable in ~1 min, checkpointed to S3.
 *Rejected:* Postgres/DynamoDB. They'd be one more thing to fail, back up and pay for with
@@ -868,9 +915,9 @@ hosting, and the data origin needs AWS anyway).
 
 ## 15. Open questions for the user
 
-1. **How much AWS credit is available, and until when?** The window costs ≈ $200 fixed plus
-   $0–1,130 of CloudFront depending on the peak (§11). Do credits cover CloudFront
-   flat-rate plans?
+1. **How much AWS credit is available, and until when?** The plan costs ≈ $40 plus $0–15 of
+   CloudFront with the caps in §11.2 (uncapped, $176 at 50k peak viewers). Do credits cover
+   CloudFront flat-rate plans?
 2. **Can the replay harness serve coverage files with rows withheld** (every number real,
    but the files never existed as such), under the test-only conditions of §9.2? If not, the
    harness can only reveal whole files, and the change-detection path is first exercised

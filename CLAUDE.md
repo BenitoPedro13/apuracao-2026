@@ -49,17 +49,17 @@ verify against each tool's current docs before installing (§2.0).
 |---|---|---|
 | Monorepo | pnpm workspaces + Turborepo | `apps/{recorder,projector,fake-tse,web}`, `packages/{contracts,tse,views,config}`, `infra/` |
 | Language | TypeScript on Node 24, everywhere | ADR-2: IO-bound, shares Zod contracts with the web app |
-| Ingestion | `apps/recorder`, Fargate ARM ×2 in sa-east-1, S3-lease leader | fetches the TSE **`.jws`** (signed, payload = the `.json`), per-file `Expires` scheduling, ≤100 req/s |
+| Ingestion | `apps/recorder`, Fargate ARM in sa-east-1 (1 task from 10-11, + a standby 10-24 → 10-26), S3-lease leader | fetches the TSE **`.jws`** (signed, payload = the `.json`), per-file `Expires` scheduling, ≤100 req/s |
 | History / log | S3 `apuracao26-raw`: content-addressed blobs (`If-None-Match: *`), Object Lock, per-cycle observation segments | the source of truth (invariant 2) |
-| Broker | Amazon MSK, 3 × `kafka.t3.small`, topic `tse.observations.v1` (1 partition, RF 3) | **learning choice on the critical path** (user, 2026-10-07): never the only copy, S3 fallback mode, gate on 10-16 |
+| Broker | Amazon MSK, 3 × `kafka.t3.small`, topic `tse.observations.v1` (1 partition, RF 3) | **learning choice on the critical path** (user, 2026-10-07): never the only copy, S3 fallback mode, gate on 10-16. **Exists only when switched on** (CDK `night=on`: 10-15 smoke test, 10-22 rehearsal, 10-24 → 10-26); development uses local Redpanda |
 | Kafka client | `@confluentinc/kafka-javascript` | `kafkajs` rejected (unmaintained since 2023) |
 | Projections | `packages/views` (pure fold/render) run by `apps/projector`, Fargate ×2 | no database; state checkpointed to S3 |
 | Fan-out | S3 `apuracao26-pub` + CloudFront (`*.cloudfront.net`, Origin Shield) | immutable content-addressed views, manifest per `seq`, 5 s pointer polled every 20 s; no SSE |
 | Web | Next.js 16 static export, shadcn/ui, TanStack Query; map in Canvas 2D | frontend rules are in the user's global `~/.claude/CLAUDE.md` and apply unchanged |
 | Map geometry | IBGE Malha Municipal 2025 → mapshaper → TopoJSON (~330 KB gzip) | joins 5,571/5,571 on `cdi` |
 | Contracts | Zod 4 in `packages/contracts` | no non-TS services, so nothing to hand-mirror |
-| Infra | AWS CDK (TypeScript), GitHub Actions | sa-east-1; paid from the user's AWS credits |
-| Observability | CloudWatch EMF metrics, Synthetics canaries, SNS email/SMS | `architecture.md` §10 |
+| Infra | AWS CDK (TypeScript), GitHub Actions | sa-east-1; paid from the user's AWS credits; ≈ $40 total + $0–15 CloudFront (`architecture.md` §11). Nothing that bills by the hour runs before it has a job |
+| Observability | CloudWatch EMF metrics, canary Lambdas (every 1 min), SNS email/SMS | `architecture.md` §10 |
 | Analytics | Umami, cookieless, no ads | user decision 2026-10-07 |
 | Local / tests | docker compose + testcontainers: Redpanda (Kafka API), MinIO (S3 API) | real brokers/stores, never mocks |
 

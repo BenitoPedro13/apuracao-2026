@@ -24,14 +24,16 @@ Bolsonaro) plus governor in AC, AM, DF, ES, RJ, RN and TO. Anything not live and
 by then waits for post-election replay and analysis. Scope decisions are made against this
 date.
 
-**Status:** research phase. No app code yet. Read in this order:
+**Status:** architecture proposed (2026-10-07), awaiting the user's sign-off on its open
+questions. No app code yet. Read in this order:
 
-1. `docs/research/01-tse-results-feed.md`: the verified facts about the TSE feed (URLs,
-   file shapes, caching, rate limits, codes), with real captured files in
-   `docs/research/samples/`.
-2. `docs/architecture.md`: the system design. **Not written yet. Writing it is the next
-   task.**
-3. `docs/tasks/`: one task document per unit of work (§1).
+1. `docs/research/01-tse-results-feed.md` and `02-signatures-cache-and-map-mesh.md`: the
+   verified facts about the TSE feed (URLs, file shapes, caching, signed `.jws` siblings,
+   codes) and the IBGE map mesh, with real captured files in `docs/research/samples/`.
+2. `docs/architecture.md`: the system design (capacity numbers, components, storage keys,
+   contracts, failure modes, testing, cost, ADRs, open questions).
+3. `docs/tasks/TASK-implementation-plan.md`: the phased build order to 2026-10-25, the
+   must-have cut and the gates. Each phase gets its own task document (§1).
 
 **Hard constraint: every number shown traces back to a real TSE-published file.** No
 synthetic, simulated or interpolated vote counts, anywhere. A gap (an unrecorded period, a
@@ -40,19 +42,26 @@ fine. Fabricating a count is not.
 
 ### Stack
 
-**Undecided. Choosing it is part of `docs/architecture.md`.** Defaults to start from (and to
-justify or reject explicitly there, not adopt by reflex):
+Decided in `docs/architecture.md` (2026-10-07). Version numbers are a snapshot, not a pin:
+verify against each tool's current docs before installing (§2.0).
 
-| Layer | Default | Notes |
+| Layer | Choice | Notes |
 |---|---|---|
-| Monorepo | pnpm workspaces + Turborepo | same as `renewable-pulse` |
-| Ingestion | Go *or* TS | decide on merit, not habit |
-| History / log | append-only, immutable raw snapshots | the core of the system; see invariants |
-| Web | Next.js (App Router), shadcn/ui, TanStack Query | frontend rules are in the user's global `~/.claude/CLAUDE.md` and apply here unchanged |
-| Contracts | Zod in `packages/contracts` | any non-TS service hand-mirrors the shape |
-
-Version numbers are a snapshot, not a pin. Verify against each tool's current docs before
-installing (§2.0).
+| Monorepo | pnpm workspaces + Turborepo | `apps/{recorder,projector,fake-tse,web}`, `packages/{contracts,tse,views,config}`, `infra/` |
+| Language | TypeScript on Node 24, everywhere | ADR-2: IO-bound, shares Zod contracts with the web app |
+| Ingestion | `apps/recorder`, Fargate ARM ×2 in sa-east-1, S3-lease leader | fetches the TSE **`.jws`** (signed, payload = the `.json`), per-file `Expires` scheduling, ≤100 req/s |
+| History / log | S3 `apuracao26-raw`: content-addressed blobs (`If-None-Match: *`), Object Lock, per-cycle observation segments | the source of truth (invariant 2) |
+| Broker | Amazon MSK, 3 × `kafka.t3.small`, topic `tse.observations.v1` (1 partition, RF 3) | **learning choice on the critical path** (user, 2026-10-07): never the only copy, S3 fallback mode, gate on 10-16 |
+| Kafka client | `@confluentinc/kafka-javascript` | `kafkajs` rejected (unmaintained since 2023) |
+| Projections | `packages/views` (pure fold/render) run by `apps/projector`, Fargate ×2 | no database; state checkpointed to S3 |
+| Fan-out | S3 `apuracao26-pub` + CloudFront (`*.cloudfront.net`, Origin Shield) | immutable content-addressed views, manifest per `seq`, 5 s pointer polled every 20 s; no SSE |
+| Web | Next.js 16 static export, shadcn/ui, TanStack Query; map in Canvas 2D | frontend rules are in the user's global `~/.claude/CLAUDE.md` and apply unchanged |
+| Map geometry | IBGE Malha Municipal 2025 → mapshaper → TopoJSON (~330 KB gzip) | joins 5,571/5,571 on `cdi` |
+| Contracts | Zod 4 in `packages/contracts` | no non-TS services, so nothing to hand-mirror |
+| Infra | AWS CDK (TypeScript), GitHub Actions | sa-east-1; paid from the user's AWS credits |
+| Observability | CloudWatch EMF metrics, Synthetics canaries, SNS email/SMS | `architecture.md` §10 |
+| Analytics | Umami, cookieless, no ads | user decision 2026-10-07 |
+| Local / tests | docker compose + testcontainers: Redpanda (Kafka API), MinIO (S3 API) | real brokers/stores, never mocks |
 
 ### How to write in this repo
 
@@ -144,19 +153,21 @@ When unsure, grep for the thing you changed across these files.
 
 ## 4. Project conventions
 
-Monorepo (pnpm workspaces + Turborepo). The proposed layout, to be confirmed in
-`docs/architecture.md`:
+Monorepo (pnpm workspaces + Turborepo). The layout, as decided in `docs/architecture.md`:
 
 ```
 apps/
-  ingest/       poller: coverage-file diffing → conditional fetches → raw snapshot log
-  project/      builds projections (national/UF/municipality views, timeline) from the log
-  web/          Next.js dashboard
+  recorder/     poller: per-file Expires scheduling → .jws fetch + verify → S3 raw log → Kafka
+  projector/    folds observations (Kafka, or S3 in fallback/rebuild mode) → publishes views
+  fake-tse/     test harness: serves real captured files with TSE HTTP semantics, staged reveal
+  web/          Next.js dashboard (static export)
 packages/
-  contracts/    Zod schemas for TSE file shapes (parsed) and our published views
-  tse/          TSE URL builders, codes, string-number parsing; one place, no duplication
+  contracts/    Zod schemas for TSE file shapes (parsed), Observation, and our published views
+  tse/          TSE URL builders, codes, string-number parsing, .jws verification; one place
+  views/        pure fold/render functions shared by projector, rebuild and tests
   config/       shared tsconfig / eslint / prettier
-infra/          local stack (docker compose) + deployment
+infra/          AWS CDK app + docker compose (Redpanda, MinIO) for local runs
+scripts/        one-off captures, ops commands, k6 and Playwright perf scenarios
 docs/
   research/     verified facts + samples/ (real captured TSE files)
   tasks/        task documents (§1)
@@ -174,7 +185,7 @@ docs/
 
 ## TL;DR
 
-Research (`docs/research/`) → architecture (`docs/architecture.md`) → task doc
+Research (`docs/research/`) → architecture (`docs/architecture.md`, done) → task doc
 (`docs/tasks/TASK-<slug>.md`) → align → build with official generators → update docs →
 commit (no `Co-Authored-By`). **Never broken:** real TSE data only, raw snapshots immutable
 and replayable, idempotent ingestion, polite to the TSE, readers isolated from ingestion,

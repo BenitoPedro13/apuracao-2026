@@ -21,8 +21,10 @@ Sources: [Agência Brasil](https://agenciabrasil.ebc.com.br/politica/noticia/202
   nothing**, because the edge serves the cached copy.
 - **`ETag` + `If-None-Match` → `304 Not Modified` works.** Conditional GETs make "nothing
   changed" responses almost free.
-- `x-ratelimit-limit: 2000, 2000;w=1` (2,000 requests per 1-second window, presumably per
-  client IP) `[VERIFY: per-IP vs global; election-night limits may be stricter]`.
+- `x-ratelimit-limit: 2000, 2000;w=1` (2,000 requests per 1-second window). **Update
+  2026-10-07:** the `remaining` counter does not move with our requests, so this is the
+  origin's limit towards Akamai, not a per-client budget. The real client limit is unknown
+  (see `02-signatures-cache-and-map-mesh.md` §3).
 - `content-encoding: gzip` is supported. The national file is 9.3 KB raw, 2.4 KB gzipped.
 - The public TSE information pages on `www.tse.jus.br` return **403 to non-browser
   fetchers**. The data host does not.
@@ -51,8 +53,8 @@ aux  <base>/<ambiente>/<ciclo>/arquivo-urna/<cd_pleito>/dados/<uf>/<municipio>/<
 | Federal | `6257` | **`6258`** | Presidente (`c0001`) |
 | State | `6259` | **`6260`** | Governador (`c0003`), Senador, Dep. Federal, Dep. Estadual, Dep. Distrital |
 
-**2nd-round files (`6258`/`6260`) currently 404.** They will appear closer to the day.
-`[VERIFY: re-check from ~2026-10-20; confirm the same naming carries over]`
+**2nd-round files (`6258`/`6260`) currently 404** (re-checked 2026-10-07 13:00 UTC). They will appear closer to the day.
+`[VERIFY: re-check daily from 2026-10-20; confirm the same naming carries over]`
 
 ## 4. Data files (verified)
 
@@ -98,13 +100,16 @@ Shape notes (from `br-c0001-e006257-u.json`):
    except approximate per-municipality "finished at" times (`ht` in `-ab`) and whatever
    third parties archived `[VERIFY: Internet Archive / other public captures of 2026-10-04]`.
 4. **The IBGE code (`cdi`) is in the municipality index**, so joining with IBGE municipal
-   boundary meshes for the map is a straight key join `[VERIFY: IBGE malha municipal 2024/2025 download + simplification to TopoJSON]`.
+   boundary meshes for the map is a straight key join. **Verified 2026-10-07:** Malha Municipal 2025 joins 5,571/5,571; the
+   simplified TopoJSON is ~330 KB gzipped (`02-signatures-cache-and-map-mesh.md` §6).
 5. **Signatures.** The official app loads `assets/assinatura-jws/{key}.jwk.json`, which
-   suggests result files are JWS-signed and verifiable `[VERIFY: where the signature lives
-   and how to verify it — worth doing, because it makes "this number came from the TSE" provable]`.
+   suggests result files are JWS-signed and verifiable. **Verified 2026-10-07:** every `.json`
+   has a `.jws` sibling (EdDSA/Ed25519, compact, embedded payload byte-identical to the
+   `.json`), and the signatures verify (`02-signatures-cache-and-map-mesh.md` §2).
 6. **Test environment.** The TSE documents a simulated environment
    `https://resultados-sim.tse.jus.br/simulado` (`simulado2026`, pleito `17801`), but its
-   **DNS did not resolve on 2026-10-07** `[VERIFY: whether it comes up before the 2nd round]`.
+   **DNS did not resolve on 2026-10-07**, and the homologation host `resultados-hmg` resolves
+   to `127.0.0.1` `[VERIFY: re-check weekly whether it comes up before the 2nd round]`.
    Until then, a harness that **replays real captured 1st-round files** is the test bed.
 7. **After the count:** per-section ballot-box data (`arquivo-urna/…`, boletins de urna)
    and the open-data portal (`dadosabertos.tse.jus.br`, dataset `resultados-2026`) are the

@@ -1,0 +1,20 @@
+HTTP/2 200 
+accept-ranges: bytes
+last-modified: Mon, 05 Oct 2026 15:52:12 GMT
+etag: "2da19dbacd44746287f057d454ed01f0"
+x-amz-request-id: tx0000075f17e43ab6d0ce1-006ac3c7b0-3e22ffd-default
+x-ratelimit-limit: 2000, 2000;w=1
+x-ratelimit-remaining: 1927
+x-ratelimit-reset: 1
+content-encoding: gzip
+content-length: 2461
+cache-control: max-age=56
+expires: Wed, 07 Oct 2026 13:09:05 GMT
+date: Wed, 07 Oct 2026 13:08:09 GMT
+vary: Accept-Encoding
+alt-svc: h3=":443"; ma=93600
+content-type: application/json
+strict-transport-security: max-age=63072000 ; includeSubDomains ; preload
+akamai-grn: 0.32ffda17.1791378489.199f6692
+cdn-cache-status: Miss from child
+

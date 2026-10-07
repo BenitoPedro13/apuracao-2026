@@ -1,5 +1,7 @@
 # Handoff prompt: architecture plan
 
+> **Done 2026-10-07:** produced `docs/architecture.md` and `docs/tasks/TASK-implementation-plan.md`. Kept for the record.
+
 Paste the prompt below into a new Claude Code session opened in this folder
 (`~/Documents/personal/apuracao-2026`).
 

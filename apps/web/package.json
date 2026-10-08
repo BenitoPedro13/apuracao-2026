@@ -9,7 +9,11 @@
     "build": "next build",
     "check-types": "next typegen && tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "test:e2e": "playwright test",
+    "serve-data": "node e2e/serve.ts ../../.replay/real/pub 3001",
+    "perf:build": "NEXT_PUBLIC_DATA_BASE_URL=http://127.0.0.1:3001 next build && rm -rf .perf && mv out .perf && next build",
+    "test:perf": "playwright test -c playwright.perf.config.ts"
   },
   "dependencies": {
     "@apuracao/contracts": "workspace:*",

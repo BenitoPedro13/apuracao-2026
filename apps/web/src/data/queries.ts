@@ -41,13 +41,23 @@ export const pointerQuery = () =>
     queryFn: async ({ signal, client }): Promise<PointerSnapshot> => {
       const url = dataUrl(POINTER_KEY);
       const localNow = Date.now();
-      const { bytes, serverDate } = await fetchBytes(url, signal);
+      // "no-cache": always revalidate (a 304 when unchanged). The pointer's
+      // stale-while-revalidate=30 would otherwise hand every poll the previous copy.
+      const { bytes, serverDate } = await fetchBytes(url, signal, "no-cache");
       const next = { pointer: parseJson(url, bytes, LatestPointer), serverNow: serverDate ?? localNow, localNow };
       return newerPointer(client.getQueryData<PointerSnapshot>(["pointer"]), next);
     },
+    // Readers never refetch on their own: exactly one observer polls (pointerPollingQuery),
+    // since every observer with an interval runs its own timer and staggered timers don't dedupe.
+    staleTime: Infinity,
+  });
+
+/** The single poller: every `pollSeconds`, paused while the tab is hidden, at once when it's back. */
+export const pointerPollingQuery = () =>
+  queryOptions({
+    ...pointerQuery(),
     staleTime: 0,
     refetchInterval: (query) => (query.state.data?.pointer.pollSeconds ?? DEFAULT_POLL_SECONDS) * 1000,
-    // Paused while the tab is hidden; refetched as soon as it's visible again.
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
   });

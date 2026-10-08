@@ -1,7 +1,7 @@
 "use client";
 
 import type { MunicipalityView, ResultStatus, TsePct } from "@apuracao/contracts";
-import { ABROAD } from "@apuracao/tse";
+import { ABROAD } from "@apuracao/tse/codes";
 import { byVotes, hasNumbers } from "@/data/rules";
 import { AREAS, areaName } from "@/lib/places";
 import { useMunicipalities, useResults, type ViewState } from "./use-data";

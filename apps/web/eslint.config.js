@@ -31,5 +31,5 @@ export default [
   nextPlugin.configs["core-web-vitals"],
   reactHooks.configs.flat["recommended-latest"] ?? reactHooks.configs.flat.recommended,
   jsxA11y.flatConfigs.strict,
-  { ignores: [".next/**", "out/**", "next-env.d.ts"] },
+  { ignores: [".next/**", "out/**", ".perf/**", "test-results/**", "playwright-report/**", "next-env.d.ts"] },
 ];

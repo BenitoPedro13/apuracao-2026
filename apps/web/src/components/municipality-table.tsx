@@ -5,13 +5,12 @@ import { DataTable, type DataColumn } from "@/components/data-table";
 import { LeaderCell, leaderPct } from "@/components/leader-cell";
 import { UnitStatus } from "@/components/unit-status";
 import { ViewError } from "@/components/view-error";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMunicipalityRows, type MunicipalityRowView } from "@/hooks/use-rows";
 import { useSelectedUf, useShowExterior } from "@/hooks/use-url-state";
 import { pctNumber } from "@/lib/format";
 import { AREAS, areaName } from "@/lib/places";
-import { ABROAD } from "@apuracao/tse";
+import { ABROAD } from "@apuracao/tse/codes";
 
 const COLUMNS: DataColumn<MunicipalityRowView>[] = [
   {
@@ -66,18 +65,18 @@ export function MunicipalityTable() {
           <label htmlFor="mun-uf" className="text-sm font-medium">
             Estado
           </label>
-          <Select value={uf} onValueChange={setUf}>
-            <SelectTrigger id="mun-uf" className="w-56">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {areas.map((a) => (
-                <SelectItem key={a} value={a}>
-                  {areaName(a)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <select
+            id="mun-uf"
+            value={uf}
+            onChange={(e) => setUf(e.target.value)}
+            className="h-8 w-56 rounded-md border border-input bg-background px-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            {areas.map((a) => (
+              <option key={a} value={a}>
+                {areaName(a)}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="flex flex-col gap-1">
           <label htmlFor="mun-search" className="text-sm font-medium">

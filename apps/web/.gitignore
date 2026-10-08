@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# perf build and Playwright output
+/.perf/
+/test-results/
+/playwright-report/

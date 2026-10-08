@@ -11,8 +11,10 @@ The 1st round's final results are public at
 `https://apuracao26-pub-860897618882.s3.sa-east-1.amazonaws.com/data/v1/latest.json`
 (plan B, S3 over HTTPS until CloudFront is verified: `docs/tasks/TASK-public-cdn.md` §8).
 fake-tse replays the 1st round's real files on an accelerated clock, for end-to-end runs
-before the night (`docs/tasks/TASK-fake-tse.md`). Next: the public CDN and the Kafka log
-(Phase 2).
+before the night (`docs/tasks/TASK-fake-tse.md`). The web app (`apps/web`, Next.js static
+export) shows the night's panels from those views: headline, UF and municipality tables,
+regions, status and freshness (`docs/tasks/TASK-web-shell-and-data-hooks.md`); the map is
+next (`TASK-map.md`).
 **Deadline:** 2nd round, Sunday 2026-10-25.
 
 - What we know about the data: [`docs/research/01-tse-results-feed.md`](docs/research/01-tse-results-feed.md),
@@ -50,7 +52,20 @@ The replay's rebuilt coverage files are signed with a throwaway test key that on
 recorder/projector given `TSE_TEST_JWK_URL` trusts, and both refuse to start with it against
 a production bucket.
 
-Layout: `apps/{recorder,projector,fake-tse}`, `packages/{contracts,tse,views,s3kit,config}`,
+The web app:
+
+```sh
+pnpm dev                                           # http://localhost:3000, reading the live bucket
+pnpm --filter @apuracao/web serve-data             # .replay/real/pub on :3001, then
+NEXT_PUBLIC_DATA_BASE_URL=http://127.0.0.1:3001 pnpm dev   # …the same page on local real data
+pnpm --filter @apuracao/web build                  # → apps/web/out (static export)
+pnpm --filter @apuracao/web test:e2e               # Playwright on the build: TSE numbers, polling, states, axe, keyboard
+pnpm --filter @apuracao/web perf:build && pnpm --filter @apuracao/web test:perf   # Fast 4G + 4× CPU, median of 3
+node scripts/deploy-web.ts [--dry-run]             # upload out/ to the public bucket (never data/, never deletes)
+node scripts/publish-epochs.ts --epoch 1t-final --label "1º turno" [--dry-run]   # the round selector's index
+```
+
+Layout: `apps/{recorder,projector,fake-tse,web}`, `packages/{contracts,tse,views,s3kit,config}`,
 `infra/` (AWS CDK app: see [`infra/README.md`](infra/README.md)). Environment variables
 are listed in [`.env.example`](.env.example).
 

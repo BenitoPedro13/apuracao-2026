@@ -1,6 +1,6 @@
 "use client";
 
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Button } from "@/components/ui/button";
 import { useSelectedRound } from "@/hooks/use-data";
 
 /** "1º turno" / "2º turno": only the rounds the epochs index lists (§2.3). */
@@ -8,20 +8,19 @@ export function RoundSelector() {
   const { rounds, selected, select } = useSelectedRound();
   if (rounds.length < 2 || !selected) return null;
   return (
-    <ToggleGroup
-      type="single"
-      variant="outline"
-      size="sm"
-      aria-label="Turno"
-      value={selected.epoch}
-      onValueChange={(epoch) => epoch && select(epoch)}
-    >
+    <div role="group" aria-label="Turno" className="flex gap-1">
       {rounds.map((r) => (
-        <ToggleGroupItem key={r.epoch} value={r.epoch}>
+        <Button
+          key={r.epoch}
+          variant={r.epoch === selected.epoch ? "secondary" : "outline"}
+          size="sm"
+          aria-pressed={r.epoch === selected.epoch}
+          onClick={() => select(r.epoch)}
+        >
           {r.label}
           {r.live && rounds.some((o) => !o.live) ? " (atual)" : ""}
-        </ToggleGroupItem>
+        </Button>
       ))}
-    </ToggleGroup>
+    </div>
   );
 }

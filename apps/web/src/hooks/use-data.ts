@@ -10,15 +10,21 @@ import {
   type Office,
 } from "@apuracao/contracts";
 import type { z } from "zod";
-import { epochsQuery, manifestQuery, pointerQuery, viewQuery } from "@/data/queries";
+import { epochsQuery, manifestQuery, pointerPollingQuery, pointerQuery, viewQuery } from "@/data/queries";
 import { resolveRounds } from "@/data/rules";
 import { useRoundParam } from "./use-url-state";
 
 // Every data access goes through these hooks (global frontend rules). The chain is
 // pointer → round → manifest → view; TanStack keeps the last good data on any error.
 
+/** Reads the pointer from the cache; the fetching is usePointerPolling's job. */
 export function usePointer() {
   return useQuery(pointerQuery());
+}
+
+/** Mounted once, in the providers: the only observer that polls the pointer. */
+export function usePointerPolling() {
+  useQuery(pointerPollingQuery());
 }
 
 /** The rounds offered and the one shown (TASK-web-shell-and-data-hooks.md §2.3). */

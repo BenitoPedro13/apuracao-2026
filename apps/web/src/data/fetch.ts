@@ -29,10 +29,10 @@ export interface Fetched {
   serverDate: number | null;
 }
 
-export async function fetchBytes(url: string, signal?: AbortSignal): Promise<Fetched> {
+export async function fetchBytes(url: string, signal?: AbortSignal, cache?: RequestCache): Promise<Fetched> {
   let res: Response;
   try {
-    res = await fetch(url, { signal });
+    res = await fetch(url, { signal, cache });
   } catch (e) {
     if (signal?.aborted) throw e;
     throw new DataError("network", url, `falha de rede: ${(e as Error).message}`);

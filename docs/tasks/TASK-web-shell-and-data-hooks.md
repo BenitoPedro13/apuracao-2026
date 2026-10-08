@@ -29,8 +29,8 @@ accessible even before the map lands.
   **TypeScript 7:** `next build` type-checks with the project-local `tsc` CLI by default in
   16.4 (the TS 7 JS compiler API doesn't exist), labelled experimental; our own
   `check-types` task (`tsc --noEmit`) stays the gate. `eslint-config-next` may pull
-  typescript-eslint, which doesn't support TS 7 (`CLAUDE.md` toolchain quirks)
-  `[VERIFY at scaffold]`.
+  typescript-eslint, which doesn't support TS 7 (`CLAUDE.md` toolchain quirks): confirmed
+  at scaffold (it depends on `typescript-eslint ^8.56`, peer TS `<6.1.0`), so it isn't used (§6).
 
 ## 2. Planned changes
 
@@ -43,8 +43,10 @@ accessible even before the map lands.
 - `next.config.ts`: `output: 'export'`, `images: { unoptimized: true }`,
   `reactCompiler: true` (stable in 16; it does the memoization the global rules forbid us
   from hand-writing), `trailingSlash: false` (one route, `/`).
-- `pnpm dlx shadcn@latest init`, then only the components used: `tabs`, `toggle-group`,
-  `tooltip`, `table`, `select`, `button`, `badge`, `skeleton`. Tables: TanStack Table.
+- `pnpm dlx shadcn@latest init`, then only the components used. As built: `table`,
+  `button`, `skeleton`; the UF picker is a native `<select>` and the toggles are buttons
+  with `aria-pressed` (the plainest accessible element, and −35 KB gzip of Radix; §6).
+  Tables: TanStack Table v9.
 - `pt-BR` everywhere (`<html lang="pt-BR">`, `Intl.NumberFormat('pt-BR')`); dark and
   light themes from the system preference, both meeting AA contrast.
 
@@ -114,7 +116,9 @@ updates feed, governor views.
 ### 2.5 Deploy (`scripts/deploy-web.ts`)
 
 `next build` → `out/` → the public bucket: hashed `_next/static/**` first
-(`immutable`), then HTML (`max-age=60`), never touching `data/`. **No `--delete` at the
+(`immutable`), then HTML (`max-age=60`), never touching `data/`. Text is uploaded gzipped
+with `Content-Encoding: gzip` (S3 doesn't compress; uncompressed, the JS alone took 4.3 s
+on the throttled profile). **No `--delete` at the
 bucket root** (it would remove the published data). Plan B entry:
 `…/index.html`. Umami: the user's account, a new site `[VERIFY: script URL and that it
 runs from an S3/cloudfront.net host]`.
@@ -167,3 +171,65 @@ $0 to host (the bucket already exists).
    is interactive ≤ 2.5 s; first-load JS ≤ 150 KB gzipped excluding the map's chunk.
 7. Deploy: `…/index.html` loads from the bucket, `_next/static` objects are `immutable`,
    and `data/v1/latest.json` is unchanged by the deploy (same ETag before and after).
+
+## 6. Outcome (2026-10-08)
+
+Built in three commits (`abea501` scaffold, `4a0035f` data layer and panels, then this
+one). What changed from the plan, and the measurements:
+
+- **Lint:** `eslint-config-next` replaced by its plugins (`@next/next` core-web-vitals,
+  `react-hooks`, `jsx-a11y` strict) on the Babel base; a probe file confirmed all three
+  fire under ESLint 10. The shared config had a latent bug: Babel resolved its preset from
+  each package's cwd, which only worked through hoisting; it now resolves by path.
+- **Polling, two bugs found by the e2e test:** (1) every `useQuery` observer with a
+  `refetchInterval` runs its own timer, and staggered timers don't dedupe: one poller
+  (`usePointerPolling`, mounted once) now owns the interval and readers use the cache;
+  (2) the pointer's `stale-while-revalidate=30` made each poll return the *previous* copy
+  (a browser revalidation followed 40 ms later), so updates arrived one poll late: the
+  pointer is fetched with `cache: "no-cache"` (a 304 when unchanged). TanStack restarts
+  the interval when a response lands, so the period is 20 s from each response.
+- **Freshness** is measured on `refreshedAt` and `health.recorderSeenAt` (the pipeline's
+  heartbeats, since a quiet TSE makes no new `seq`), on the server's clock plus local
+  elapsed time, and is never amber/red for a `final` national result or a past round
+  (otherwise the 1st round's final, with the projector off, would show red forever).
+- **Missing ≠ zero:** numbers show for `counting`, `final`, and `fetch_failed` with its last
+  good file (dimmed); never for `no_sections` or `not_published`. Missing values sort last
+  in every table; an exact municipal tie shows "Empate".
+- **Shared code:** `viewKey`/`manifestKey`/`POINTER_KEY` moved from the projector to
+  `contracts`; `EpochsIndex` + `EPOCHS_KEY` added; `@apuracao/tse/codes` subpath export.
+- **Not done here:** Umami (`[VERIFY]` stays); candidate photos (initials, §2.6); writing
+  `epochs.json` and the first deploy to the bucket (both scripts dry-run clean: `epochs.json`
+  would list `1t-final` at seq 11,387 with the pointer's manifest hash; the deploy would put
+  25 immutable + 12 short-lived objects, nothing under `data/`, pointer ETag unchanged).
+
+### Verification results (§5)
+
+1. `pnpm turbo run lint check-types test build`: green. Web unit tests 13/13 (Vitest on the
+   real views in `apps/web/test/real/`), contracts 37/37.
+2. Playwright against the live bucket: Lula 45,16% / 53.879.538, Flávio Bolsonaro 47,03% /
+   56.104.503, valid votes and turnout, and all 28 UF rows (leader, TSE %, sections) equal
+   their views. ✓
+3. `latest.json` 20,018–20,024 ms from each response to the next request with the tab
+   visible, 0 requests in 45 s hidden; a tampered view (one digit changed) is rejected with
+   the error state and its number never appears. ✓
+4. A real replay manifest (national `not_published`) with the pointer 4 and 11 min old:
+   "Aguardando dados do TSE", "Atualização atrasada" / "Atualização interrompida", no
+   "votos" anywhere; a 403 on the national view shows its error, no "%". ✓
+5. axe (WCAG 2.0/2.1/2.2 A+AA tags): **0 violations**, light and dark; a Tab walk reaches
+   every control, Enter on "Acre: ver municípios" lists its 22 municipalities;
+   `prefers-reduced-motion` sets transitions to 0.01 ms. ✓
+6. DevTools "Fast 4G" (165 ms, 9 Mbps ×0.9, from its source) + 4× CPU, loopback data,
+   cold cache, 3 runs: national headline **1,743–2,000 ms** median (two runs of the suite),
+   UF table complete 2,158–2,445 ms. ✓ **First-load JS: 253 KB gzip, over the 150 KB
+   target** ✗: React DOM + the Next 16 runtime are ~174 KB of it before any of our code
+   (unchanged since the empty scaffold); ours is ~79 KB (TanStack Query + Table, Zod, the
+   app), after removing Radix Select/Toggle/ToggleGroup (−35 KB) and the TSE time-zone table
+   (−20 KB). The 150 KB target was set without a measurement; proposed: ≤ 260 KB total,
+   ≤ 80 KB ours, with the 2.5 s budget above as the real gate. **Needs the user's call.**
+7. Deploy: dry run only (above); the live check waits for the go-ahead.
+
+Observed from this machine (NL, 0.23–1.2 s connect to sa-east-1): plan B's S3 endpoint is
+HTTP/1.1 (6 connections), so the 33 views of a cold load take ~6 serial rounds, ~11 s here.
+For viewers in Brazil it's a fraction of that, but two follow-ups would cut it everywhere:
+CloudFront (`cdn=on`, HTTP/2), and a single `states/president` summary view in the
+projector to replace the UF table's 28 requests.

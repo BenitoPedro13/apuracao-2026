@@ -453,10 +453,11 @@ object already carries the `Cache-Control` below and the policy honours it from 
 
 | Path | Cache-Control | Content |
 |---|---|---|
-| `/`, `/_next/…` | HTML `max-age=60`; hashed assets `max-age=31536000, immutable` | Next.js static export |
+| `/`, `/_next/…` | HTML `max-age=60`; hashed assets `max-age=31536000, immutable` | Next.js static export, uploaded by `scripts/deploy-web.ts` with text gzipped (`Content-Encoding: gzip`; S3 doesn't compress) |
 | `/data/v1/latest.json` | `public, max-age=5, s-maxage=5, stale-while-revalidate=30, stale-if-error=86400` | the **pointer**: `{epoch, seq, manifest: sha256, publishedAt, refreshedAt, tse: {generatedAt, totalizedAt}, health: {recorderSeenAt, mode: "kafka"|"s3"}, pollSeconds}`, rewritten every 60 s even without a new `seq` so a quiet TSE doesn't look like a dead pipeline (as built: `TASK-projector-and-views.md` §2.4 item 9) (`pollSeconds` lets the runbook slow every client down without a deploy, §11.2) |
 | `/data/v1/{epoch}/m/{seq:012d}.json` | `max-age=31536000, immutable` | **manifest**: hashes of every view at this `seq`, plus the timeline and feed chunk hashes |
 | `/data/v1/o/{sha256}.json` | `max-age=31536000, immutable` | a **view** (content-addressed, gzip/brotli by CloudFront) |
+| `/data/v1/epochs.json` | `public, max-age=300` | the round selector's index: every epoch the site offers (label, elections, its fixed final manifest; `null` for the live one), so a past round stays reachable after the pointer moves on. Written by `scripts/publish-epochs.ts` (as built: `TASK-web-shell-and-data-hooks.md` §2.3) |
 | `/data/v1/{epoch}/index.json` | `max-age=30` | list of `seq`s with `tseTotalizedAt` (for the scrubber's track); also rebuilt as immutable chunks |
 | `/data/v1/geo/br-mun-2025.{sha8}.topo.json` | `immutable` | the map geometry (~330 KB gzip) |
 | `/data/v1/raw/{sha256}.jws` (nice-to-have) | `immutable` | the signed TSE source of a view, so anyone can verify it (§7.3) |
@@ -490,9 +491,15 @@ A governor map frame is deferred to `TASK-map.md`.
   (`useNationalResult()`, `useMapFrame(seq)`).
 - **Replay = URL state**: `?seq=…` selects a manifest. A replay link is shareable and
   served entirely from cache.
-- **Status is always visible:** "Atualizado às hh:mm:ss (TSE: hh:mm:ss)", turning amber
+- **Status is always visible:** "Atualizado às hh:mm (TSE: dd/mm, hh:mm)", turning amber
   after 3 min without a new `seq` and red after 10 min, with the reason from
-  `pointer.health`.
+  `pointer.health`. As built (`TASK-web-shell-and-data-hooks.md` §6): measured on the
+  pointer's `refreshedAt` and `health.recorderSeenAt` (the pipeline's heartbeats, since a
+  quiet TSE produces no new `seq`), on the server's clock (the `Date` header when same-origin)
+  plus local elapsed time; never amber/red once the national result is `final` or for a past
+  round. The pointer is fetched with `cache: "no-cache"`: its `stale-while-revalidate=30`
+  would otherwise hand every poll the previous copy. One observer polls; every other reader
+  uses the cache.
 - Analytics: **cookieless page counts (Umami)**, no ads, no consent banner needed
   `[VERIFY: reuse the user's existing Umami setup; Umami script on a cloudfront.net host]`.
 

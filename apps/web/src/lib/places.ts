@@ -1,4 +1,4 @@
-import { ABROAD, UFS } from "@apuracao/tse";
+import { ABROAD, UFS } from "@apuracao/tse/codes";
 
 // Names of the 27 UFs (IBGE) and abroad, for labels only; codes come from @apuracao/tse.
 

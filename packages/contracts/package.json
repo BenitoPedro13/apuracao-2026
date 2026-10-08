@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "description": "Zod schemas: TSE file shapes, Observation, published views",
   "type": "module",
+  "sideEffects": false,
   "private": true,
   "exports": {
     ".": {

@@ -3,11 +3,16 @@
   "version": "0.0.0",
   "description": "TSE URL builders, codes, string-number parsing, .jws verification",
   "type": "module",
+  "sideEffects": false,
   "private": true,
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./codes": {
+      "types": "./dist/codes.d.ts",
+      "default": "./dist/codes.js"
     },
     "./keys/prod.jwk.json": "./keys/prod.jwk.json"
   },

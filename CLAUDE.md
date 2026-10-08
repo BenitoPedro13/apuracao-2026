@@ -27,7 +27,9 @@ date.
 **Status (2026-10-08):** Phase 0 and Phase 1 are done. **The recorder is live on AWS**
 (`TASK-recorder.md` §6): it captured all 11,443 1st-round files, soaks against the TSE CDN,
 and will discover the 2nd round by itself. Next: Phase 2, starting with
-`docs/tasks/TASK-projector-and-views.md`. Read in this order:
+`docs/tasks/TASK-projector-and-views.md`. **The web app** (`apps/web`) shows the night's
+panels from the published views (`TASK-web-shell-and-data-hooks.md`, 2026-10-08); the map is
+`TASK-map.md`. Read in this order:
 
 1. `docs/research/01-tse-results-feed.md` and `02-signatures-cache-and-map-mesh.md`: the
    verified facts about the TSE feed (URLs, file shapes, caching, signed `.jws` siblings,
@@ -79,6 +81,13 @@ verify against each tool's current docs before installing (§2.0).
   scripts need an `allowBuilds` entry in `pnpm-workspace.yaml` (only `esbuild` today).
 - **Task names:** `build`, `lint`, `check-types` (the generator's name), `test`. Run all of
   them with `pnpm turbo run lint check-types test build`.
+- **Next.js + TS 7 lint (2026-10-08):** `eslint-config-next` pulls typescript-eslint, so
+  `apps/web` doesn't use it; it applies `@next/eslint-plugin-next`, `react-hooks` and
+  `jsx-a11y` (strict) on the Babel-parsed base config. Babel presets are resolved by path
+  from the config package (`import.meta.resolve`), never by name from the cwd. `next build`
+  type-checks with the `tsc` CLI (experimental `useTypeScriptCli`); `check-types` stays the gate.
+- **Browser bundles:** import `@apuracao/tse/codes`, not `@apuracao/tse` (its index pulls the
+  5,757-entry time-zone table). `contracts` and `tse` are `sideEffects: false`.
 
 ### How to write in this repo
 

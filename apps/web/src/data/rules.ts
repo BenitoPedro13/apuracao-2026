@@ -1,5 +1,5 @@
 import type { EpochsIndex, LatestPointer, ResultStatus, ResultView } from "@apuracao/contracts";
-import { ELECTIONS } from "@apuracao/tse";
+import { ELECTIONS } from "@apuracao/tse/codes";
 import type { ManifestRef, PointerSnapshot } from "./queries";
 
 // Business rules, once (global frontend rules: hooks carry them, components don't).

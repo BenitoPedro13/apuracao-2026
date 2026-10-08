@@ -41,6 +41,9 @@ and will discover the 2nd round by itself. Next: Phase 2, starting with
 synthetic, simulated or interpolated vote counts, anywhere. A gap (an unrecorded period, a
 failed fetch) is shown as missing, never smoothed over. Replaying real captured files is
 fine. Fabricating a count is not.
+Sums of real TSE records are fine when labelled as ours: a timeline of "boletins recebidos
+até hh:mm" summed from the TSE's published BU files (research 03) is accepted (user,
+2026-10-08), always labelled as BU receipts, never as the TSE's live count at that time.
 
 ### Stack
 

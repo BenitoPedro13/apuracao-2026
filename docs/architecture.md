@@ -1002,3 +1002,8 @@ All eight answered by the user on 2026-10-07.
 7. **Off-cloud third recorder: yes, as nice-to-have #10** (user, 2026-10-07). It writes only to its own local
    raw log and never to `apuracao26-raw`.
 8. **Public `.jws` mirror: yes** (nice-to-have #8, "verify this number").
+9. **Timelines from the TSE's BU files: yes, labelled** (user, 2026-10-08). The 1st round's
+   night (and 2022's) can be rebuilt by summing each section's published BU at its
+   `DT_BU_RECEBIDO` (research 03). Every number is a TSE record; the curve is labelled
+   "boletins recebidos até hh:mm", never presented as the TSE's live count. Enables the
+   2nd-round vs 1st-round (and vs 2022) comparison (`TASK-bu-timelines.md`, should-have).

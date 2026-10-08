@@ -8,7 +8,8 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    }
+    },
+    "./keys/prod.jwk.json": "./keys/prod.jwk.json"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
@@ -22,5 +23,13 @@
     "eslint": "10.9.1",
     "typescript": "7.0.2",
     "vitest": "5.0.3"
-  }
+  },
+  "dependencies": {
+    "@apuracao/contracts": "workspace:*",
+    "zod": "^4.6.5"
+  },
+  "files": [
+    "dist",
+    "keys"
+  ]
 }

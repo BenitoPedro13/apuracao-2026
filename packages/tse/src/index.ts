@@ -1,2 +1,4 @@
-// TSE URL builders, codes, string-number parsing, .jws verification
-export const packageName = "@apuracao/tse";
+export * from './codes.js';
+export * from './paths.js';
+export * from './jws.js';
+export * from './parse.js';

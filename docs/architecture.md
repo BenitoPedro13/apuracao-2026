@@ -487,7 +487,9 @@ absorbs any multiple of traffic.
     sorting/colour only. **Displayed percentages are the TSE's own strings** (`pvap`,
     `pst`, `pc`) reformatted for pt-BR, so we never show 47.02% where the TSE shows 47,03%.
   - Derived quantities (gap in votes, margin) are computed from integers. Shown percentages
-    we compute ourselves (regions, the margin colour scale) are labelled "calculado".
+    we compute ourselves (regions, the margin colour scale) are labelled "calculado" and use
+    **`vvc` as the denominator**, as the TSE's `pvap` does (research 02 §8), so they agree
+    with the official figures when a candidacy is sub judice.
   - Dates: `dd/mm/yyyy` + `hh:mm:ss` → ISO 8601 with `-03:00` (Brasília, no DST).
 - A schema failure never drops data: the raw blob is stored. The version is excluded from
   views, and we page.
@@ -525,7 +527,10 @@ A zero is a number inside `counting`/`final`. A missing value is never rendered 
 - Checks run on every publish and emit metrics; they never block a publish:
   1. Σ UF + `zz` per candidate vs `br` (same `dt/ht` only).
   2. Σ municipalities of a UF vs the UF file (same `dt/ht` only).
-  3. `vv = Σ candidates`, `tv = vv + vb + tvn`, and `st ≤ ts` inside each file.
+  3. Inside each file (identities verified on the samples, research 02 §8): `vvc = vv + van +
+     vansj`; Σ candidates = `vvc`; Σ candidates with `dvt = "Válido"` = `vv`; `tv = vvc + vb +
+     tvn`; `tvn = vn + vnt`; `st ≤ ts`. (`vv = Σ candidates` is **wrong** whenever a candidacy
+     is sub judice.)
 - **During the count**, files are generated at different instants, so cross-file sums
   legitimately differ. Drift is a metric, and alerts fire only if a mismatch persists for
   10 min between files with equal `dt/ht`. **When final**, check 1 must be exact, and any
@@ -563,8 +568,9 @@ TseInt, TseDecimal, TseDate, TseTime   // the string-number primitives (§7.1)
 Observation = {
   v: 1, kind: 'version' | 'absent' | 'error' | 'recovered',
   path: string,                    // 'ele2026/6258/dados/sp/sp71072-c0001-e006258-u.jws'
-  election: '6258' | '6260', fileType: 'u' | 'ab' | 'cm' | 'c',
-  scope: { level: 'br' | 'uf' | 'mu' | 'zz', uf?: string, mu?: string },
+  election?: '6257' | '6258' | '6259' | '6260',  // absent only for the catalog (ele-c)
+  fileType: 'u' | 'ab' | 'cm' | 'c',
+  scope?: { level: 'br' | 'uf' | 'mu' | 'zz', uf?: string, mu?: string },  // absent for cm and c
   sha256?: string, bytes?: number, etag?: string,
   idg?: string, tseGeneratedAt?: string, tseTotalizedAt?: string,
   sig?: 'valid' | 'invalid', kid?: string, schema?: 'ok' | 'failed',

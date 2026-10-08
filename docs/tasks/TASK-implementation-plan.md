@@ -124,7 +124,7 @@ Per phase, the exact proof (each phase's own task doc refines it):
 
 | Phase | Command / observation |
 |---|---|
-| 0 | `pnpm turbo run lint check-types test build` green; the `packages/tse` test verifies all four captured `.jws` and rejects a one-byte-flipped copy; the contracts parse every file in `docs/research/samples/` |
+| 0 | `pnpm turbo run lint check-types test build` green; the `packages/tse` test verifies every captured `.jws` (9) and rejects a one-byte-flipped copy; the contracts parse every file in `docs/research/samples/` |
 | 1 | after the first week, AWS Cost Explorer shows ≤ $5 spent; `aws s3 ls s3://apuracao26-raw/raw/v1/sha256/ --recursive \| wc -l` ≈ 12k after the capture; CloudWatch shows `tse_requests_total` ≤ 100/s and no request before `Expires`; killing the lease holder (`aws ecs stop-task`) → new lease generation in ≤ 30 s, no gap in obs segments |
 | 2 | the replay at ×20 through fake-tse: zero lost versions; publish lag p95 ≤ 15 s; `rebuild --source s3` ≤ 5 min and byte-identical to live; pointer reachable at `https://dXXXX.cloudfront.net/data/v1/latest.json` with the expected headers |
 | 3 | Playwright: map first draw ≤ 50 ms, recolour ≤ 16 ms (4× throttle, median of 5); axe-core zero violations; every result reachable by keyboard via the table |

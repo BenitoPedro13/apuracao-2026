@@ -1,5 +1,7 @@
 # TASK: Contracts and TSE parsing (Phase 0, part 2)
 
+**Status (2026-10-07): done.** Outcome and deviations are in §6.
+
 Phase 0 of `TASK-implementation-plan.md`, must be done by **Thu 2026-10-08**. Part 1 was
 `TASK-scaffold-monorepo.md` (done).
 
@@ -173,3 +175,29 @@ files in `docs/research/samples/`:
    and unknown shapes.
 7. **Time:** `tseInstant("05/10/2026","12:51:05")` = `"2026-10-05T12:51:05-03:00"`.
 8. **Politeness:** the capture script made exactly 7 requests, verified from its own log line.
+
+## 6. Outcome and deviations (2026-10-07)
+
+`pnpm turbo run lint check-types test build`: 28/28 tasks pass. `contracts` has 32 tests and
+`tse` has 52, all reading `docs/research/samples/`. Test inputs include
+`$TURBO_ROOT$/docs/research/samples/**`, so a changed sample re-runs the tests (checked).
+
+- **Capture:** 7 requests, all 200. All 7 payloads are byte-identical to the saved `.json`,
+  so no `<idg>` variants were needed. The script runs with plain `node` (Node 24 strips
+  types), so there's no `scripts/package.json`. The root `package.json` is now
+  `"type": "module"`.
+- **Finding: sub judice votes** (research 02 §8). The planned identity
+  `vv = Σ candidates`, `tv = vv + vb + tvn` fails on the RJ governor file. The verified ones
+  are `vvc = vv + van + vansj`, Σ candidates = `vvc`, Σ valid candidates = `vv`,
+  `tv = vvc + vb + tvn`, `tvn = vn + vnt`. The TSE's `pvap` is over `vvc`. The tests assert
+  these identities on all 4 result samples, and `architecture.md` §7.1/§7.4 are corrected.
+- **`Observation.election` and `.scope` are optional** (architecture.md §8 updated). The
+  catalog has no election, and the index and the catalog have no scope.
+- **Coverage-row `dt`/`ht` accept `""` → `null`**, defensively, with a `[VERIFY]` on the
+  first 2nd-round `-ab` files. Every 1st-round row is final and filled, so the samples
+  can't show the not-started case.
+- **Result-file `cand.pvap` stays strict.** If a not-yet-counted candidate has `""` on the
+  night, the file fails its schema: the raw blob is kept and we get paged
+  (`architecture.md` §7.1). The first 2nd-round files, published before counting starts,
+  will show which case applies.
+

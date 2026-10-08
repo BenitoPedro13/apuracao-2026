@@ -1,6 +1,7 @@
 {
   "name": "apuracao-2026",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "turbo run build",
     "lint": "turbo run lint",

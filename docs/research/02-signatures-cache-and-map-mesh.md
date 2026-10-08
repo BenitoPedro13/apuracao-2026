@@ -38,6 +38,10 @@ path ending in `.json` to `.jws`, fetches that as text, and verifies it with
   signature is **valid** for `br-c0001-e006257-u.jws`, `br-e006257-ab.jws`,
   `comum/config/ele-c.jws` and `config/mun-e006257-cm.jws`, and in all four the decoded
   payload is **byte-identical** to the corresponding `.json`.
+- **2026-10-07 23:5x BRT:** the `.jws` siblings of the other 7 saved `.json` samples were
+  captured (`scripts/capture-samples.ts`, 7 sequential GETs). All 7 payloads are
+  byte-identical to the saved `.json`, and all 9 `.jws` in `samples/` verify with the pinned
+  key (`packages/tse` tests).
 - Also present for municipal and governor files: `sp/sp71072-c0001-e006257-u.jws`,
   `rj/rj60011-c0003-e006259-u.jws`, `rj/rj-e006259-ab.jws` all 200.
 - Size cost: base64url adds ~35% (`br-c0001` 9,349 B → 12,640 B raw; ~3.8 KB gzipped on the
@@ -138,3 +142,26 @@ together (sample 10 pairs every 5 min during the count)]`.
 | Cloudflare R2 public `r2.dev` is "rate-limited and should only be used for development"; custom domains need a Cloudflare zone | [R2 public buckets](https://developers.cloudflare.com/r2/buckets/public-buckets/) |
 | Vercel Hobby is "restricted to non-commercial personal use only"; 100 GB Fast Data Transfer | [Vercel fair use](https://vercel.com/docs/limits/fair-use-guidelines) |
 | Library versions on npm (2026-10-07): `next` 16.4.0, `zod` 4.6.5, `@confluentinc/kafka-javascript` 1.10.1 (updated 2026-09-10), `kafkajs` 2.2.4 (**last published 2023-02**), `@aws-sdk/client-s3` 3.1147.0, `jose` 6.2.12, `mapshaper` 0.7.80, `topojson-client` 3.1.0, `d3-geo` 3.1.1 | `npm view` |
+
+## 8. Vote totals and sub judice candidacies (verified 2026-10-07, from the samples)
+
+Found while testing `packages/contracts` against the RJ governor file
+(`samples/ele2026_6259_dados_rj_rj-c0003-e006259-u.json`). Garotinho has
+`dvt: "Anulado sub judice"` and 274,411 votes. Those votes are **not** in `vv`.
+
+| Identity | RJ governor | National president |
+|---|---|---|
+| `vvc = vv + van + vansj` | 8,669,038 = 8,394,627 + 0 + 274,411 | 119,300,788 = 119,300,788 + 0 + 0 |
+| Σ all `cand.vap` = `vvc` | 8,669,038 | 119,300,788 |
+| Σ `cand.vap` with `dvt = "Válido"` = `vv` | 8,394,627 | 119,300,788 |
+| `tv = vvc + vb + tvn` | 9,845,867 | 125,275,835 |
+| `tvn = vn + vnt` | 675,292 | 3,674,249 |
+
+- **`pvap` is computed over `vvc`, not `vv`:** Douglas Ruas has 4,271,199 / 8,669,038 =
+  49.27% (the file says `"49,27"`). Over `vv` it would be 50.88%.
+- Consequence: any percentage we compute ourselves uses `vvc` as its denominator, and the
+  reconciliation identities are the ones above, not `vv = Σ candidates`
+  (`architecture.md` §7.1, §7.4).
+- `[VERIFY: meaning of van ("anulado", 0 in every sample) and vnt; the TSE's EA spec PDFs,
+  research 01 §6]`
+

@@ -4,8 +4,9 @@ A live vote-count dashboard for Brazil's 2026 elections, built on the TSE's offi
 feed. It records every published version of every file, so the count can be replayed
 minute by minute.
 
-**Status:** monorepo scaffolded (2026-10-07); the packages are empty shells. Next: Phase 0
-part 2, contracts and TSE parsing. CDK is bootstrapped in sa-east-1, and the budget alarms are live.
+**Status:** Phase 0 is done (2026-10-07): monorepo, TSE file schemas, path builders and
+`.jws` signature verification, all tested against real captured files. Next: Phase 1, the
+recorder. CDK is bootstrapped in sa-east-1, and the budget alarms are live.
 **Deadline:** 2nd round, Sunday 2026-10-25.
 
 - What we know about the data: [`docs/research/01-tse-results-feed.md`](docs/research/01-tse-results-feed.md),

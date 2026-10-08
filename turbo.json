@@ -32,6 +32,10 @@
     "test": {
       "dependsOn": [
         "^build"
+      ],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/docs/research/samples/**"
       ]
     }
   }

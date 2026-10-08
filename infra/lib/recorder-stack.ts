@@ -25,6 +25,9 @@ export interface RecorderStackProps extends cdk.StackProps {
  * old and new tasks briefly; the S3 lease makes that harmless.
  */
 export class RecorderStack extends cdk.Stack {
+  /** Shared with the projector (TASK-public-cdn.md §2.2). */
+  readonly cluster: ecs.Cluster;
+
   constructor(scope: Construct, id: string, props: RecorderStackProps) {
     super(scope, id, props);
 
@@ -35,6 +38,7 @@ export class RecorderStack extends cdk.Stack {
       gatewayEndpoints: { S3: { service: ec2.GatewayVpcEndpointAwsService.S3 } },
     });
     const cluster = new ecs.Cluster(this, 'Cluster', { vpc, containerInsightsV2: ecs.ContainerInsights.DISABLED });
+    this.cluster = cluster;
 
     const task = new ecs.FargateTaskDefinition(this, 'Task', {
       cpu: 256,

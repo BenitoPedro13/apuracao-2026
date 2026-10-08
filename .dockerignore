@@ -6,3 +6,6 @@
 docs
 infra
 .env*
+# Local data: the 1st-round export and replay runs (scripts/), never in an image
+.capture
+.replay

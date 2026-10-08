@@ -436,14 +436,20 @@ absorbs any multiple of traffic.
    collapses edges into one origin request. Clients also add 0–3 s jitter before fetching a
    new manifest.
 5. **Never let an error be cached.** Objects are uploaded before anything references them,
-   so a 404 for a referenced object is a bug. Error caching TTL on `/data/*` is set to 0 so a
-   transient error is never cached for 10 s.
+   so a 404 for a referenced object is a bug. Error caching TTL is set to 0 so a
+   transient error is never cached for 10 s. (CloudFront sets it per distribution, not per
+   path, so it's 0 for the whole site: `TASK-public-cdn.md` §2.1.)
 6. **The scrubber needs a cheap series, not 300 map downloads.** The chart and the scrubber
    positions come from timeline chunks (a few KB). The map for an older `seq` is fetched
    only when the scrubber rests on it (debounced 250 ms), and the neighbours are prefetched.
    Delta packs for smooth map animation are a nice-to-have (TASK plan, phase 6).
 
-### 6.2 Public layout (`apuracao26-pub`, behind CloudFront)
+### 6.2 Public layout (`apuracao26-pub-<account>`, behind CloudFront)
+
+As built (`TASK-public-cdn.md`): the bucket is `apuracao26-pub-<account>` (S3 names are
+global), and one managed cache policy (`CachingOptimized`) serves every path, because each
+object already carries the `Cache-Control` below and the policy honours it from 1 s up.
+
 
 | Path | Cache-Control | Content |
 |---|---|---|
@@ -767,8 +773,9 @@ do the same for ~$10 more, and was dropped for cost.
 
 - **IaC: AWS CDK (TypeScript)** in `infra/`: VPC (public subnets for Fargate with public IPs,
   no NAT gateway; private subnets for MSK; S3 gateway endpoint), the two buckets, MSK,
-  ECS cluster + services, CloudFront (OAC, Origin Shield sa-east-1, cache policies per path,
-  error TTL 0 on `/data/*`), canary Lambdas, alarms, SNS, Budget.
+  ECS cluster + services, CloudFront (OAC, Origin Shield sa-east-1, Price Class All (the only
+  one with South American edges), `CachingOptimized`, error TTL 0), canary Lambdas,
+  alarms, SNS, Budget.
 - **The night stack is a switch, not a separate system:** a CDK context flag `night=on|off`
   creates or deletes MSK and the two standby tasks. Everything that costs money by the hour
   is behind it, except the one primary recorder and projector. Turning it on is tested on
@@ -846,10 +853,13 @@ pre-pay for. The cost of an unexpected spike is bounded by:
    10 M allowance with 3× spike tolerance covers ~30 M requests. Beyond that, delivery
    degrades instead of being billed. It's not bought up front, because at the expected
    audience it would buy nothing.
-   `[VERIFY before 10-15: whether AWS credits pay for flat-rate plans; whether a plan can be
-   attached to an existing distribution mid-month and how long that takes; that it works on
-   the default *.cloudfront.net hostname. If it can't be attached quickly, attach it on
-   10-24 instead: $15 for certainty.]`
+   Checked 2026-10-08 (`TASK-public-cdn.md` §2.5): an existing distribution can subscribe,
+   and an upgrade is immediate and prorated, but a paid plan **requires a WAF web ACL on
+   the distribution** (bundled in the plan) and lists Origin Shield as Premium-only, so
+   subscribing is a distribution update that takes minutes to propagate.
+   `[VERIFY before 10-15: whether AWS credits pay for flat-rate plans; whether Pro accepts
+   Origin Shield; that it works on the default *.cloudfront.net hostname. If it can't be
+   attached quickly, attach it on 10-24 instead: $15 for certainty.]`
 
 **Expected total for the election: ≈ $40, with CloudFront at $0 at the expected audience.**
 AWS Budget alarms at $60 and $85 (of the $100 credit, §15) email the user if something is

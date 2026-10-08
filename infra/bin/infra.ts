@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import * as cdk from 'aws-cdk-lib/core';
 import { BudgetStack } from '../lib/budget-stack';
+import { ProjectorStack } from '../lib/projector-stack';
+import { PublicStack } from '../lib/public-stack';
 import { RawStack } from '../lib/raw-stack';
 import { RecorderStack } from '../lib/recorder-stack';
 
@@ -19,4 +21,18 @@ if (!alertEmail) {
 
 new BudgetStack(app, 'BudgetStack', { env, alertEmail });
 const raw = new RawStack(app, 'RawStack', { env });
-new RecorderStack(app, 'RecorderStack', { env, rawBucket: raw.bucket, alertEmail, rateMax: 10 });
+const recorder = new RecorderStack(app, 'RecorderStack', { env, rawBucket: raw.bucket, alertEmail, rateMax: 10 });
+const pub = new PublicStack(app, 'PublicStack', { env });
+// The projector runs only when switched on (-c projector=on): from 10-18 for the night, on
+// the 2nd round under epoch 2t-1, promoted over the 1st-round seed when 6258 appears
+// (TASK-public-cdn.md §6).
+new ProjectorStack(app, 'ProjectorStack', {
+  env,
+  rawBucket: raw.bucket,
+  pubBucket: pub.bucket,
+  cluster: recorder.cluster,
+  elections: app.node.tryGetContext('elections') ?? 'president=6258,governor=6260',
+  epoch: app.node.tryGetContext('epoch') ?? '2t-1',
+  promote: app.node.tryGetContext('promote') === 'true',
+  running: app.node.tryGetContext('projector') === 'on',
+});

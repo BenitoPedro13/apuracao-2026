@@ -4,6 +4,12 @@
   "description": "Folds observations (Kafka or S3) and publishes immutable views",
   "type": "module",
   "private": true,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/main.js",

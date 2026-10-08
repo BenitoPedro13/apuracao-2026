@@ -3,7 +3,7 @@ import { gunzipSync, gzipSync } from 'node:zlib';
 import { GetObjectCommand, ListObjectsV2Command, PutObjectCommand, type S3Client } from '@aws-sdk/client-s3';
 import { Manifest, type LatestPointer, type Observation } from '@apuracao/contracts';
 import { Lease, PROJECTOR_LEASE_KEY } from '@apuracao/s3kit';
-import { importKeys, resultPath, OFFICES, type Keyring, type TseJwk } from '@apuracao/tse';
+import { fetchJwk, importKeys, resultPath, OFFICES, type Keyring, type TseJwk } from '@apuracao/tse';
 import pinnedKey from '@apuracao/tse/keys/prod.jwk.json' with { type: 'json' };
 import {
   buildManifest,
@@ -87,6 +87,11 @@ export function createProjector(deps: ProjectorDeps) {
     for (const o of res.Contents ?? []) {
       const body = await s3.send(new GetObjectCommand({ Bucket: config.RAW_BUCKET, Key: o.Key! }));
       jwks.push(JSON.parse(await body.Body!.transformToString()) as TseJwk);
+    }
+    if (config.TSE_TEST_JWK_URL) {
+      const jwk = await fetchJwk(config.TSE_TEST_JWK_URL);
+      jwks.push(jwk);
+      log({ msg: 'test key trusted (replay)', kid: jwk.kid, level: 'warn' });
     }
     keys = await importKeys(jwks);
   }

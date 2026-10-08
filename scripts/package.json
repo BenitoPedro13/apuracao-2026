@@ -1,0 +1,28 @@
+{
+  "name": "@apuracao/scripts",
+  "version": "0.0.0",
+  "description": "One-off captures and ops commands, run with node directly (type stripping)",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0",
+    "export-capture": "node export-capture.ts",
+    "replay": "node replay.ts"
+  },
+  "devDependencies": {
+    "@apuracao/config": "workspace:*",
+    "@types/node": "26.4.1",
+    "eslint": "10.9.1",
+    "typescript": "7.0.2"
+  },
+  "dependencies": {
+    "@apuracao/contracts": "workspace:*",
+    "@apuracao/fake-tse": "workspace:*",
+    "@apuracao/projector": "workspace:*",
+    "@apuracao/recorder": "workspace:*",
+    "@apuracao/tse": "workspace:*",
+    "@apuracao/views": "workspace:*",
+    "@aws-sdk/client-s3": "^3.1147.0"
+  }
+}

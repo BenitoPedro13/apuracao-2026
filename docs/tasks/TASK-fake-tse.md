@@ -46,18 +46,27 @@ and the raw bucket stays the source. Prints file counts per group, which must eq
 A pure function `snapshot(capture, tReal) → Map<path, bytes>`: what the TSE was serving at
 real instant `tReal` (Brasília time on 2026-10-04), given only final files.
 
-- **Municipal `-u` files** appear at their own `ht` (the `dt`/`ht` of the file, which equals
-  its row in the UF `-ab`), byte-identical, with the TSE's signature. 404 before.
-- **Aggregate `-u` files** (br, UF, zz) appear at their own final `ht`, byte-identical. So
-  the national headline is `not_published` until the end of the replay. That's the truth
-  about what we hold; **nothing is interpolated** (invariant 1).
+- **Municipal `-u` files** appear at their **row's `dt/ht` in their UF's `-ab`** (the
+  instant the TSE said that municipality was totalized), byte-identical, with the TSE's
+  signature. 404 before. *Changed while building:* the plan said "at their own `ht`, which
+  equals the row", but it doesn't always: `sp71072`'s final file says 05/10 12:51:05 (a
+  re-totalization the next day) while its row says 04/10 21:50:33. A file with no row instant
+  (the 41 abroad cities with no votes) appears with its coverage file's final version.
+- **Aggregate `-u` files** (br, UF, zz) appear at their own final `dt/ht` (`dg/hg` when
+  empty), byte-identical. So the national headline is `not_published` until the end of the
+  replay. That's the truth about what we hold; **nothing is interpolated** (invariant 1).
 - **Coverage `-ab` files** are rebuilt at each reveal step from the final file: rows with
   `ht ≤ tReal` are kept verbatim, later rows are **removed**, not zeroed (a zero would be an
-  invented number). The header's `dg`/`hg` become `tReal`; `idg` becomes
+  invented number). Served from the replay's start (with no rows at first). The header's
+  `dg`/`hg` become the instant of the latest revealed row (not `tReal`: the bytes must stay
+  the same between reveals, or every poll would be a new version); `idg` becomes
   `finalIdg − 1_000_000 + step`, so it increases per step and stays below the real final
-  `idg`, which is served unmodified once `tReal ≥` the file's own `hg`. The br `-ab`'s
-  `munf/munpt/munnr` are recomputed by counting the revealed rows of each UF, and the
-  municipality rows' `s`/`e` blocks are left verbatim.
+  `idg`, which is served unmodified once `tReal ≥` the file's own `hg`.
+  *Changed while building:* the br `-ab` follows the same rule (a UF row appears verbatim at
+  its own `ht`, i.e. when that UF is complete). The plan said to recompute `munf/munpt/munnr`
+  per UF, but the same row also carries `pmunf/pmunpt/pmunnr` and the UF's `s`/`e` totals,
+  and the 1st-round files can't tell partial from not started: a recomputed `munpt = 0`
+  would be a number the TSE never published, inside a row that otherwise claims to be real.
 - **Signing:** rebuilt coverage files can't carry the TSE's signature. fake-tse generates an
   **ephemeral Ed25519 test key** at start (`kid` `fake-tse-<random>`), signs them with it,
   and serves its public JWK at `/oficial/app/assets/assinatura-jws/test.jwk.json`. Real
@@ -69,13 +78,24 @@ real instant `tReal` (Brasília time on 2026-10-04), given only final files.
 
 Clock: `tReal = replayStart + (now − startedAt) × speed`, default `replayStart` 2026-10-04
 17:00 BRT (polls close) and `speed` 20 (17:00 → 01:00 in 24 min). `POST /_control/clock`
-sets `speed` or pauses, for tests.
+sets `speed`, pauses, or jumps to an instant, for tests. *Added while building:* a quiet
+stretch between consecutive events longer than 10 replay minutes is cut to 10 minutes
+(`--max-gap-min`). Without it the replay would end at 01:00 and never reach MA's last
+municipality (01:56), the abroad aggregate (09:19) or the final br files (12:51 the next
+day), which the "final views equal the real log" check needs. `GET /_control/state` and
+`GET /_control/log?from=n` let an out-of-process harness follow the replay.
 
 ### 2.3 TSE semantics kept from v0
 
 `Expires`/`max-age`, `ETag`, 304, gzip, the request log with `early`. A file's ETag changes
 whenever its served bytes change. The edge window (`maxAgeSeconds`) is in **replay** seconds
-divided by `speed`, so at ×20 the 60 s TSE window is 3 s of wall time.
+divided by `speed`, so at ×20 the 60 s TSE window is 3 s of wall time (rounded to whole
+seconds, like `Expires` itself: a sub-second phase truncates to an earlier header and makes
+a polite client look early). Like the real edge, a window serves what the origin had when
+it opened. A 404 carries `max-age` and no `Expires`, as in v0
+`[VERIFY: the TSE edge's 404 headers on the night]`. The log adds `sha256`, the reveal
+`version` (`final`, `step-k`, `+badsig`) and `tReal` to each entry. Without `reveal`,
+fake-tse behaves exactly as v0 (the recorder's and projector's integration tests use that).
 
 ### 2.4 Faults (`apps/fake-tse/src/faults.ts`)
 
@@ -91,9 +111,16 @@ Configured at start or via `POST /_control/faults`, all seeded (reproducible):
 ### 2.5 Harness (`apps/fake-tse/src/main.ts`, `scripts/replay.ts`)
 
 `node apps/fake-tse/dist/main.js --capture .capture/ele2026-1t --speed 20 --port 8080` runs
-the server. `scripts/replay.ts` runs a whole replay locally (docker compose RustFS, fake-tse,
-recorder, projector to a directory), then prints the §9.2 numbers: lost versions, early
-requests, peak rate, publish lag p50/p95.
+the server (`--static` for v0, `--faults '<json>'`). `scripts/replay.ts` runs a whole replay
+locally (docker compose RustFS, then fake-tse, recorder and projector **each as its own
+process**, as in production), waits for the replay to end and the pipeline to go quiet,
+runs `projector rebuild` on the same raw log, then prints the §9.2 numbers: lost versions,
+early requests, peak rate, publish lag p50/p95, rebuild = live, and (with `--real <dir>`)
+the national view against the real-log rebuild. Only the recorder's TSE-facing timings are
+divided by the speed (probe and absent retries, jitter); the pipeline's own (flush 5 s, tail
+2 s, debounce 2–10 s) stay at production values, so publish lag is in wall seconds under
+20× the night's event rate. `scripts/` became a workspace package so both scripts are
+type-checked and linted.
 
 ### 2.6 Alternatives considered and rejected
 
@@ -120,12 +147,17 @@ Cost: ~1.5 days. AWS: one export of ~11.4k GETs ≈ $0.005.
 | File | Change type | Notes |
 |---|---|---|
 | `scripts/export-capture.ts` | new | §2.1 |
-| `.gitignore` | edit | `.capture/` |
-| `apps/fake-tse/src/{reveal,faults,sign,server,main}.ts` (+ tests) | new/edit | §2.2–2.5 |
-| `apps/recorder/src/config.ts`, `recorder.ts` | edit | `TSE_TEST_JWK_URL`, refused on the production bucket |
-| `apps/projector/src/config.ts`, `projector.ts` | edit | the same |
 | `scripts/replay.ts` | new | §2.5 |
-| `.env.example`, `README.md`, `docs/architecture.md` §9.2 | edit | variables, how to run a replay, the `idg` rule for rebuilt files |
+| `scripts/{package,tsconfig}.json`, `scripts/eslint.config.js`, `pnpm-workspace.yaml` | new/edit | `scripts/` is a workspace package (type-checked, linted) |
+| `.gitignore` | edit | `.capture/`, `.replay/` |
+| `apps/fake-tse/src/{reveal,faults,sign,server,main,index}.ts` (+ `reveal.test.ts`, `replay.test.ts`) | new/edit | §2.2–2.5 |
+| `apps/fake-tse/package.json` | edit | depends on `@apuracao/tse`, `@apuracao/contracts` |
+| `packages/s3kit/src/production.ts` | new | `refuseTestKeyInProduction`: raw **and** public production buckets |
+| `packages/tse/src/jws.ts` | edit | `fetchJwk` |
+| `apps/recorder/src/config.ts`, `recorder.ts` (+ test) | edit | `TSE_TEST_JWK_URL`, refused on the production bucket, never persisted to `meta/keys/` |
+| `apps/projector/src/config.ts`, `projector.ts` (+ test) | edit | the same; also refused with `PUB_BUCKET=apuracao26-pub` |
+| `apps/projector/package.json`, `src/index.ts` | edit | `exports`, and `blobKey`/`BlobReader`/`mapLimit` exported for the scripts |
+| `.env.example`, `README.md`, `docs/architecture.md` §9.2, `docs/research/02-…` §9 | edit | variables, how to run a replay, the `idg` rule, the `-u` vs row instant finding |
 
 ## 5. Verification
 
@@ -148,3 +180,25 @@ Cost: ~1.5 days. AWS: one export of ~11.4k GETs ≈ $0.005.
      §5 item 3);
    - publish lag (observation `fetchedAt` → pointer `refreshedAt` naming that `seq`) p95
      ≤ 15 s.
+
+## 6. Outcome (2026-10-08)
+
+1. **Done.** `pnpm turbo run lint check-types test build`: 34/34 tasks green. fake-tse has
+   20 tests on the real samples (`reveal.test.ts`, `replay.test.ts`, `server.test.ts`):
+   absent before the row instant and byte-identical after; rebuilt `-ab` rows exactly
+   `ht ≤ tReal` and verbatim (277 SP rows at 19:00:00); `idg` per step below the final; the
+   original file from its own `hg`; test key valid, TSE key `invalid`; 429 + `Retry-After`,
+   regression to `idg − 1`, corrupted signature; clock pause/jump/done. The recorder and
+   projector refuse `TSE_TEST_JWK_URL` with `apuracao26-raw-860897618882` (and the projector
+   with `PUB_BUCKET=apuracao26-pub`), tested on `loadConfig`, which `main.js` calls at start.
+   The recorder's and projector's integration tests (fake-tse without `reveal`) still pass.
+   - Found while building: a sub-second `Expires` phase made the polite recorder look early
+     (the header truncates to the second). Phases and windows are whole seconds now.
+2. **Pending: `aws login` has expired.** `node scripts/export-capture.ts` is written and
+   type-checked, not yet run.
+3. **Smoke only so far.** On the 21 samples at ×200 (`--capture docs/research/samples
+   --speed 200`, 2.4 min, 1 run): 0 lost versions, 0 early requests, 0 query strings, peak
+   166 req/s in one second (burst allowance 200), busiest 60 s 99.4 req/s, publish lag p50
+   6.7 s / p95 8.4 s, rebuild = live on every view. The full ×20 replay on the export, 3
+   runs with medians, and the national view against the real-log rebuild
+   (`TASK-projector-and-views.md` §5 item 3, also waiting on `aws login`) are pending.

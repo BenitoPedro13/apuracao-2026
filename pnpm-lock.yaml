@@ -19,6 +19,13 @@ importers:
         version: 7.0.2
 
   apps/fake-tse:
+    dependencies:
+      '@apuracao/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@apuracao/tse':
+        specifier: workspace:*
+        version: link:../../packages/tse
     devDependencies:
       '@apuracao/config':
         specifier: workspace:*
@@ -279,6 +286,43 @@ importers:
       vitest:
         specifier: 5.0.3
         version: 5.0.3(@types/node@26.4.1)(vite@8.3.3(@types/node@26.4.1)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
+
+  scripts:
+    dependencies:
+      '@apuracao/contracts':
+        specifier: workspace:*
+        version: link:../packages/contracts
+      '@apuracao/fake-tse':
+        specifier: workspace:*
+        version: link:../apps/fake-tse
+      '@apuracao/projector':
+        specifier: workspace:*
+        version: link:../apps/projector
+      '@apuracao/recorder':
+        specifier: workspace:*
+        version: link:../apps/recorder
+      '@apuracao/tse':
+        specifier: workspace:*
+        version: link:../packages/tse
+      '@apuracao/views':
+        specifier: workspace:*
+        version: link:../packages/views
+      '@aws-sdk/client-s3':
+        specifier: ^3.1147.0
+        version: 3.1147.0
+    devDependencies:
+      '@apuracao/config':
+        specifier: workspace:*
+        version: link:../packages/config
+      '@types/node':
+        specifier: 26.4.1
+        version: 26.4.1
+      eslint:
+        specifier: 10.9.1
+        version: 10.9.1
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
 
 packages:
 

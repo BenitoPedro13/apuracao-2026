@@ -1,6 +1,6 @@
 import type { S3Client } from '@aws-sdk/client-s3';
 import type { Observation, TseCoverageFile } from '@apuracao/contracts';
-import { catalogPath, importKeys, parsePath, type Area, type TseJwk } from '@apuracao/tse';
+import { catalogPath, fetchJwk, importKeys, parsePath, type Area, type TseJwk } from '@apuracao/tse';
 import pinnedKey from '@apuracao/tse/keys/prod.jwk.json' with { type: 'json' };
 import { Lease, RECORDER_LEASE_KEY } from '@apuracao/s3kit';
 import { backoffMs, Budget } from './budget.js';
@@ -390,6 +390,13 @@ export function createRecorder(deps: RecorderDeps) {
   return {
     async start(): Promise<void> {
       for (const [k, v] of await importKeys([pinnedKey as TseJwk])) keys.set(k, v);
+      if (config.TSE_TEST_JWK_URL) {
+        // Replays only (TASK-fake-tse.md §2.2): never persisted to meta/keys/, so nothing
+        // reading the raw log later trusts it unless told to.
+        const jwk = await fetchJwk(config.TSE_TEST_JWK_URL);
+        for (const [k, v] of await importKeys([jwk])) keys.set(k, v);
+        log({ msg: 'test key trusted (replay)', kid: jwk.kid, level: 'warn' });
+      }
       await lease.start();
       running = true;
       timers.push(setInterval(() => void flush(), config.FLUSH_MS));

@@ -1,4 +1,5 @@
 import { hostname } from 'node:os';
+import { refuseTestKeyInProduction } from '@apuracao/s3kit';
 import { ELECTION_CODES, GOVERNOR_RUNOFF_UFS, UFS, type Election } from '@apuracao/tse';
 import { z } from 'zod';
 
@@ -35,6 +36,8 @@ const Env = z.object({
   BLOB_CONCURRENCY: z.coerce.number().int().positive().default(32),
   BLOB_CACHE_MB: z.coerce.number().positive().default(200),
   POLL_SECONDS: z.coerce.number().int().positive().default(20),
+  /** fake-tse's test key (replays only). Refused with a production raw or public bucket. */
+  TSE_TEST_JWK_URL: z.url().optional(),
   LEASE_TTL_MS: z.coerce.number().int().positive().default(30_000),
   LEASE_RENEW_MS: z.coerce.number().int().positive().default(10_000),
 });
@@ -48,6 +51,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     : c.ELECTIONS.governor === '6260'
       ? [...GOVERNOR_RUNOFF_UFS]
       : [...UFS];
+  refuseTestKeyInProduction(c.TSE_TEST_JWK_URL, { RAW_BUCKET: c.RAW_BUCKET, PUB_BUCKET: c.PUB_BUCKET });
   for (const uf of governorUfs) if (!(UFS as readonly string[]).includes(uf)) throw new Error(`GOVERNOR_UFS: unknown UF ${uf}`);
   return { ...c, governorUfs };
 }

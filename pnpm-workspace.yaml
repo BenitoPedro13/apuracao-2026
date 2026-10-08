@@ -2,6 +2,7 @@ packages:
   - "apps/*"
   - "packages/*"
   - "infra"
+  - "scripts"
 
 # pnpm 11 blocks dependency build scripts by default; every entry is a deliberate decision.
 allowBuilds:

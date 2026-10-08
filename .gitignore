@@ -46,3 +46,7 @@ cdk.out
 
 # Local data captures (never committed; real samples live in docs/research/samples/)
 /data/
+
+# fake-tse capture (scripts/export-capture.ts, ~600 MB of TSE files) and replay runs
+/.capture/
+/.replay/

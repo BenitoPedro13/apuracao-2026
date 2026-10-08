@@ -30,3 +30,10 @@ test('config: ELECTIONS is required; governor UFs follow the election', () => {
   expect(loadConfig({ RAW_BUCKET: 'raw', ELECTIONS: 'president=6257,governor=6259' }).governorUfs).toHaveLength(27);
   expect(() => loadConfig({ RAW_BUCKET: 'raw', ELECTIONS: 'president=6257,governor=6259', GOVERNOR_UFS: 'xx' })).toThrow();
 });
+
+test('config: a test key is refused on a production raw or public bucket', () => {
+  const base = { ELECTIONS: 'president=6257,governor=6259', TSE_TEST_JWK_URL: 'http://127.0.0.1:8080/oficial/app/assets/assinatura-jws/test.jwk.json' };
+  expect(() => loadConfig({ ...base, RAW_BUCKET: 'apuracao26-raw-860897618882' })).toThrow(/production bucket/);
+  expect(() => loadConfig({ ...base, RAW_BUCKET: 'replay-raw', PUB_BUCKET: 'apuracao26-pub' })).toThrow(/production bucket/);
+  expect(loadConfig({ ...base, RAW_BUCKET: 'replay-raw', PUB_DIR: '/tmp/x' }).TSE_TEST_JWK_URL).toBe(base.TSE_TEST_JWK_URL);
+});

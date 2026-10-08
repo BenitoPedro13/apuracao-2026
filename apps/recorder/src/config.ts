@@ -1,4 +1,5 @@
 import { hostname } from 'node:os';
+import { refuseTestKeyInProduction } from '@apuracao/s3kit';
 import { ELECTION_CODES, TSE_BASE_URL, type Election } from '@apuracao/tse';
 import { z } from 'zod';
 
@@ -38,6 +39,8 @@ const Env = z.object({
   /** Governance-mode Object Lock retention on raw/ and obs/ writes. Off for the emulator. */
   OBJECT_LOCK_YEARS: z.coerce.number().int().nonnegative().default(10),
   TSE_BASE_URL: z.url().default(TSE_BASE_URL),
+  /** fake-tse's test key (replays only). Refused with a production bucket. */
+  TSE_TEST_JWK_URL: z.url().optional(),
   USER_AGENT: z.string().default('apuracao-2026-recorder/0.1 (public vote-count dashboard; polite polling)'),
   FLUSH_MS: z.coerce.number().int().positive().default(5_000),
   HEARTBEAT_MS: z.coerce.number().int().positive().default(60_000),
@@ -55,5 +58,7 @@ const Env = z.object({
 export type RecorderConfig = z.output<typeof Env>;
 
 export function loadConfig(env: Record<string, string | undefined> = process.env): RecorderConfig {
-  return Env.parse(env);
+  const config = Env.parse(env);
+  refuseTestKeyInProduction(config.TSE_TEST_JWK_URL, { RAW_BUCKET: config.RAW_BUCKET });
+  return config;
 }

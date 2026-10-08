@@ -189,6 +189,14 @@ every 1st-round file for president (`6257`) and governor (`6259` `c0003`):
   `"dt": "", "ht": ""` and candidates without the `dvt` key
   (`samples/ele2026_6257_dados_zz_zz29424-c0001-e006257-u.json`). The contract now accepts
   both. Not-yet-counted municipalities on election night probably look the same.
+- **A municipal file's `dt/ht` isn't always its coverage row's.** `sp71072` (São Paulo):
+  its row in `sp-e006257-ab` says 04/10/2026 21:50:33, but the final `-u` file says
+  `dt/ht` 05/10/2026 12:51:05 and `hg` 12:52:35, the instant of the br re-totalization
+  (`br-c0001-e006257-u` has the same `dt/ht`). So the final files were regenerated after
+  the count, and only the coverage row keeps the original totalization instant. The
+  recorder's tier-2 check (`tseTotalizedAt ≥` the row instant) still accepts it; fake-tse
+  reveals municipal files at the row instant (samples, 2026-10-08).
+  `[VERIFY: how many of the 11,328 municipal files differ from their row, on the export]`
 - The 41 observations recorded before the fix say `schema: "failed"`. The log is immutable,
   so they stay; projections re-validate blobs with the current schema.
 

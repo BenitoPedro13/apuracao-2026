@@ -7,7 +7,9 @@ minute by minute.
 **Status:** the recorder is live on AWS (2026-10-08). It captured the 1st round, soaks
 against the TSE CDN, and will discover the 2nd-round files by itself. The projector (S3
 mode) folds that log into the published views (`docs/tasks/TASK-projector-and-views.md`).
-Next: the public CDN and the Kafka log (Phase 2).
+fake-tse replays the 1st round's real files on an accelerated clock, for end-to-end runs
+before the night (`docs/tasks/TASK-fake-tse.md`). Next: the public CDN and the Kafka log
+(Phase 2).
 **Deadline:** 2nd round, Sunday 2026-10-25.
 
 - What we know about the data: [`docs/research/01-tse-results-feed.md`](docs/research/01-tse-results-feed.md),
@@ -28,8 +30,22 @@ Requires Node 24, pnpm 11 (the version is pinned in `packageManager`), and Docke
 pnpm install
 pnpm turbo run lint check-types test build   # everything; the second run is a cache hit
 docker compose -f infra/docker-compose.yml up -d --wait   # local Redpanda (Kafka) + RustFS (S3)
-node apps/fake-tse/dist/main.js 8080 60                   # the real samples, with TSE CDN semantics
+node apps/fake-tse/dist/main.js --static                 # the real samples, final, with TSE CDN semantics
 ```
+
+Replaying the 1st round (`docs/tasks/TASK-fake-tse.md`). The capture lives on disk, not in
+git: export it once from the raw bucket (read-only, needs `aws login`), then replay it
+locally at ×20 (~30 min per run):
+
+```sh
+node scripts/export-capture.ts                     # → .capture/ele2026-1t/ (11,443 files)
+node scripts/replay.ts --runs 3                    # RustFS + fake-tse + recorder + projector; prints the §9.2 numbers
+node apps/fake-tse/dist/main.js --capture .capture/ele2026-1t --speed 20 --port 8080   # the server alone
+```
+
+The replay's rebuilt coverage files are signed with a throwaway test key that only a
+recorder/projector given `TSE_TEST_JWK_URL` trusts, and both refuse to start with it against
+a production bucket.
 
 Layout: `apps/{recorder,projector,fake-tse}`, `packages/{contracts,tse,views,s3kit,config}`,
 `infra/` (AWS CDK app: see [`infra/README.md`](infra/README.md)). Environment variables

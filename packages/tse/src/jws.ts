@@ -66,3 +66,17 @@ export async function verifyJws(token: string, keys: Keyring): Promise<JwsResult
     ? { status: 'valid', kid, payload: decodeBase64url(p) }
     : { status: 'invalid', kid, reason: 'signature does not verify' };
 }
+
+/**
+ * Fetch a JWK by URL: the recorder's key-rotation path, and the fake-tse test key
+ * (TSE_TEST_JWK_URL), which callers must refuse on production buckets.
+ */
+export async function fetchJwk(url: string): Promise<TseJwk> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`GET ${url}: HTTP ${res.status}`);
+  const jwk = (await res.json()) as Partial<TseJwk>;
+  if (jwk.kty !== 'OKP' || jwk.crv !== 'Ed25519' || typeof jwk.x !== 'string' || typeof jwk.kid !== 'string') {
+    throw new Error(`${url} is not an Ed25519 JWK with a kid`);
+  }
+  return { kty: 'OKP', crv: 'Ed25519', x: jwk.x, kid: jwk.kid };
+}

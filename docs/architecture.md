@@ -656,6 +656,15 @@ MSK/S3. A staging run against real MSK/S3 is part of the dress rehearsal (§9.4)
 > reais do 1º turno reapresentados" banner, they are never written to the production
 > buckets, and they fail signature verification by construction (the recorder runs with
 > `TSE_KEY=test` in the harness).
+>
+> As built (`TASK-fake-tse.md`, 2026-10-08): fake-tse signs rebuilt coverage files with an
+> ephemeral Ed25519 key generated at start, so they fail the TSE's key by construction. The
+> recorder and projector trust it only with `TSE_TEST_JWK_URL` and refuse to start with it
+> against `apuracao26-raw-*` or `apuracao26-pub`; the recorder never writes it to
+> `meta/keys/`. Rebuilt files carry `idg = final − 1,000,000 + rows revealed` (below the real
+> final `idg`, increasing per step) and `dg/hg` = the latest revealed row. Rows are kept
+> verbatim or removed, never edited, including the br file's UF rows. Municipal files appear
+> at their row's `dt/ht` in their UF's coverage file.
 
 **What the harness proves, with numbers:**
 

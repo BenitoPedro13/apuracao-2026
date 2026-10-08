@@ -130,7 +130,13 @@ async function run(no: number) {
   let logFrom = 0;
   let last200At = Date.now();
   let lastPrint = 0;
+  // The loop ticks every 200 ms: a longer gap means this machine slept or froze (a closed
+  // lid froze run 3 of 2026-10-08), and every process froze with it. Such a run is invalid.
+  let lastTick = Date.now();
+  let maxStallMs = 0;
   for (;;) {
+    maxStallMs = Math.max(maxStallMs, Date.now() - lastTick);
+    lastTick = Date.now();
     try {
       const p = LatestPointer.parse(JSON.parse(readFileSync(join(pubDir, 'data/v1/latest.json'), 'utf8')));
       if (pointers.at(-1)?.refreshedAt !== p.refreshedAt) pointers.push(p);
@@ -200,6 +206,9 @@ async function run(no: number) {
 
   const result = {
     run: runId,
+    /** Longest gap between harness ticks; > 5 s means the machine slept or froze. */
+    maxStallS: +(maxStallMs / 1000).toFixed(1),
+    valid: maxStallMs <= 5_000,
     wallMinutes: +(wallMs / 60_000).toFixed(1),
     requests: log.length,
     served200: served.size,
@@ -230,7 +239,11 @@ async function run(no: number) {
 }
 
 const results: Awaited<ReturnType<typeof run>>[] = [];
-for (let i = 1; i <= Number(values.runs); i++) results.push(await run(i));
+for (let i = 1; i <= Number(values.runs); i++) {
+  const r = await run(i);
+  if (!r.valid) console.log(`run ${i} is INVALID: the harness stalled ${r.maxStallS} s (sleep or freeze); excluded from the medians`);
+  else results.push(r);
+}
 if (results.length > 1) {
   const rows = results as unknown as Record<string, unknown>[];
   const numeric = Object.keys(rows[0]!).filter((k) => typeof rows[0]![k] === 'number');

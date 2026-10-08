@@ -1,6 +1,14 @@
 import { z } from 'zod';
 import { Elections, IsoInstant, Sha256 } from './common.js';
 
+// The public layout (architecture.md §6.2): content-addressed views, one immutable
+// manifest per seq, and the only mutable object, the pointer. Shared by the projector
+// (writer) and the web app (reader).
+
+export const viewKey = (sha256: string) => `data/v1/o/${sha256}.json`;
+export const manifestKey = (epoch: string, seq: number) => `data/v1/${epoch}/m/${String(seq).padStart(12, '0')}.json`;
+export const POINTER_KEY = 'data/v1/latest.json';
+
 /** Which view hash every name had at one `seq` (architecture.md §6.2). Immutable. */
 export const Manifest = z.object({
   v: z.literal(1),

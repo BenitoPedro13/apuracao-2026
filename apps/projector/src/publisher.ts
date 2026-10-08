@@ -3,15 +3,11 @@ import { gunzipSync, gzipSync } from 'node:zlib';
 import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { GetObjectCommand, PutObjectCommand, type S3Client } from '@aws-sdk/client-s3';
-import { LatestPointer } from '@apuracao/contracts';
+import { LatestPointer, POINTER_KEY } from '@apuracao/contracts';
 import { isNotFound, isStatus, putOnce } from '@apuracao/s3kit';
 
-// The public layout (architecture.md §6.2): content-addressed views, one immutable
-// manifest per seq, and the only mutable object, the pointer.
-
-export const viewKey = (sha256: string) => `data/v1/o/${sha256}.json`;
-export const manifestKey = (epoch: string, seq: number) => `data/v1/${epoch}/m/${String(seq).padStart(12, '0')}.json`;
-export const POINTER_KEY = 'data/v1/latest.json';
+// The public layout (architecture.md §6.2) lives in @apuracao/contracts, shared with the web app.
+export { manifestKey, POINTER_KEY, viewKey } from '@apuracao/contracts';
 
 const IMMUTABLE = 'public, max-age=31536000, immutable';
 const POINTER_CACHE = 'public, max-age=5, s-maxage=5, stale-while-revalidate=30, stale-if-error=86400';

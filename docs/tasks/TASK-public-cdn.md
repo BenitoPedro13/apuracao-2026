@@ -181,3 +181,18 @@ What the site shows **between 10-18 and the first 2nd-round file** (the projecto
   never empty, and every number is real.
 - **(b) The 2nd round from 10-18:** the pointer moves to `2t-1` at once, and the site shows
   "não publicado" for a week. Simpler (no switch on the night), but an empty site for 7 days.
+
+## 7. Outcome (in progress)
+
+- **Blocked on AWS (2026-10-08):** the first `cdk deploy PublicStack` failed creating the
+  distribution: *"Your account must be verified before you can add new CloudFront
+  resources. To verify your account, please contact AWS Support … (Status Code: 403,
+  Request ID: dfd7877b-8ba8-42df-ab60-7f480c1f456c)"*. The stack rolled back; the retained
+  (empty) bucket and the `ROLLBACK_COMPLETE` stack were deleted, so the retry is one
+  `cdk deploy PublicStack`. A support case is needed (user). Until it's resolved, nothing in
+  this task can deploy (`ProjectorStack` references the public bucket). The web task can
+  develop against a local `PUB_DIR` (`.replay/real/pub` holds the real 1st-round views).
+- Done and verified locally: template assertions (10/10 infra tests), lint, types, all five
+  stacks synthesize; `RecorderStack`'s resources are unchanged except the image hash (its
+  code changed in `ac18a9c`); the Docker context is 788 KB (was 1.5 GB with `.capture/` and
+  `.replay/`).

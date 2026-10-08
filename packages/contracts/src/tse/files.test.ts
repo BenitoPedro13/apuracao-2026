@@ -16,6 +16,7 @@ const RESULT_FILES = [
   'ele2026_6257_dados_sp_sp71072-c0001-e006257-u.json',
   'ele2026_6257_dados_zz_zz-c0001-e006257-u.json',
   'ele2026_6259_dados_rj_rj-c0003-e006259-u.json',
+  'ele2026_6257_dados_zz_zz29424-c0001-e006257-u.json',
 ];
 
 const candidates = (f: TseResultFile) =>
@@ -56,6 +57,14 @@ describe('TseResultFile', () => {
     expect(ruas.pvap.raw).toBe('49,27');
     expect(((ruas.vap / rj.v.vvc) * 100).toFixed(2)).toBe('49.27');
     expect(((ruas.vap / rj.v.vv) * 100).toFixed(2)).not.toBe('49.27');
+  });
+
+  test('a file with no votes: empty dt/ht → null, candidates without dvt, all zeros', () => {
+    const f = TseResultFile.parse(load(RESULT_FILES[4]!));
+    expect([f.dt, f.ht]).toEqual([null, null]);
+    expect(f.s).toMatchObject({ ts: 1, st: 1, sni: 1 });
+    expect(candidates(f).every((c) => c.dvt === undefined && c.vap === 0 && c.pvap.raw === '0,00')).toBe(true);
+    expect(f.v.tv).toBe(0);
   });
 
   test('the abroad aggregate is tpabr "uf" with cdabr "zz"', () => {

@@ -48,7 +48,7 @@ export function createRecorder(deps: RecorderDeps) {
   const store = new RawStore(deps.s3, config.RAW_BUCKET, config.OBJECT_LOCK_YEARS, now);
   const metrics = new Metrics({ Recorder: config.RECORDER_ID }, deps.emf, now);
   const budget = new Budget({ rateMax: config.RATE_MAX, concurrency: config.CONCURRENCY, now });
-  const schedule = new Schedule();
+  let schedule = new Schedule();
   const lease = new Lease({
     s3: deps.s3,
     bucket: config.RAW_BUCKET,
@@ -77,6 +77,8 @@ export function createRecorder(deps: RecorderDeps) {
   let cycleStart = new Date(now());
   let lastSegmentAt = now();
   let running = false;
+  /** The lease generation whose state is loaded; state is (re)loaded on every acquisition. */
+  let initializedGeneration = -1;
   const inFlight = new Set<Promise<void>>();
   const inFlightPaths = new Set<string>();
   const timers: NodeJS.Timeout[] = [];
@@ -126,7 +128,8 @@ export function createRecorder(deps: RecorderDeps) {
   }
 
   async function snapshot(): Promise<void> {
-    if (!lease.isLeader) return;
+    // Never overwrite the snapshot before this leadership has loaded it.
+    if (!lease.isLeader || initializedGeneration !== lease.generation) return;
     const paths: Snapshot['paths'] = {};
     for (const [path, state] of states) paths[path] = { state };
     for (const [path, at] of dueAt) (paths[path] ??= { state: states.get(path) ?? emptyState() }).dueAt = at;
@@ -313,10 +316,44 @@ export function createRecorder(deps: RecorderDeps) {
     scheduleAt(file.path, Math.max(fromHeaders(60), minNext));
   }
 
+  /**
+   * Load working state from the latest snapshot and build the schedule. Runs each time this
+   * recorder acquires the lease, so a standby picks up the snapshot its predecessor wrote on
+   * handover, not a stale one from when the standby process started.
+   */
+  async function initialize(): Promise<void> {
+    await Promise.allSettled(inFlight);
+    schedule = new Schedule();
+    for (const m of [tracked, states, dueAt, notBefore, triggers, notFound, coverage]) m.clear();
+    active.clear();
+    // Register every tier-0/1 file first, so the snapshot can restore their due times.
+    const first = config.RECORDER_TARGETS[0]!;
+    const roots: TrackedFile[] = [{ path: catalogPath(), tier: 0, target: first, kind: 'config', national: false }];
+    for (const target of config.RECORDER_TARGETS) roots.push(...configFiles(target), ...tier1Files(target));
+    for (const f of roots) tracked.set(f.path, f);
+    await restore();
+    const t = now();
+    for (const f of roots.filter((x) => x.tier === 0)) if (!schedule.has(f.path)) scheduleAt(f.path, t);
+    for (const target of config.RECORDER_TARGETS) {
+      if (active.has(targetKey(target))) {
+        active.delete(targetKey(target));
+        activate(target, t);
+      } else {
+        for (const path of probePaths(target)) if (!schedule.has(path)) scheduleAt(path, t);
+      }
+    }
+  }
+
   async function loop(): Promise<void> {
     while (running) {
       if (!lease.isLeader) {
         await sleep(500);
+        continue;
+      }
+      if (initializedGeneration !== lease.generation) {
+        const generation = lease.generation;
+        await initialize();
+        initializedGeneration = generation;
         continue;
       }
       const wait = budget.waitMs();
@@ -352,22 +389,6 @@ export function createRecorder(deps: RecorderDeps) {
   return {
     async start(): Promise<void> {
       for (const [k, v] of await importKeys([pinnedKey as TseJwk])) keys.set(k, v);
-      // Register every tier-0/1 file first, so the snapshot can restore their due times.
-      const first = config.RECORDER_TARGETS[0]!;
-      const roots: TrackedFile[] = [{ path: catalogPath(), tier: 0, target: first, kind: 'config', national: false }];
-      for (const target of config.RECORDER_TARGETS) roots.push(...configFiles(target), ...tier1Files(target));
-      for (const f of roots) tracked.set(f.path, f);
-      await restore();
-      const t = now();
-      for (const f of roots.filter((x) => x.tier === 0)) if (!schedule.has(f.path)) scheduleAt(f.path, t);
-      for (const target of config.RECORDER_TARGETS) {
-        if (active.has(targetKey(target))) {
-          active.delete(targetKey(target));
-          activate(target, t);
-        } else {
-          for (const path of probePaths(target)) if (!schedule.has(path)) scheduleAt(path, t);
-        }
-      }
       await lease.start();
       running = true;
       timers.push(setInterval(() => void flush(), config.FLUSH_MS));

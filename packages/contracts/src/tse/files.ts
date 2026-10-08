@@ -8,6 +8,15 @@ import { TseDate, TseDecimal, TseFlag, TseId, TseInt, TseTime, decimals, ints } 
 //
 // The high-precision `…n` decimals (e.g. `pvapn`) are optional: we don't read them yet.
 
+/**
+ * Totalization date/time, "" (→ null) when nothing has been totalized. Seen in real files:
+ * a result file with no votes has `"dt": "", "ht": ""` (samples/…zz29424…, 2026-10-08).
+ * Coverage rows of not-started municipalities probably look the same
+ * `[VERIFY: on the first 2nd-round -ab files]`.
+ */
+const optionalDate = z.union([TseDate, z.literal('').transform(() => null)]);
+const optionalTime = z.union([TseTime, z.literal('').transform(() => null)]);
+
 /** File header shared by every data file. */
 const header = {
   ele: TseId,
@@ -42,7 +51,9 @@ export const TseCandidate = z.looseObject({
   nm: z.string(),
   nmu: z.string(), // ballot name
   dt: TseDate.optional(), // birth date
-  dvt: z.string(), // vote destination, e.g. "Válido"
+  // Vote destination, e.g. "Válido", "Anulado sub judice". Absent in files with no votes
+  // (samples/…zz29424…: a foreign city whose only section wasn't installed).
+  dvt: z.string().optional(),
   seq: TseInt,
   e: TseFlag, // elected
   st: z.string(), // e.g. "2º turno", "Não eleito"
@@ -86,8 +97,8 @@ export const TseResultFile = z.looseObject({
   ...header,
   tpabr: z.enum(['br', 'uf', 'mu']),
   cdabr: z.string(),
-  dt: TseDate, // totalization date/time
-  ht: TseTime,
+  dt: optionalDate, // totalization date/time
+  ht: optionalTime,
   tf: TseFlag, // `[VERIFY: meaning of tf / and on the night]` (architecture.md §7.2)
   and: z.string(),
   carg: z.array(TseOffice),
@@ -96,14 +107,6 @@ export const TseResultFile = z.looseObject({
   v: TseVotes,
 });
 export type TseResultFile = z.output<typeof TseResultFile>;
-
-/**
- * Coverage row. dt/ht are allowed to be "" (→ null) defensively: every 1st-round sample is
- * final and filled, and a municipality that hasn't started counting may have none.
- * `[VERIFY: dt/ht of a not-started row, on the first 2nd-round -ab files]`
- */
-const optionalDate = z.union([TseDate, z.literal('').transform(() => null)]);
-const optionalTime = z.union([TseTime, z.literal('').transform(() => null)]);
 
 export const TseCoverageRow = z.looseObject({
   and: z.string(),

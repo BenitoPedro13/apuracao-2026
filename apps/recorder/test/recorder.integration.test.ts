@@ -167,3 +167,26 @@ test('two recorders: one polls; after a crash the other takes over with generati
   expect([...(gens.get('rec-1') ?? [])]).toEqual([1]);
   expect((await store.list('obs/v1/rec-2/')).length).toBeGreaterThan(0);
 }, 60_000);
+
+test('graceful handover to a standby started earlier: no version observed twice', async () => {
+  const b = await bucket('handover');
+  const store = new RawStore(s3, b, 0);
+  const a = recorder(b, 'rec-old');
+  await a.start();
+  await sleep(4_000); // capture
+  const standby = recorder(b, 'rec-new'); // starts while rec-old still records (a deploy)
+  await standby.start();
+  await sleep(3_000);
+  expect(standby.isLeader).toBe(false);
+  await a.stop(); // SIGTERM path: final flush + snapshot, then hand the lease over
+  const stoppedAt = Date.now();
+  while (!standby.isLeader && Date.now() - stoppedAt < 5_000) await sleep(100);
+  expect(standby.isLeader).toBe(true);
+  await sleep(4_000);
+  await standby.stop();
+
+  const versions = (await observations(store)).filter((o) => o.kind === 'version');
+  const pairs = versions.map((o) => `${o.path} ${o.sha256}`);
+  expect(pairs.length).toBeGreaterThan(0);
+  expect(pairs.length - new Set(pairs).size).toBe(0);
+}, 60_000);

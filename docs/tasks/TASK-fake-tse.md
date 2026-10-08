@@ -199,11 +199,34 @@ Cost: ~1.5 days. AWS: one export of ~11.4k GETs ≈ $0.005.
    The recorder's and projector's integration tests (fake-tse without `reveal`) still pass.
    - Found while building: a sub-second `Expires` phase made the polite recorder look early
      (the header truncates to the second). Phases and windows are whole seconds now.
-2. **Pending: `aws login` has expired.** `node scripts/export-capture.ts` is written and
-   type-checked, not yet run.
-3. **Smoke only so far.** On the 21 samples at ×200 (`--capture docs/research/samples
-   --speed 200`, 2.4 min, 1 run): 0 lost versions, 0 early requests, 0 query strings, peak
-   166 req/s in one second (burst allowance 200), busiest 60 s 99.4 req/s, publish lag p50
-   6.7 s / p95 8.4 s, rebuild = live on every view. The full ×20 replay on the export, 3
-   runs with medians, and the national view against the real-log rebuild
-   (`TASK-projector-and-views.md` §5 item 3, also waiting on `aws login`) are pending.
+2. **Done.** `node scripts/export-capture.ts`: 909 segments read, **11,443 files** written
+   (config 3; 6257: 29 `-ab`, 29 `-u`, 5,757 municipal; 6259: 27 `-ab`, 27 `-u`, 5,571
+   municipal), every one the highest-`idg` version with a valid signature and schema, 0
+   problems; 160 MB on disk (not ~600 MB).
+3. **Full ×20 replays on the export, with `--real .replay/real/pub`** (the real-log rebuild,
+   `TASK-projector-and-views.md` §6 item 3). The first attempt served 11,442 of 11,443
+   files (`pe30015`, fixed in `4c5ff12`, §2.2) and was stopped. After the fix:
+
+   | Run | Wall | Final versions served | Lost | Early | Peak 1 s / 60 s req/s | Lag p50 / p95 / max | Rebuild = live | National = real log |
+   |---|---|---|---|---|---|---|---|---|
+   | 1 | 35.1 min | 11,443 / 11,443 | 0 | 0 | 213 / 85.3 | 6.2 / 8.7 / 13.2 s | yes | yes |
+   | 2 | 35.1 min | 11,443 / 11,443 | 0 | 0 | 242 / 86.3 | 6.6 / 9.6 / 20.4 s | yes | yes |
+   | 3 | 40.8 min | 11,146 / 11,443 | 0 | 0 | 213 / 78.4 | 8.0 / 45.6 / 66.4 s | yes | **no** |
+
+   **Run 3 is invalid as a measurement, and it found a real defect.** It overlapped with
+   heavy work on the same laptop (two `cdk synth` runs copying a 1.5 GB Docker context, the
+   infra tests, a CloudFormation deploy). At 18:14:13Z everything stalled for > 10 s (a
+   burst of fetch timeouts; the projector lost its lease), which explains its lag. Then at
+   18:32Z **the recorder stopped completely for 11 minutes**: no TSE request, no segment,
+   not even the 60 s heartbeat, while it still held the lease with rate 100 and the breaker
+   closed. The harness saw the pipeline quiet and ended the run before the replay's tail,
+   so 297 files (186 PE governor, 53 abroad, the aggregates) were never fetched.
+   The cause the evidence points to: **the AWS SDK's S3 calls have no timeout by default**
+   (`@smithy/node-http-handler` 4.12.1: `requestTimeout` and `connectionTimeout` default to
+   0 = none), so a PUT that never completes holds one of the recorder's 16 concurrency
+   slots forever; 16 of them stop the recorder, silently. The local emulator under load
+   triggered it; on the night it's the same code against real S3. The fix needs its own
+   task doc (`TASK-s3-timeouts.md`), and then 3 clean runs on an otherwise idle machine.
+   **The medians of three are pending until then**; runs 1–2 already meet every §5 target
+   (0 lost, 0 early, busiest minute ≤ 103.3 req/s, lag p95 ≤ 15 s, rebuild = live, national
+   = real log).

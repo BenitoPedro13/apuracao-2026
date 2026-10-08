@@ -6,16 +6,31 @@
   "private": true,
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "start": "node dist/index.js",
+    "start": "node dist/main.js",
     "check-types": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
-    "test": "vitest run"
+    "test": "vitest run",
+    "rebuild": "node dist/main.js rebuild"
   },
   "devDependencies": {
     "@apuracao/config": "workspace:*",
+    "@apuracao/fake-tse": "workspace:*",
+    "@apuracao/recorder": "workspace:*",
     "@types/node": "26.4.1",
     "eslint": "10.9.1",
+    "testcontainers": "^12.2.0",
     "typescript": "7.0.2",
     "vitest": "5.0.3"
-  }
+  },
+  "dependencies": {
+    "@apuracao/contracts": "workspace:*",
+    "@apuracao/s3kit": "workspace:*",
+    "@apuracao/tse": "workspace:*",
+    "@apuracao/views": "workspace:*",
+    "@aws-sdk/client-s3": "^3.1147.0",
+    "zod": "^4.6.5"
+  },
+  "files": [
+    "dist"
+  ]
 }

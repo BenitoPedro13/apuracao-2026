@@ -1,10 +1,12 @@
-import { GetObjectCommand, NoSuchKey, PutObjectCommand, S3ServiceException, type S3Client } from '@aws-sdk/client-s3';
+import { GetObjectCommand, NoSuchKey, PutObjectCommand, type S3Client } from '@aws-sdk/client-s3';
+import { isStatus } from './s3.js';
 
-// Recorder leadership (architecture.md §4.5): one S3 object, conditional writes only.
-// Create with If-None-Match: *, renew or take over with If-Match: <etag>. The generation
-// is a fencing token carried on every observation.
+// Leadership for the recorder and the projector (architecture.md §4.5, §5.4): one S3
+// object, conditional writes only. Create with If-None-Match: *, renew or take over with
+// If-Match: <etag>. The generation is a fencing token (carried on every observation).
 
-export const LEASE_KEY = 'lease/recorder.json';
+export const RECORDER_LEASE_KEY = 'lease/recorder.json';
+export const PROJECTOR_LEASE_KEY = 'lease/projector.json';
 
 interface LeaseBody {
   holder: string;
@@ -15,15 +17,14 @@ interface LeaseBody {
 export interface LeaseOptions {
   s3: S3Client;
   bucket: string;
+  /** The lease object, e.g. RECORDER_LEASE_KEY. */
+  key: string;
   holder: string;
   ttlMs: number;
   renewMs: number;
   now?: () => number;
   onChange?: (leader: boolean, generation: number) => void;
 }
-
-const isStatus = (err: unknown, ...codes: number[]) =>
-  err instanceof S3ServiceException && codes.includes(err.$metadata.httpStatusCode ?? 0);
 
 export class Lease {
   #o: Required<Omit<LeaseOptions, 'onChange'>> & Pick<LeaseOptions, 'onChange'>;
@@ -72,7 +73,7 @@ export class Lease {
 
   async #read(): Promise<{ body: LeaseBody; etag: string } | undefined> {
     try {
-      const res = await this.#o.s3.send(new GetObjectCommand({ Bucket: this.#o.bucket, Key: LEASE_KEY }));
+      const res = await this.#o.s3.send(new GetObjectCommand({ Bucket: this.#o.bucket, Key: this.#o.key }));
       return { body: JSON.parse(await res.Body!.transformToString()) as LeaseBody, etag: res.ETag! };
     } catch (err) {
       if (err instanceof NoSuchKey || isStatus(err, 404)) return undefined;
@@ -82,7 +83,7 @@ export class Lease {
 
   async #write(body: LeaseBody, cond: { IfMatch?: string; IfNoneMatch?: string }): Promise<void> {
     await this.#o.s3.send(
-      new PutObjectCommand({ Bucket: this.#o.bucket, Key: LEASE_KEY, Body: JSON.stringify(body), ContentType: 'application/json', ...cond }),
+      new PutObjectCommand({ Bucket: this.#o.bucket, Key: this.#o.key, Body: JSON.stringify(body), ContentType: 'application/json', ...cond }),
     );
   }
 

@@ -1,8 +1,11 @@
 {
   "extends": "@apuracao/config/tsconfig/node.json",
   "compilerOptions": {
-    "rootDir": "src",
-    "outDir": "dist"
+    "outDir": "dist",
+    "rewriteRelativeImportExtensions": true
   },
-  "include": ["src"]
+  "include": [
+    "src",
+    "test"
+  ]
 }

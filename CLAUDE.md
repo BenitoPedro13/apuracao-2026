@@ -49,7 +49,7 @@ verify against each tool's current docs before installing (§2.0).
 
 | Layer | Choice | Notes |
 |---|---|---|
-| Monorepo | pnpm workspaces + Turborepo | `apps/{recorder,projector,fake-tse,web}`, `packages/{contracts,tse,views,config}`, `infra/` |
+| Monorepo | pnpm workspaces + Turborepo | `apps/{recorder,projector,fake-tse,web}`, `packages/{contracts,tse,views,s3kit,config}`, `infra/` |
 | Language | TypeScript **7** on Node 24, everywhere | ADR-2: IO-bound, shares Zod contracts with the web app |
 | Ingestion | `apps/recorder`, Fargate ARM in sa-east-1 (1 task from 10-11, + a standby 10-24 → 10-26), S3-lease leader | fetches the TSE **`.jws`** (signed, payload = the `.json`), per-file `Expires` scheduling, ≤100 req/s |
 | History / log | S3 `apuracao26-raw-860897618882`: content-addressed blobs (`If-None-Match: *`), Object Lock (governance retention set per object on `raw/`, `obs/`), observation segments every 5 s + 60 s heartbeat | the source of truth (invariant 2). **Live since 2026-10-08** |
@@ -179,6 +179,7 @@ packages/
   contracts/    Zod schemas for TSE file shapes (parsed), Observation, and our published views
   tse/          TSE URL builders, codes, string-number parsing, .jws verification; one place
   views/        pure fold/render functions shared by projector, rebuild and tests
+  s3kit/        S3 lease + write-once put, shared by recorder and projector
   config/       shared tsconfig / eslint / prettier
 infra/          AWS CDK app + docker compose (Redpanda, RustFS) for local runs
 scripts/        one-off captures, ops commands, k6 and Playwright perf scenarios

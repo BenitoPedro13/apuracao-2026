@@ -29,7 +29,7 @@ Facts this rests on (from the samples and the capture):
 
 ### 2.1 View contracts (`packages/contracts/src/views/`)
 
-All views carry `v: 1`, `epoch`, `seq`, `sources: sha256[]` (the `.jws` they came from)
+All views carry `v: 1`, `kind`, `sources: sha256[]` (the `.jws` they came from)
 and a `status` (§7.2: `not_published | no_sections | counting | final | fetch_failed`). A
 missing value is `null` with a status saying why, never `0` (invariant 6). Counts are
 integers. Percentages are `{ raw: "47,03" }` TSE strings, and anything we compute is a
@@ -39,7 +39,7 @@ separate field named `…Calc` (ADR-12).
 |---|---|
 | `ResultView` (national, per UF, abroad; per office) | status; TSE `generatedAt`/`totalizedAt`/`idg`; sections `{total, counted, pct}`; electorate `{total, turnout, turnoutPct, abstention, abstentionPct}`; votes `{total, valid, validWithSubJudice (vvc), blank, blankPct, null, nullPct, subJudice}`; `candidates[]` in TSE `seq` order: `{n, name, party, votes, pct, elected, situation}`; for UFs, municipalities `{final, partial, notStarted}` from the `br-…-ab` row |
 | `RegionsView` | the 5 IBGE regions as **our sums** of UF files (labelled computed), with percentages over `vvc`, plus the UFs each sum covers and their statuses |
-| `MapView` | columnar over the 5,571 municipalities **in ascending `cdi` order**: `cdi[]` (checksummed; the geometry built in `TASK-map.md` uses the same order), `leader[]` (candidate index or -1), `marginBp[]`, `countedBp[]`, `status[]` (codes). Nulls for missing, never 0 |
+| `MapView` | columnar over the 5,571 municipalities **in ascending `cdi` order**: `cdi[]` (via `MapIndexView`, §2.4; the geometry built in `TASK-map.md` uses the same order), `leader[]` (candidate index or -1), `marginBpCalc[]`, `countedBp[]`, `status[]` (codes). Nulls for missing, never 0 |
 | `MunicipalityView` (per UF) | the rows of the table alternative to the map (invariant 7): name, `cdi`, status, sections, candidates' votes and TSE %. ~645 rows for SP |
 | `Manifest` | `{v, epoch, seq, publishedAt (from the newest observation), views: {name: sha256}}` |
 | `LatestPointer` | as `architecture.md` §6.2: `{epoch, seq, manifest, publishedAt, tse, health, pollSeconds}` |
@@ -93,7 +93,45 @@ separate field named `…Calc` (ADR-12).
 - **Not here:** the deploy, the public bucket and CloudFront (`TASK-public-cdn.md`).
   Until then it publishes to a local RustFS bucket or a directory.
 
-### 2.4 Alternatives considered and rejected
+### 2.4 Amendments made while building (2026-10-08)
+
+Found when reading the code this builds on. Each replaces the text above where they differ.
+
+1. **Views don't carry `epoch`/`seq`.** A view that contains its `seq` changes on every
+   publish, so its sha256 changes and content addressing (`architecture.md` §6.1 item 1:
+   "unchanged views keep their URL") never works. Views carry `v`, `kind` and `sources`;
+   only the `Manifest` carries `epoch`/`seq`. Same state → same view bytes → same URL.
+2. **`MapView` carries no `cdi[]`.** Sending 5,571 codes in every map frame costs ~15 KB
+   gzipped per publish. A separate `MapIndexView` (`cdi[]`, `name[]`, `uf[]`, ascending
+   `cdi`) changes only when the `-cm` index does, so browsers fetch it once. `MapView`
+   pins it by `index: sha256` of the joined `cdi` list, plus `count`.
+3. **Computed values are named `…Calc`** (ADR-12), so `MapView.marginBp` is
+   `marginBpCalc`: (leader − runner-up) / `vvc` in basis points, from integers.
+   `countedBp` is the TSE's own `pst` string read as basis points ("47,03" → 4703), not a
+   computation. Regions use `pctBpCalc`.
+4. **`leader = -1`** means no single leader: no votes, a tie, or no data. `status`
+   says which: `marginBpCalc` is `0` for a tie with votes and `null` without votes or data.
+5. **`seq` counts folds that changed the state** (a new accepted version, or a path's
+   health changing), not only accepted versions, since `fetch_failed` changes views too.
+6. **Fetch health is order-independent.** Per path, the observation with the greatest
+   `(fetchedAt, recorder, cycleNo, seqInCycle)` decides: `error` → `fetch_failed` (with
+   the last good numbers), `absent` → `not_published` (numbers `null`: the TSE withdrew
+   the file), `version`/`recovered` → healthy.
+7. **The S3 tail looks back 10 min.** The recorder's `flush()` runs on a `setInterval`
+   without awaiting the previous one, so a slow segment PUT can land after a later key.
+   `StartAfter = lastKey` would skip it forever. The tail lists from 10 min before the
+   newest key it has seen and skips keys it has already processed.
+8. **What is folded:** the president and governor elections' `-cm` indexes, their `-u`
+   files for the configured offices, and the president election's `br-…-ab`. Everything
+   else (catalog, UF `-ab` files) is skipped and counted. The state election has no
+   `br-…-ab`, so governor `ResultView.municipalities` is `null`. A governor `MapView` is
+   deferred to `TASK-map.md`; `MunicipalityView` already covers governor per UF.
+9. **The pointer is refreshed every 60 s** with the same `seq` and a new
+   `health.recorderSeenAt` (the newest segment's `cycleStart`), so a quiet TSE doesn't
+   look like a dead pipeline. Forward-only: a write needs `(epoch equal, seq ≥ current)`;
+   a pointer in another epoch is replaced only with `--promote`.
+
+### 2.5 Alternatives considered and rejected
 
 - *Views ordered by geometry feature order (architecture §8):* rejected for now. The
   geometry doesn't exist yet (Phase 3). Ascending `cdi` is a shared, checkable order with
@@ -157,3 +195,25 @@ $0.005.
    - Σ UFs + zz = br per candidate;
    - `MapView` ≤ 25 KB gzipped;
    - wall time ≤ 5 min, **median of 3 runs** reported.
+
+## 6. Outcome (2026-10-08)
+
+- **Item 1 (unit, real samples): passed.** `packages/views` 20 tests: national view
+  (Flávio 56,104,503 `"47,03"`, Lula 53,879,538, `vv` 119,300,788, turnout `"78,92"`,
+  `final`); `zz29424` `final` with all-zero votes, leader -1, `totalizedAt: null`; 20
+  random permutations byte-identical; folding twice changes nothing; a UF without a file
+  is `not_published` with null numbers; a tampered `.jws` never reaches a view.
+- **Item 2 (integration, RustFS + fake-tse + recorder + projector): passed**, 3 runs in a
+  row: views appear; the pointer only moves forward, also with two projectors and with a
+  pointer of another epoch (moved only with `PROMOTE`); a rebuild equals the live
+  projector; kill → restart from the checkpoint gives views byte-identical to a rebuild.
+- **Item 3 (the real log on AWS): pending.** The AWS session expired before it could run
+  (`aws login` needed). Run:
+  `RAW_BUCKET=apuracao26-raw-860897618882 ELECTIONS=president=6257,governor=6259 node apps/projector/dist/main.js rebuild --source s3 --epoch rebuild-1 --out <dir>`
+  three times and record wall time, rejections and the reconciliation summary here.
+- Found while building:
+  - A projector that took over the lease and restored a checkpoint never wrote a pointer
+    until the data changed. A new leader now publishes once on takeover.
+  - The recorder's S3 conformance test exceeded vitest's 5 s default when the projector's
+    container suite ran in parallel; it now has a 30 s timeout like its siblings.
+- `pnpm turbo run lint check-types test build`: 32/32 tasks, 164 tests.

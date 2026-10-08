@@ -357,7 +357,8 @@ iteration in sorted key order. Any timestamp in a view comes from an observation
 | **Updates feed** | the difference between consecutive accepted versions | factual items with TSE time: national/UF lead changes, UF reaching 25/50/75/90/100% of sections, a candidate marked elected (`e: "s"`, `st`), all municipalities of a UF final, the TSE files becoming available. No commentary and no predictions |
 
 `seq` = **the Kafka offset of the last observation folded into that publish**, within an
-**epoch**. An epoch is one incarnation of the input log: epoch 1 = `tse.observations.v1`
+**epoch**. In S3 mode (no offsets), `seq` counts the folds that changed the state
+(`TASK-projector-and-views.md` §2.4 item 5). An epoch is one incarnation of the input log: epoch 1 = `tse.observations.v1`
 from offset 0. A rebuild from S3, or a new topic, starts a new epoch. Within an epoch,
 replaying offsets `0..N` produces byte-identical views. That is the replay test (§9.1).
 
@@ -447,7 +448,7 @@ absorbs any multiple of traffic.
 | Path | Cache-Control | Content |
 |---|---|---|
 | `/`, `/_next/…` | HTML `max-age=60`; hashed assets `max-age=31536000, immutable` | Next.js static export |
-| `/data/v1/latest.json` | `public, max-age=5, s-maxage=5, stale-while-revalidate=30, stale-if-error=86400` | the **pointer**: `{epoch, seq, manifest: sha256, publishedAt, tse: {generatedAt, totalizedAt}, health: {lastTseSuccessAt, breakerOpen, mode: "kafka"|"s3"}, pollSeconds}` (`pollSeconds` lets the runbook slow every client down without a deploy, §11.2) |
+| `/data/v1/latest.json` | `public, max-age=5, s-maxage=5, stale-while-revalidate=30, stale-if-error=86400` | the **pointer**: `{epoch, seq, manifest: sha256, publishedAt, refreshedAt, tse: {generatedAt, totalizedAt}, health: {recorderSeenAt, mode: "kafka"|"s3"}, pollSeconds}`, rewritten every 60 s even without a new `seq` so a quiet TSE doesn't look like a dead pipeline (as built: `TASK-projector-and-views.md` §2.4 item 9) (`pollSeconds` lets the runbook slow every client down without a deploy, §11.2) |
 | `/data/v1/{epoch}/m/{seq:012d}.json` | `max-age=31536000, immutable` | **manifest**: hashes of every view at this `seq`, plus the timeline and feed chunk hashes |
 | `/data/v1/o/{sha256}.json` | `max-age=31536000, immutable` | a **view** (content-addressed, gzip/brotli by CloudFront) |
 | `/data/v1/{epoch}/index.json` | `max-age=30` | list of `seq`s with `tseTotalizedAt` (for the scrubber's track); also rebuilt as immutable chunks |
@@ -465,6 +466,11 @@ absorbs any multiple of traffic.
 | `governor/{uf}` ×7 | ~2 KB each | per-state governor headline + municipal columns for that UF |
 | `timeline-chunk` | ~4 KB per 60 points | the timeline projection (§5.3) |
 | `feed-chunk` | ~2 KB per 50 items | updates feed |
+
+As built (`TASK-projector-and-views.md`), the manifest names are `result/{president|governor}/{br|uf|zz}`,
+`regions/president`, `map-index/president`, `map/president` and
+`municipalities/{president|governor}/{uf|zz}` (the table alternative to the map, invariant 7).
+A governor map frame is deferred to `TASK-map.md`.
 
 ### 6.4 The web app
 
@@ -554,7 +560,7 @@ A zero is a number inside `counting`/`final`. A missing value is never rendered 
 | Blob store | content address + `If-None-Match: *` | write the same blob twice: second call returns 412 → treated as success, object unchanged |
 | Observations | projector ignores a `(path, sha256)` it already accepted | produce the same observation twice: state unchanged |
 | Kafka | idempotent producer | integration test with broker restarts |
-| Views | content-addressed; `seq` = offset; deterministic render | replay offsets 0..N twice → byte-identical manifests |
+| Views | content-addressed; `seq` = offset (S3 mode: count of state changes); deterministic render; acceptance by `idg`, so the state depends only on the set of observations | replay offsets 0..N twice → byte-identical manifests; 20 random permutations → byte-identical views |
 | Pointer | conditional, forward-only | two projectors racing never move it backwards |
 
 ---
@@ -588,16 +594,23 @@ Observation = {
   fetchedAt: string, recorder: string, leaseGeneration: number, cycleNo: number, seqInCycle: number,
 }
 
-// Published (all carry v, epoch, seq, sources: sha256[] of the .jws they came from)
-LatestPointer, Manifest, NationalView, UfView, RegionsView, MapView,
-GovernorView, TimelineChunk, FeedChunk, ResultStatus
+// Published (as built, TASK-projector-and-views.md §2.1/§2.4). Views carry v, kind and
+// their sources (sha256 of the .jws, or a digest / per-row source for map and tables), but
+// NOT epoch/seq: an unchanged view must keep its content address. Only the Manifest says
+// which seq a view belongs to.
+LatestPointer, Manifest, ResultView (br, UF, zz; president and governor), RegionsView,
+MapIndexView, MapView, MunicipalityView, ResultStatus
+// Deferred: TimelineChunk, FeedChunk (rebuildable from the raw log at any time)
 ```
 
 `MapView` is columnar, so 5,571 rows stay small:
-`{ geo: 'br-mun-2025@<sha8>', candidates: [{n, name}], leader: number[] /* -1 none, 0|1 */,
-marginBp: number[], countedBp: number[], status: number[] /* ResultStatus codes */ }`, in
-the geometry file's feature order. The geometry version is pinned in the view, so a geometry
-change can never silently misalign colours.
+`{ index: sha256, count, candidates: [{n, name, party, seq}], leader: number[] /* -1 none */,
+marginBpCalc: (number|null)[], countedBp: (number|null)[], status: number[] /* ResultStatus
+codes */ }`, in **ascending IBGE `cdi` order**. `index` pins that order: it is the sha256 of
+`MapIndexView.cdi` joined by newlines. `MapIndexView` (`cdi[]`, `mu[]`, `uf[]`, `name[]`)
+changes only with the `-cm` index, so browsers fetch it once, and the geometry
+(`TASK-map.md`) is built in the same order, so a mismatch is detectable, never a silent
+misalignment of colours.
 
 Python/Go are not used, so no hand-mirrored shapes are needed.
 

@@ -1,14 +1,7 @@
 import { gunzipSync, gzipSync } from 'node:zlib';
-import {
-  GetObjectCommand,
-  ListObjectsV2Command,
-  NoSuchKey,
-  PutObjectCommand,
-  S3ServiceException,
-  type PutObjectCommandInput,
-  type S3Client,
-} from '@aws-sdk/client-s3';
+import { GetObjectCommand, ListObjectsV2Command, PutObjectCommand, type PutObjectCommandInput, type S3Client } from '@aws-sdk/client-s3';
 import type { Observation } from '@apuracao/contracts';
+import { isNotFound, putOnce } from '@apuracao/s3kit';
 
 // The raw log (architecture.md §5.1). raw/ and obs/ are immutable: written once with
 // If-None-Match: * and, in AWS, governance-mode Object Lock retention set per object. The
@@ -23,8 +16,6 @@ export function segmentKey(recorder: string, cycleStart: Date, cycleNo: number):
   const iso = cycleStart.toISOString();
   return `obs/v1/${recorder}/${iso.slice(0, 10)}/${iso.slice(11, 13)}/${compact(cycleStart)}-${String(cycleNo).padStart(8, '0')}.ndjson.gz`;
 }
-
-const isStatus = (err: unknown, code: number) => err instanceof S3ServiceException && err.$metadata.httpStatusCode === code;
 
 export class RawStore {
   constructor(
@@ -42,14 +33,8 @@ export class RawStore {
   }
 
   /** Write-once put. Returns 'exists' on 412: already stored, which is success (§7.5). */
-  async #putOnce(Key: string, Body: Uint8Array, extra: Partial<PutObjectCommandInput>): Promise<'stored' | 'exists'> {
-    try {
-      await this.s3.send(new PutObjectCommand({ Bucket: this.bucket, Key, Body, IfNoneMatch: '*', ...this.#lock(), ...extra }));
-      return 'stored';
-    } catch (err) {
-      if (isStatus(err, 412)) return 'exists';
-      throw err;
-    }
+  #putOnce(Key: string, Body: Uint8Array, extra: Partial<PutObjectCommandInput>): Promise<'stored' | 'exists'> {
+    return putOnce(this.s3, { Bucket: this.bucket, Key, Body, ...this.#lock(), ...extra });
   }
 
   putBlob(sha256: string, body: Uint8Array): Promise<'stored' | 'exists'> {
@@ -76,7 +61,7 @@ export class RawStore {
       const bytes = await res.Body!.transformToByteArray();
       return JSON.parse(gunzipSync(bytes).toString('utf8')) as T;
     } catch (err) {
-      if (err instanceof NoSuchKey || isStatus(err, 404)) return undefined;
+      if (isNotFound(err)) return undefined;
       throw err;
     }
   }

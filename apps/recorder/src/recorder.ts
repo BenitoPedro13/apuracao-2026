@@ -2,11 +2,11 @@ import type { S3Client } from '@aws-sdk/client-s3';
 import type { Observation, TseCoverageFile } from '@apuracao/contracts';
 import { catalogPath, importKeys, parsePath, type Area, type TseJwk } from '@apuracao/tse';
 import pinnedKey from '@apuracao/tse/keys/prod.jwk.json' with { type: 'json' };
+import { Lease, RECORDER_LEASE_KEY } from '@apuracao/s3kit';
 import { backoffMs, Budget } from './budget.js';
 import type { RecorderConfig, Target } from './config.js';
 import { changedMunicipalities, indexCoverage, type CoverageRowKey } from './coverage.js';
 import type { Fetcher, FetchOutcome } from './fetch.js';
-import { Lease } from './lease.js';
 import { Metrics } from './metrics.js';
 import { nextDueFromHeaders, Schedule } from './schedule.js';
 import { RawStore, segmentKey } from './store.js';
@@ -52,6 +52,7 @@ export function createRecorder(deps: RecorderDeps) {
   const lease = new Lease({
     s3: deps.s3,
     bucket: config.RAW_BUCKET,
+    key: RECORDER_LEASE_KEY,
     holder: config.RECORDER_ID,
     ttlMs: config.LEASE_TTL_MS,
     renewMs: config.LEASE_RENEW_MS,

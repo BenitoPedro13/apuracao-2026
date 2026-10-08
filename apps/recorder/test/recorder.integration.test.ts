@@ -77,7 +77,7 @@ async function observations(store: RawStore, prefix = 'obs/v1/'): Promise<Observ
 test('S3 conformance: the emulator honours the conditional writes the recorder relies on', async () => {
   const results = await runS3Conformance(s3, await bucket('conformance'), 'c');
   expect(results.filter((r) => !r.ok)).toEqual([]);
-});
+}, 30_000); // the projector's container suite may run in parallel
 
 describe('one recorder against fake-tse', () => {
   let b: string;

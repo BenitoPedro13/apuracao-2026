@@ -37,16 +37,44 @@ importers:
         version: 5.0.3(@types/node@26.4.1)(vite@8.3.3(@types/node@26.4.1)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
 
   apps/projector:
+    dependencies:
+      '@apuracao/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@apuracao/s3kit':
+        specifier: workspace:*
+        version: link:../../packages/s3kit
+      '@apuracao/tse':
+        specifier: workspace:*
+        version: link:../../packages/tse
+      '@apuracao/views':
+        specifier: workspace:*
+        version: link:../../packages/views
+      '@aws-sdk/client-s3':
+        specifier: ^3.1147.0
+        version: 3.1147.0
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
     devDependencies:
       '@apuracao/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@apuracao/fake-tse':
+        specifier: workspace:*
+        version: link:../fake-tse
+      '@apuracao/recorder':
+        specifier: workspace:*
+        version: link:../recorder
       '@types/node':
         specifier: 26.4.1
         version: 26.4.1
       eslint:
         specifier: 10.9.1
         version: 10.9.1
+      testcontainers:
+        specifier: ^12.2.0
+        version: 12.2.0
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -59,6 +87,9 @@ importers:
       '@apuracao/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@apuracao/s3kit':
+        specifier: workspace:*
+        version: link:../../packages/s3kit
       '@apuracao/tse':
         specifier: workspace:*
         version: link:../../packages/tse
@@ -177,6 +208,28 @@ importers:
         specifier: 5.0.3
         version: 5.0.3(@types/node@26.4.1)(vite@8.3.3(@types/node@26.4.1)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
 
+  packages/s3kit:
+    dependencies:
+      '@aws-sdk/client-s3':
+        specifier: ^3.1147.0
+        version: 3.1147.0
+    devDependencies:
+      '@apuracao/config':
+        specifier: workspace:*
+        version: link:../config
+      '@types/node':
+        specifier: 26.4.1
+        version: 26.4.1
+      eslint:
+        specifier: 10.9.1
+        version: 10.9.1
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vitest:
+        specifier: 5.0.3
+        version: 5.0.3(@types/node@26.4.1)(vite@8.3.3(@types/node@26.4.1)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
+
   packages/tse:
     dependencies:
       '@apuracao/contracts':
@@ -203,6 +256,13 @@ importers:
         version: 5.0.3(@types/node@26.4.1)(vite@8.3.3(@types/node@26.4.1)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/views:
+    dependencies:
+      '@apuracao/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@apuracao/tse':
+        specifier: workspace:*
+        version: link:../tse
     devDependencies:
       '@apuracao/config':
         specifier: workspace:*

@@ -5,8 +5,9 @@ feed. It records every published version of every file, so the count can be repl
 minute by minute.
 
 **Status:** the recorder is live on AWS (2026-10-08). It captured the 1st round, soaks
-against the TSE CDN, and will discover the 2nd-round files by itself. Next: Phase 2 (Kafka
-log, projector, public CDN).
+against the TSE CDN, and will discover the 2nd-round files by itself. The projector (S3
+mode) folds that log into the published views (`docs/tasks/TASK-projector-and-views.md`).
+Next: the public CDN and the Kafka log (Phase 2).
 **Deadline:** 2nd round, Sunday 2026-10-25.
 
 - What we know about the data: [`docs/research/01-tse-results-feed.md`](docs/research/01-tse-results-feed.md),
@@ -30,9 +31,17 @@ docker compose -f infra/docker-compose.yml up -d --wait   # local Redpanda (Kafk
 node apps/fake-tse/dist/main.js 8080 60                   # the real samples, with TSE CDN semantics
 ```
 
-Layout: `apps/{recorder,projector,fake-tse}`, `packages/{contracts,tse,views,config}`,
+Layout: `apps/{recorder,projector,fake-tse}`, `packages/{contracts,tse,views,s3kit,config}`,
 `infra/` (AWS CDK app: see [`infra/README.md`](infra/README.md)). Environment variables
 are listed in [`.env.example`](.env.example).
+
+Rebuilding the views from the raw log (read-only on the raw bucket; publishes to a
+directory or a bucket):
+
+```sh
+RAW_BUCKET=apuracao26-raw-860897618882 ELECTIONS=president=6257,governor=6259 \
+  pnpm --filter @apuracao/projector rebuild --source s3 --epoch rebuild-1 --out ./pub
+```
 
 Operating the recorder (sa-east-1):
 

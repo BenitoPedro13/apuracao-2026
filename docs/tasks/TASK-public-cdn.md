@@ -196,3 +196,47 @@ What the site shows **between 10-18 and the first 2nd-round file** (the projecto
   stacks synthesize; `RecorderStack`'s resources are unchanged except the image hash (its
   code changed in `ac18a9c`); the Docker context is 788 KB (was 1.5 GB with `.capture/` and
   `.replay/`).
+
+## 8. Plan B: S3 directly over HTTPS until CloudFront is verified (user, 2026-10-08)
+
+The support case is open. Until AWS verifies the account, readers fetch straight from the
+bucket's REST endpoint, `https://apuracao26-pub-<account>.s3.sa-east-1.amazonaws.com/`
+(HTTPS, in São Paulo). CloudFront goes in front of the same bucket later; only the base
+URL changes.
+
+### 8.1 Changes
+
+- **`infra/lib/public-stack.ts`:** the distribution only with context `cdn=on` (default
+  `off` while blocked). With `cdn=off`: a bucket policy allowing anonymous `s3:GetObject`
+  on every object (no `ListBucket`, so a missing key is a 403 to readers, and writes stay
+  the projector's only); `blockPublicAccess` relaxed for policies only (`BLOCK_ACLS`
+  stays); a CORS rule allowing `GET`/`HEAD` from any origin (data is public; lets the web
+  app run from `localhost` against real data). With `cdn=on` the bucket goes private again
+  behind OAC, as in §2.1.
+- **`apps/projector/src/publisher.ts`, `S3Publisher`:** views and manifests are stored
+  **gzipped** (`Content-Encoding: gzip`, level 9). S3 doesn't compress, and CloudFront did;
+  browsers decode transparently. Keys and hashes stay those of the uncompressed canonical
+  JSON (content addressing is unchanged, so a rebuild still compares byte for byte);
+  `getBytes` gunzips. The pointer stays uncompressed (0.6 KB). `DirPublisher` unchanged.
+- **The web app** (Phase 3, recorded here so it isn't lost): the data base URL is
+  configuration; `/` doesn't serve `index.html` on the REST endpoint, so the entry URL is
+  `/index.html` until CloudFront; the client keeps the last good data on errors and backs
+  off (the browser's stand-in for `stale-if-error`).
+- **Cost cap:** S3 has no flat-rate plan. The Budget alarms ($60/$85) stay; the runbook's
+  lever is raising `pollSeconds` (one pointer write). At ~100 viewers the night costs
+  ~$0.06 (sa-east-1: GET $0.56 per million, transfer out $0.15/GB after the free 100 GB,
+  AWS Price List API, 2026-10-08).
+- **Not here:** request collapsing and edge caching don't exist without CloudFront; the
+  50k design peak waits for it (the pointer alone would be ~2,500 GET/s on one key).
+
+### 8.2 Verification
+
+1. Template tests: `cdn=off` → no distribution, a policy whose only `Allow` to `*` is
+   `s3:GetObject`, ACLs still blocked, CORS GET/HEAD; `cdn=on` → §5 item 1 unchanged.
+   `S3Publisher` against RustFS: a view is stored with `Content-Encoding: gzip`, its key is
+   the sha256 of the uncompressed bytes, `getBytes` returns the uncompressed bytes.
+2. `cdk deploy PublicStack` (cdn=off), then the seed (§2.4). Over HTTPS, anonymously:
+   `latest.json` 200 with the published `Cache-Control`; a view 200 with
+   `content-encoding: gzip` that `curl --compressed` decodes to bytes whose sha256 is its
+   key; a missing key 403; a `PUT` 403; a `?list-type=2` listing 403.
+3. The seed's views equal the local real-log rebuild (`.replay/real/pub`), as §5 item 3.

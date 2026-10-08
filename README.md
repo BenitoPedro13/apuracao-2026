@@ -7,6 +7,9 @@ minute by minute.
 **Status:** the recorder is live on AWS (2026-10-08). It captured the 1st round, soaks
 against the TSE CDN, and will discover the 2nd-round files by itself. The projector (S3
 mode) folds that log into the published views (`docs/tasks/TASK-projector-and-views.md`).
+The 1st round's final results are public at
+`https://apuracao26-pub-860897618882.s3.sa-east-1.amazonaws.com/data/v1/latest.json`
+(plan B, S3 over HTTPS until CloudFront is verified: `docs/tasks/TASK-public-cdn.md` §8).
 fake-tse replays the 1st round's real files on an accelerated clock, for end-to-end runs
 before the night (`docs/tasks/TASK-fake-tse.md`). Next: the public CDN and the Kafka log
 (Phase 2).

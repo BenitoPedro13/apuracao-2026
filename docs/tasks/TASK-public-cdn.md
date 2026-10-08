@@ -240,3 +240,16 @@ URL changes.
    `content-encoding: gzip` that `curl --compressed` decodes to bytes whose sha256 is its
    key; a missing key 403; a `PUT` 403; a `?list-type=2` listing 403.
 3. The seed's views equal the local real-log rebuild (`.replay/real/pub`), as §5 item 3.
+
+### 8.3 Outcome (2026-10-08)
+
+Plan B is live: `https://apuracao26-pub-860897618882.s3.sa-east-1.amazonaws.com/`.
+`cdk deploy PublicStack` (cdn=off) in 36.8 s; the seed (`rebuild --epoch 1t-final`)
+in 35.8 s: `seq` 11,387, 114 views, 0 rejected, reconciliation 56/56 sums equal.
+Anonymously over HTTPS: `data/v1/latest.json` 200 with the §6.2 `Cache-Control`
+(epoch `1t-final`, TSE totalizedAt 05/10 12:51:05); the national view 200,
+`content-encoding: gzip`, `immutable`, and its decoded sha256 equals its key; a missing
+key, an anonymous `PUT` and a listing are all 403. The 114 published view hashes equal the
+local real-log rebuild's (`.replay/real/pub`). Template tests 11/11; full suite 34/34
+(projector 14 tests, with the gzip one against RustFS). CloudFront (`cdn=on`) and the
+projector on Fargate wait for the support case.

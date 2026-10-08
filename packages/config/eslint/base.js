@@ -4,6 +4,11 @@ import eslintConfigPrettier from "eslint-config-prettier";
 import turboPlugin from "eslint-plugin-turbo";
 import onlyWarn from "eslint-plugin-only-warn";
 import globals from "globals";
+import { fileURLToPath } from "node:url";
+
+// Resolved from this package, not from the linted package's cwd: Babel resolves preset
+// names relative to the cwd, which only worked through pnpm hoisting.
+const presetTypescript = fileURLToPath(import.meta.resolve("@babel/preset-typescript"));
 
 /**
  * A shared ESLint configuration for the repository.
@@ -22,7 +27,7 @@ export const config = [
       parserOptions: {
         requireConfigFile: false,
         babelOptions: {
-          presets: ["@babel/preset-typescript"],
+          presets: [presetTypescript],
         },
       },
     },

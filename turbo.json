@@ -12,11 +12,15 @@
       ],
       "outputs": [
         "dist/**",
-        "cdk.out/**"
+        "cdk.out/**",
+        "out/**",
+        ".next/**",
+        "!.next/cache/**"
       ],
       "env": [
         "ALERT_EMAIL",
-        "CDK_DEFAULT_ACCOUNT"
+        "CDK_DEFAULT_ACCOUNT",
+        "NEXT_PUBLIC_DATA_BASE_URL"
       ]
     },
     "lint": {

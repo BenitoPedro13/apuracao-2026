@@ -25,8 +25,9 @@ by then waits for post-election replay and analysis. Scope decisions are made ag
 date.
 
 **Status:** architecture accepted (2026-10-07, decisions in `architecture.md` §15: $100
-AWS credit for 6 months; ~100 expected viewers, 50k capacity target, nothing pre-paid). No app code yet. Next:
-`docs/tasks/TASK-scaffold-monorepo.md` (Phase 0). Read in this order:
+AWS credit for 6 months; ~100 expected viewers, 50k capacity target, nothing pre-paid). Monorepo scaffolded
+(`TASK-scaffold-monorepo.md`, done except `cdk bootstrap`/deploy, which wait on `aws login`).
+Next: `docs/tasks/TASK-contracts-and-tse-parsing.md` (Phase 0, part 2). Read in this order:
 
 1. `docs/research/01-tse-results-feed.md` and `02-signatures-cache-and-map-mesh.md`: the
    verified facts about the TSE feed (URLs, file shapes, caching, signed `.jws` siblings,
@@ -49,7 +50,7 @@ verify against each tool's current docs before installing (§2.0).
 | Layer | Choice | Notes |
 |---|---|---|
 | Monorepo | pnpm workspaces + Turborepo | `apps/{recorder,projector,fake-tse,web}`, `packages/{contracts,tse,views,config}`, `infra/` |
-| Language | TypeScript on Node 24, everywhere | ADR-2: IO-bound, shares Zod contracts with the web app |
+| Language | TypeScript **7** on Node 24, everywhere | ADR-2: IO-bound, shares Zod contracts with the web app |
 | Ingestion | `apps/recorder`, Fargate ARM in sa-east-1 (1 task from 10-11, + a standby 10-24 → 10-26), S3-lease leader | fetches the TSE **`.jws`** (signed, payload = the `.json`), per-file `Expires` scheduling, ≤100 req/s |
 | History / log | S3 `apuracao26-raw`: content-addressed blobs (`If-None-Match: *`), Object Lock, per-cycle observation segments | the source of truth (invariant 2) |
 | Broker | Amazon MSK, 3 × `kafka.t3.small`, topic `tse.observations.v1` (1 partition, RF 3) | **learning choice on the critical path** (user, 2026-10-07): never the only copy, S3 fallback mode, gate on 10-16. **Exists only when switched on** (CDK `night=on`: 10-15 smoke test, 10-22 rehearsal, 10-24 → 10-26); development uses local Redpanda |
@@ -62,7 +63,19 @@ verify against each tool's current docs before installing (§2.0).
 | Infra | AWS CDK (TypeScript), GitHub Actions | sa-east-1; paid from the user's AWS credits ($100, valid to ~2027-04); ≈ $40 total, CloudFront $0 at the expected ~100 viewers (`architecture.md` §11). Nothing that bills by the hour runs before it has a job |
 | Observability | CloudWatch EMF metrics, canary Lambdas (every 1 min), SNS email/SMS | `architecture.md` §10 |
 | Analytics | Umami, cookieless, no ads | user decision 2026-10-07 |
-| Local / tests | docker compose + testcontainers: Redpanda (Kafka API), MinIO (S3 API) | real brokers/stores, never mocks |
+| Local / tests | docker compose + testcontainers: Redpanda (Kafka API), S3 emulator to be chosen in `TASK-recorder.md` (MinIO's image can no longer be pulled, 2026-10-07) | real brokers/stores, never mocks; Vitest 5 everywhere |
+
+### Toolchain quirks (found while scaffolding, 2026-10-07)
+
+- **TypeScript 7 + ESLint:** typescript-eslint supports only TS `<6.1.0`, so (as
+  `create-turbo` does) ESLint parses TS with Babel. `no-undef`/`no-unused-vars` are off
+  for `.ts`, and `tsc` covers them (`noUnusedLocals`, `noUnusedParameters`). There's no
+  type-aware lint until typescript-eslint supports TS 7.
+- **pnpm 11 supply-chain policy:** packages younger than `minimumReleaseAge` are refused.
+  Pin the newest version that passes it rather than adding an exclusion. Dependency build
+  scripts need an `allowBuilds` entry in `pnpm-workspace.yaml` (only `esbuild` today).
+- **Task names:** `build`, `lint`, `check-types` (the generator's name), `test`. Run all of
+  them with `pnpm turbo run lint check-types test build`.
 
 ### How to write in this repo
 
@@ -167,7 +180,7 @@ packages/
   tse/          TSE URL builders, codes, string-number parsing, .jws verification; one place
   views/        pure fold/render functions shared by projector, rebuild and tests
   config/       shared tsconfig / eslint / prettier
-infra/          AWS CDK app + docker compose (Redpanda, MinIO) for local runs
+infra/          AWS CDK app + docker compose (Redpanda; S3 emulator TBD) for local runs
 scripts/        one-off captures, ops commands, k6 and Playwright perf scenarios
 docs/
   research/     verified facts + samples/ (real captured TSE files)

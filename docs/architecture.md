@@ -599,10 +599,10 @@ with real files.
 | Parsers | every file in `docs/research/samples/` + the full 1st-round capture (§9.2) through the Zod schemas | 100% parse, totals match the cross-check in research 01 §4 |
 | Signatures | verify the captured `.jws` samples; flip one byte → invalid | exact |
 | Folds | `packages/views` on real files | snapshot tests on real data only |
-| Integration (testcontainers: **Redpanda** as the Kafka-API broker, **MinIO** as S3) | recorder → broker → projector → bucket, end to end | idempotency test, replay test, both recorders racing |
+| Integration (testcontainers: **Redpanda** as the Kafka-API broker, an S3 emulator, chosen in `TASK-recorder.md` because MinIO's image can no longer be pulled) | recorder → broker → projector → bucket, end to end | idempotency test, replay test, both recorders racing |
 | Replay = live | rebuild from S3 segments vs the live projector's epoch | every view byte-identical except epoch/seq ids |
 
-Redpanda/MinIO are real brokers/stores speaking the same protocols, not mocks. Production is
+Redpanda and the S3 emulator are real brokers/stores speaking the same protocols, not mocks. Production is
 MSK/S3. A staging run against real MSK/S3 is part of the dress rehearsal (§9.4).
 
 ### 9.2 The fake TSE (`apps/fake-tse`)
@@ -748,7 +748,7 @@ do the same for ~$10 more, and was dropped for cost.
 **Principle: AWS bills per hour that something is switched on, used or not. So nothing runs
 before it has a job.** Only the recorder has a job weeks ahead (finding the 2nd-round files,
 and soaking against the real TSE). Kafka and the standbys only have a job on the rehearsal
-and the night. Development and integration tests run on local Docker (Redpanda + MinIO) at
+and the night. Development and integration tests run on local Docker (Redpanda + an S3 emulator) at
 no cost.
 
 Prices are AWS's published São Paulo rates (research 02 §7).

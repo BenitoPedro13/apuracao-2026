@@ -1,0 +1,9 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "infra"
+
+# pnpm 11 blocks dependency build scripts by default. esbuild (via tsx, used by the CDK app)
+# needs its postinstall to link its native binary.
+allowBuilds:
+  esbuild: true

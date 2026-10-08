@@ -1,0 +1,21 @@
+{
+  "name": "@apuracao/fake-tse",
+  "version": "0.0.0",
+  "description": "Test harness: serves real captured TSE files with TSE HTTP semantics",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/index.js",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@apuracao/config": "workspace:*",
+    "@types/node": "26.4.1",
+    "eslint": "10.9.1",
+    "typescript": "7.0.2",
+    "vitest": "5.0.3"
+  }
+}

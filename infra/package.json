@@ -1,0 +1,26 @@
+{
+  "name": "@apuracao/infra",
+  "version": "0.1.0",
+  "description": "AWS CDK app (sa-east-1) and the local docker compose stack",
+  "private": true,
+  "scripts": {
+    "build": "ALERT_EMAIL=alerts@example.invalid cdk synth --quiet",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0",
+    "test": "vitest run",
+    "cdk": "cdk"
+  },
+  "devDependencies": {
+    "@apuracao/config": "workspace:*",
+    "@types/node": "26.4.1",
+    "aws-cdk": "2.1144.0",
+    "eslint": "10.9.1",
+    "tsx": "^4.23.0",
+    "typescript": "~7.0.2",
+    "vitest": "5.0.3"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.272.0",
+    "constructs": "^10.5.0"
+  }
+}

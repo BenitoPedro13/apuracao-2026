@@ -1,0 +1,26 @@
+{
+  "name": "@apuracao/views",
+  "version": "0.0.0",
+  "description": "Pure fold/render functions shared by projector, rebuild and tests",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@apuracao/config": "workspace:*",
+    "@types/node": "26.4.1",
+    "eslint": "10.9.1",
+    "typescript": "7.0.2",
+    "vitest": "5.0.3"
+  }
+}

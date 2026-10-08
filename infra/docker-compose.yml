@@ -1,0 +1,26 @@
+# Local stand-in for MSK (Redpanda, Kafka API), for development and integration tests.
+# Nothing here runs in AWS.
+#
+# No S3 emulator yet: the planned MinIO image can no longer be pulled (minio/minio on
+# Docker Hub and quay.io both refuse, checked 2026-10-07). The replacement is chosen in
+# docs/tasks/TASK-recorder.md, tested against the conditional writes the raw log needs
+# (If-None-Match: * on PUT, If-Match on the pointer).
+name: apuracao26
+
+services:
+  redpanda:
+    image: redpandadata/redpanda:v26.2.4
+    command:
+      - redpanda
+      - start
+      - --mode=dev-container
+      - --smp=1
+      - --kafka-addr=internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr=internal://redpanda:9092,external://localhost:19092
+    ports:
+      - "19092:19092" # Kafka API for clients on the host
+    healthcheck:
+      test: ["CMD", "rpk", "cluster", "health", "--exit-when-healthy"]
+      interval: 5s
+      timeout: 5s
+      retries: 20

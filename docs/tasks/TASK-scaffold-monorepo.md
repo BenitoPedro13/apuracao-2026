@@ -1,5 +1,8 @@
 # TASK: Scaffold the monorepo (Phase 0, part 1)
 
+**Status (2026-10-07): done, except §2 step 9 (`cdk bootstrap` + `cdk deploy BudgetStack`),
+which waits on the user's `aws login`.** Deviations from the plan are in §6.
+
 Phase 0 of `TASK-implementation-plan.md`, must be done by **Thu 2026-10-08**. Part 2 is
 `TASK-contracts-and-tse-parsing.md` (written after this one lands).
 
@@ -112,3 +115,34 @@ the credit is $100 against a plan of ≈ $40 + $0–15. Cost: about half a day, 
 5. After the user's `aws login`: `cdk bootstrap` succeeds; `cdk deploy BudgetStack`
    succeeds; `aws budgets describe-budgets --account-id <id>` lists both budgets.
 6. CI goes green on the pushed commit (if a GitHub remote exists; there's none today).
+
+## 6. Outcome and deviations (2026-10-07)
+
+Verification 1–4 pass: a frozen-lockfile install; `pnpm turbo run lint check-types test
+build` runs 28/28 tasks and then `FULL TURBO` (28 cached); the synth emits one
+`AWS::Budgets::Budget` (100 USD, ANNUALLY, `IncludeCredit: false`, ACTUAL alerts at 60 and
+85); Redpanda v26.2.4 is healthy (`rpk cluster info` shows 1 broker). Verification 5 waits on
+`aws login`. 6 waits on a GitHub remote.
+
+Deviations, each recorded in CLAUDE.md "Toolchain quirks" where it's a lasting rule:
+
+- **TS 7 confirmed** for the whole repo: both `create-turbo` and `cdk init` generate
+  `typescript@7.0.2`. typescript-eslint doesn't support TS 7 (peer `<6.1.0`), so ESLint
+  parses TS with Babel, as the generator does. `no-undef`/`no-unused-vars` are off for `.ts`,
+  and `tsc` enforces `noUnusedLocals`/`noUnusedParameters` instead. The generator's ESLint
+  base had no `files` glob for `.ts` and silently linted nothing, so one was added.
+- **The task is named `check-types`, not `typecheck`** (the generator's name).
+- **No root Vitest `projects` config.** Turbo already runs `vitest run` per package, so a
+  root config would be a second orchestrator.
+- **One budget instead of two:** a single annual $100 cost budget with two notifications
+  ($60, $85). It's the same alerts with one resource. The alert address comes from
+  `ALERT_EMAIL` (required on every synth, so a deploy can't go out with a placeholder) and
+  isn't committed.
+- **CDK is Vitest, not Jest** (one test runner in the repo). `aws-cdk` is pinned to
+  2.1144.0, because 2.1145.0 is younger than pnpm 11's `minimumReleaseAge`.
+- **MinIO dropped from compose:** `minio/minio` can't be pulled from Docker Hub or quay.io.
+  The S3 emulator is chosen in `TASK-recorder.md`, tested against `If-None-Match: *` and
+  `If-Match` writes.
+- **The `esbuild` build script is allowed** (`allowBuilds` in `pnpm-workspace.yaml`),
+  because `tsx` needs it to run the CDK app.
+

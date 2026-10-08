@@ -6,6 +6,13 @@ instant by instant, and optionally with 2022. Decision recorded in `CLAUDE.md` (
 constraint) and `architecture.md` §15 item 9: a sum of BU records is real data when
 labelled "boletins recebidos até hh:mm".
 
+> **Update 2026-10-08 (research 03 §4):** the TSE publishes the official **totalization
+> history** (per second, per candidate) for 2022's two rounds. For 2022, and for the 2026
+> 1st round once it's published (2022's came 16 days after the vote), the curves come from
+> that file, labelled as the TSE's totalization; the BU-receipt fold below stays as the
+> stand-in until then and as a cross-check after. The contract gains a `source.kind`:
+> `totalization-history` | `bu-receipts`.
+
 ## 1. Current scenario
 
 - Our raw log holds only the 1st round's **final** files (the recorder started on 10-08),

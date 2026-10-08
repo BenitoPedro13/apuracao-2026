@@ -75,3 +75,28 @@ exact, §1). It's not the TSE's live screen at *t* (totalization lags receipt by
 §2), so it must be labelled as "boletins recebidos até hh:mm", never as the TSE's number
 at that time. The same works for the 2022 rounds, and for the 2026 2nd round once its BUs
 are published (the 1st round's appeared the next day).
+
+## 4. The TSE also publishes the official totalization history (found 2026-10-08)
+
+- **`resultados-2022`** (CKAN) has **"Histórico totalização Presidente 1º Turno - 2022"**
+  and **"2º Turno"**: `https://cdn.tse.jus.br/estatistica/sead/eleicoes/eleicoes2022/Historico_Totalizacao_Presidente_BR_1T_2022.zip`
+  (1,625,754 B; CSV 13.8 MB + `leiame.pdf`). Latin-1, `;`-separated, padded fields;
+  **one row per totalization instant**, to the second (`DT_TOTALIZACAO` from
+  02/10/2022 17:04:47; 8,436 rows), with sections totalized (instant and cumulative, % of
+  total), electorate, votes (total, valid), and per candidate votes and % (instant and
+  cumulative), with one column group per candidate name (`LULA_QT_VOTOS_TOT_ACUMULADO`…).
+  `[VERIFY: the leiame's definitions and time zone of DT_TOTALIZACAO (presumably
+  Brasília); the 2nd round file]`
+- It's **the TSE's own record of the night**, i.e. what its screen showed, not a sum of BU
+  receipts: for 2022 the comparison curves come from here.
+- **Publication lag in 2022:** 1st round (10-02) published 10-18, 2nd round (10-30)
+  published 11-01. **For 2026, `resultados-2026` has only "Relatório de Totalização" (per
+  UF, 10-06) so far.** If the 1st round's history follows 2022's lag, it appears around
+  10-18/10-20, before the 2nd round `[VERIFY: daily from 10-12]`. The BU-receipt curve
+  (§3) stands in until it does, and becomes a cross-check after.
+- **Old elections don't disappear, they move:** the live feed's catalog (`comum/config/ele-c`)
+  now lists only the 2024 and 2026 cycles, while `resultados-2022` keeps per-candidate
+  results for every office ("Votação nominal por município e zona", with each candidate's
+  situation, e.g. elected), per-section votes and the BUs, each with a published hash. So
+  senators and deputies (2022, and 2026 once its files are published there) don't need our
+  recorder.

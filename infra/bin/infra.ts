@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import * as cdk from 'aws-cdk-lib/core';
 import { BudgetStack } from '../lib/budget-stack';
+import { RawStack } from '../lib/raw-stack';
+import { RecorderStack } from '../lib/recorder-stack';
 
 const app = new cdk.App();
 
@@ -16,3 +18,5 @@ if (!alertEmail) {
 }
 
 new BudgetStack(app, 'BudgetStack', { env, alertEmail });
+const raw = new RawStack(app, 'RawStack', { env });
+new RecorderStack(app, 'RecorderStack', { env, rawBucket: raw.bucket, alertEmail, rateMax: 10 });

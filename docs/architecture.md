@@ -228,7 +228,10 @@ at their `Expires`, because they feed the headline and must not wait one extra c
 One process, one **priority queue of `(dueAt, path)`** and one **token bucket**:
 
 - `dueAt` for tier 0/1 = the response's `Expires` (or `Date + max-age`) + uniform jitter
-  1–3 s. **We never request a file before its edge copy expires** (invariant 4). This
+  1–3 s. **We never request a file before its edge copy expires** (invariant 4). This is
+  enforced in one place: every path's last `Expires` is kept (and persisted in the snapshot),
+  and every scheduling call is clamped to it. Frozen elections (the 1st round) also have a
+  minimum interval of 600 s. This
   replaces a fixed 60 s clock and, on average, halves our staleness.
 - Tier 2 items are due immediately when enqueued. Ordering among them: oldest change first,
   so every municipality is eventually fetched, with no starvation by size.
@@ -293,13 +296,20 @@ Two recorders run all the time in different AZs. Exactly one polls, the **lease 
 
 ### 5.1 Raw log (immutable, kept forever)
 
-Bucket `apuracao26-raw` (sa-east-1, private, versioning on, **S3 Object Lock in governance
-mode, 10-year default retention**, SSE-S3).
+Bucket **`apuracao26-raw-860897618882`** ("`apuracao26-raw`" elsewhere in this document; the
+account id makes the global name unique). sa-east-1, private, versioning on, SSE-S3, **S3
+Object Lock enabled with no default retention**: the recorder sets **governance-mode, 10-year
+retention per object on `raw/` and `obs/`** writes. `lease/` and `state/` are overwritten every
+few seconds, so they're left unlocked, and their old versions expire after 1 day
+(`TASK-recorder.md` §6). Verified on the real bucket 2026-10-08: `If-None-Match: *` and
+`If-Match` give 412 exactly when they must, and a conditional PUT with governance retention
+succeeds.
 
 | Key | Content | Written |
 |---|---|---|
 | `raw/v1/sha256/{h[0:2]}/{h}.jws` | the exact bytes received (after content-decoding), one object per distinct content | `PutObject` with `If-None-Match: *`. A `412` means "already stored", which is success. That is dedup and idempotency in one header |
-| `obs/v1/{recorder}/{YYYY-MM-DD}/{HH}/{cycleStartUtc}-{cycleNo}.ndjson.gz` | the observations of one poll cycle, in fetch order | once per cycle, after the cycle's blobs are stored |
+| `obs/v1/{recorder}/{YYYY-MM-DD}/{HH}/{cycleStartUtc}-{cycleNo}.ndjson.gz` | the observations of one flush window, in fetch order | every 5 s when non-empty, and at least every 60 s even if empty (a heartbeat, so a missing segment means the recorder was down), after their blobs are stored |
+| `state/recorder/v1/snapshot.json.gz` | the recorder's working state (per-path ETag/sha/idg, due times, last `Expires`, coverage indexes): a projection of the log for fast restarts, never the truth | every 60 s by the lease holder |
 | `lease/recorder.json`, `lease/projector.json` | leases (§4.5, §5.4) | conditional writes |
 | `checkpoints/projector/{epoch}/{offset:012d}.json.gz` | projector state + the offset it covers | every 50 publishes and on shutdown |
 | `meta/keys/{kid}.jwk.json` | each TSE public key ever seen | when first seen |

@@ -207,6 +207,10 @@ export function createRecorder(deps: RecorderDeps) {
     });
     const statusClass = outcome.kind === 'ok' ? '200' : outcome.kind === 'not_modified' ? '304' : outcome.kind === 'not_found' ? '404' : 'error';
     metrics.count('tse_requests_total', { Status: statusClass, Tier: String(file.tier) });
+    if (failed) {
+      const error = outcome.kind === 'failed' ? outcome.error : 'etag does not match the MD5 of the body';
+      log({ msg: 'fetch failed', path, status: outcome.kind === 'failed' ? outcome.status : 200, error, failures: prev.failures + 1 });
+    }
 
     let fetched: Fetched;
     if (outcome.kind === 'ok' && !outcome.etagMismatch) {

@@ -54,7 +54,7 @@ verify against each tool's current docs before installing (§2.0).
 | Monorepo | pnpm workspaces + Turborepo | `apps/{recorder,projector,fake-tse,web}`, `packages/{contracts,tse,views,config}`, `infra/` |
 | Language | TypeScript **7** on Node 24, everywhere | ADR-2: IO-bound, shares Zod contracts with the web app |
 | Ingestion | `apps/recorder`, Fargate ARM in sa-east-1 (1 task from 10-11, + a standby 10-24 → 10-26), S3-lease leader | fetches the TSE **`.jws`** (signed, payload = the `.json`), per-file `Expires` scheduling, ≤100 req/s |
-| History / log | S3 `apuracao26-raw`: content-addressed blobs (`If-None-Match: *`), Object Lock, per-cycle observation segments | the source of truth (invariant 2) |
+| History / log | S3 `apuracao26-raw-860897618882`: content-addressed blobs (`If-None-Match: *`), Object Lock (governance retention set per object on `raw/`, `obs/`), observation segments every 5 s + 60 s heartbeat | the source of truth (invariant 2). **Live since 2026-10-08** |
 | Broker | Amazon MSK, 3 × `kafka.t3.small`, topic `tse.observations.v1` (1 partition, RF 3) | **learning choice on the critical path** (user, 2026-10-07): never the only copy, S3 fallback mode, gate on 10-16. **Exists only when switched on** (CDK `night=on`: 10-15 smoke test, 10-22 rehearsal, 10-24 → 10-26); development uses local Redpanda |
 | Kafka client | `@confluentinc/kafka-javascript` | `kafkajs` rejected (unmaintained since 2023) |
 | Projections | `packages/views` (pure fold/render) run by `apps/projector`, Fargate ×2 | no database; state checkpointed to S3 |
@@ -65,7 +65,7 @@ verify against each tool's current docs before installing (§2.0).
 | Infra | AWS CDK (TypeScript), GitHub Actions | sa-east-1; paid from the user's AWS credits ($100, valid to ~2027-04); ≈ $40 total, CloudFront $0 at the expected ~100 viewers (`architecture.md` §11). Nothing that bills by the hour runs before it has a job |
 | Observability | CloudWatch EMF metrics, canary Lambdas (every 1 min), SNS email/SMS | `architecture.md` §10 |
 | Analytics | Umami, cookieless, no ads | user decision 2026-10-07 |
-| Local / tests | docker compose + testcontainers: Redpanda (Kafka API), S3 emulator to be chosen in `TASK-recorder.md` (MinIO's image can no longer be pulled, 2026-10-07) | real brokers/stores, never mocks; Vitest 5 everywhere |
+| Local / tests | docker compose + testcontainers: Redpanda (Kafka API), RustFS 1.0.1 (S3 API; replaced MinIO, whose image can no longer be pulled; chosen by the recorder's S3 conformance suite) | real brokers/stores, never mocks; Vitest 5 everywhere |
 
 ### Toolchain quirks (found while scaffolding, 2026-10-07)
 
@@ -182,7 +182,7 @@ packages/
   tse/          TSE URL builders, codes, string-number parsing, .jws verification; one place
   views/        pure fold/render functions shared by projector, rebuild and tests
   config/       shared tsconfig / eslint / prettier
-infra/          AWS CDK app + docker compose (Redpanda; S3 emulator TBD) for local runs
+infra/          AWS CDK app + docker compose (Redpanda, RustFS) for local runs
 scripts/        one-off captures, ops commands, k6 and Playwright perf scenarios
 docs/
   research/     verified facts + samples/ (real captured TSE files)

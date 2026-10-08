@@ -6,7 +6,9 @@ import { LatestPointer, Manifest, ResultView } from '@apuracao/contracts';
 import { startFakeTse, type FakeTse } from '@apuracao/fake-tse';
 import { createFetcher, createRecorder, loadConfig as loadRecorderConfig, type Recorder } from '@apuracao/recorder';
 import { GenericContainer, Wait, type StartedTestContainer } from 'testcontainers';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import { gunzipSync } from 'node:zlib';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { loadConfig } from '../src/config.js';
 import { createProjector, type Projector } from '../src/projector.js';
@@ -219,6 +221,19 @@ test('kill and restart from the checkpoint: final views equal an uninterrupted r
   // The pointer moved only forward across the crash.
   expect((await pub(b).readPointer())!.pointer.seq).toBe(second.seq);
 }, 60_000);
+
+test('views are stored gzipped, keyed by the sha256 of the uncompressed bytes (TASK-public-cdn.md §8)', async () => {
+  const pointer = LatestPointer.parse(JSON.parse(Buffer.from((await pub('pub-live').getBytes(POINTER_KEY))!).toString('utf8')));
+  const manifest = Manifest.parse(JSON.parse(Buffer.from((await pub('pub-live').getBytes(manifestKey('test-1', pointer.seq)))!).toString('utf8')));
+  const sha = manifest.views['result/president/br']!;
+  const raw = await s3.send(new GetObjectCommand({ Bucket: 'pub-live', Key: viewKey(sha) }));
+  expect(raw.ContentEncoding).toBe('gzip');
+  const stored = await raw.Body!.transformToByteArray();
+  const plain = gunzipSync(stored);
+  expect(createHash('sha256').update(plain).digest('hex')).toBe(sha);
+  expect(stored.length).toBeLessThan(plain.length);
+  expect(Buffer.from((await pub('pub-live').getBytes(viewKey(sha)))!).equals(plain)).toBe(true);
+});
 
 test('pointer object carries the cache headers of architecture.md §6.2', async () => {
   const res = await s3.send(new GetObjectCommand({ Bucket: 'pub-live', Key: POINTER_KEY }));

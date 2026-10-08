@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { gunzipSync, gzipSync } from 'node:zlib';
 import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { GetObjectCommand, PutObjectCommand, type S3Client } from '@aws-sdk/client-s3';
@@ -35,14 +36,27 @@ export class S3Publisher implements Publisher {
     return `s3://${this.bucket}`;
   }
 
+  /**
+   * Stored gzipped: S3 doesn't compress (CloudFront did; TASK-public-cdn.md §8). The key is
+   * still the sha256 of the uncompressed bytes, and browsers decode transparently.
+   */
   putImmutable(key: string, bytes: Uint8Array) {
-    return putOnce(this.s3, { Bucket: this.bucket, Key: key, Body: bytes, ContentType: 'application/json', CacheControl: IMMUTABLE });
+    return putOnce(this.s3, {
+      Bucket: this.bucket,
+      Key: key,
+      Body: gzipSync(bytes, { level: 9 }),
+      ContentType: 'application/json',
+      ContentEncoding: 'gzip',
+      CacheControl: IMMUTABLE,
+    });
   }
 
+  /** The uncompressed bytes. */
   async getBytes(key: string) {
     try {
       const res = await this.s3.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
-      return await res.Body!.transformToByteArray();
+      const body = await res.Body!.transformToByteArray();
+      return res.ContentEncoding === 'gzip' ? new Uint8Array(gunzipSync(body)) : body;
     } catch (err) {
       if (isNotFound(err)) return undefined;
       throw err;

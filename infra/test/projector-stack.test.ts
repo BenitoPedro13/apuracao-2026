@@ -12,7 +12,7 @@ function synth(running: boolean) {
   const app = new cdk.App();
   const raw = new RawStack(app, 'Raw', { env });
   const rec = new RecorderStack(app, 'Rec', { env, rawBucket: raw.bucket, alertEmail: 'test@example.invalid', rateMax: 10 });
-  const pub = new PublicStack(app, 'Pub', { env });
+  const pub = new PublicStack(app, 'Pub', { env, cdn: false });
   const stack = new ProjectorStack(app, 'Proj', {
     env,
     rawBucket: raw.bucket,

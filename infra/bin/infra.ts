@@ -22,7 +22,8 @@ if (!alertEmail) {
 new BudgetStack(app, 'BudgetStack', { env, alertEmail });
 const raw = new RawStack(app, 'RawStack', { env });
 const recorder = new RecorderStack(app, 'RecorderStack', { env, rawBucket: raw.bucket, alertEmail, rateMax: 10 });
-const pub = new PublicStack(app, 'PublicStack', { env });
+// cdn=off is plan B until AWS verifies the account for CloudFront (TASK-public-cdn.md §8).
+const pub = new PublicStack(app, 'PublicStack', { env, cdn: app.node.tryGetContext('cdn') === 'on' });
 // The projector runs only when switched on (-c projector=on): from 10-18 for the night, on
 // the 2nd round under epoch 2t-1, promoted over the 1st-round seed when 6258 appears
 // (TASK-public-cdn.md §6).

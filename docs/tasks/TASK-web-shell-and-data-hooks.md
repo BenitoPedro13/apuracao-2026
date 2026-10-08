@@ -168,7 +168,8 @@ $0 to host (the bucket already exists).
    the page in both themes; every control reachable and operable by keyboard (Playwright
    tab-walk); `prefers-reduced-motion` disables transitions.
 6. Performance (3 runs, median, `architecture.md` §9.3): on "Fast 4G" + 4× CPU, the shell
-   is interactive ≤ 2.5 s; first-load JS ≤ 150 KB gzipped excluding the map's chunk.
+   is interactive ≤ 2.5 s; first-load JS ≤ 260 KB gzipped, of which ≤ 80 KB ours,
+   excluding every lazily loaded feature chunk (revised 2026-10-08, see §6 item 6).
 7. Deploy: `…/index.html` loads from the bucket, `_next/static` objects are `immutable`,
    and `data/v1/latest.json` is unchanged by the deploy (same ETag before and after).
 
@@ -226,8 +227,14 @@ one). What changed from the plan, and the measurements:
    target** ✗: React DOM + the Next 16 runtime are ~174 KB of it before any of our code
    (unchanged since the empty scaffold); ours is ~79 KB (TanStack Query + Table, Zod, the
    app), after removing Radix Select/Toggle/ToggleGroup (−35 KB) and the TSE time-zone table
-   (−20 KB). The 150 KB target was set without a measurement; proposed: ≤ 260 KB total,
-   ≤ 80 KB ours, with the 2.5 s budget above as the real gate. **Needs the user's call.**
+   (−20 KB). The 150 KB target was set without a measurement. **Revised (user,
+   2026-10-08):** the budget covers only what the headline needs to appear, ≤ 260 KB total
+   and ≤ 80 KB ours, with the 2.5 s time-to-headline as the real gate. Most of the
+   dashboard is still to come (map, timeline and scrubber, turnout, charts, governor
+   views), and the total JS will grow well past 260 KB. So every feature after this one
+   loads as its own lazy chunk (`next/dynamic` or a dynamic `import()`), stays out of the
+   first load, and its task doc sets and measures its own gzip budget. A feature that
+   needs to be in the first load has to fit the 80 KB or argue for raising it.
 7. Deploy (live bucket): `index.html` 200, `text/html`, gzip, `max-age=60`; its 9
    `_next/static` assets all 200, `max-age=31536000, immutable`; `data/v1/latest.json`
    ETag `"18772c75…"` before and after (unchanged); `epochs.json` 200, `max-age=300`.

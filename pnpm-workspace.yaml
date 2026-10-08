@@ -3,7 +3,12 @@ packages:
   - "packages/*"
   - "infra"
 
-# pnpm 11 blocks dependency build scripts by default. esbuild (via tsx, used by the CDK app)
-# needs its postinstall to link its native binary.
+# pnpm 11 blocks dependency build scripts by default; every entry is a deliberate decision.
 allowBuilds:
+  # esbuild (via tsx, used by the CDK app) needs its postinstall to link its native binary.
   esbuild: true
+  # testcontainers' transitive deps: optional native speedups (ssh2/cpu-features) and a
+  # version-check message (protobufjs). Not needed to talk to local Docker.
+  cpu-features: false
+  protobufjs: false
+  ssh2: false

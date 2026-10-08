@@ -1,10 +1,9 @@
-# Local stand-in for MSK (Redpanda, Kafka API), for development and integration tests.
-# Nothing here runs in AWS.
+# Local stand-ins for MSK (Redpanda, Kafka API) and S3 (RustFS, S3 API), for development
+# and integration tests. Nothing here runs in AWS.
 #
-# No S3 emulator yet: the planned MinIO image can no longer be pulled (minio/minio on
-# Docker Hub and quay.io both refuse, checked 2026-10-07). The replacement is chosen in
-# docs/tasks/TASK-recorder.md, tested against the conditional writes the raw log needs
-# (If-None-Match: * on PUT, If-Match on the pointer).
+# RustFS replaced MinIO (whose image can no longer be pulled): it was the first candidate to
+# pass the recorder's S3 conformance suite (apps/recorder/test/s3-conformance.ts:
+# If-None-Match: * and If-Match conditional PUTs, both → 412 when they must), 2026-10-08.
 name: apuracao26
 
 services:
@@ -21,6 +20,19 @@ services:
       - "19092:19092" # Kafka API for clients on the host
     healthcheck:
       test: ["CMD", "rpk", "cluster", "health", "--exit-when-healthy"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  rustfs:
+    image: rustfs/rustfs:1.0.1
+    environment:
+      RUSTFS_ACCESS_KEY: apuracao
+      RUSTFS_SECRET_KEY: apuracao-local-only
+    ports:
+      - "9000:9000" # S3 API
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9000/health"]
       interval: 5s
       timeout: 5s
       retries: 20

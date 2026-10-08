@@ -1,0 +1,18 @@
+import { expect, test } from 'vitest';
+import { loadConfig } from './config.js';
+
+test('defaults: 1st round soaks at 600 s, 2nd round at Expires, 10 req/s', () => {
+  const c = loadConfig({ RAW_BUCKET: 'bucket' });
+  expect(c.RATE_MAX).toBe(10);
+  expect(c.RECORDER_TARGETS).toEqual([
+    { election: '6257', office: 1, minIntervalS: 600 },
+    { election: '6259', office: 3, minIntervalS: 600 },
+    { election: '6258', office: 1, minIntervalS: null },
+    { election: '6260', office: 3, minIntervalS: null },
+  ]);
+});
+
+test('rejects unknown elections and a missing bucket', () => {
+  expect(() => loadConfig({ RAW_BUCKET: 'bucket', RECORDER_TARGETS: '9999:1:expires' })).toThrow();
+  expect(() => loadConfig({})).toThrow();
+});

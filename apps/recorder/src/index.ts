@@ -1,2 +1,3 @@
-// Poller: per-file Expires scheduling, .jws fetch + verify, S3 raw log, Kafka
-export const packageName = "@apuracao/recorder";
+export { createRecorder, type Recorder, type RecorderDeps } from './recorder.js';
+export { loadConfig, type RecorderConfig, type Target } from './config.js';
+export { createFetcher, type Fetcher } from './fetch.js';

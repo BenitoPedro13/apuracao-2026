@@ -48,7 +48,8 @@ coverage rows' `dt/ht` in the municipality's local time**, a few minutes after i
 the "row before polls closed" seen in research 02 §9 (16:16:53: an Acre municipality).
 AM's maximum of 120 min fits western Amazonas being on UTC−5.
 
-Consequences (not yet fixed; need a task doc):
+Consequences (fixed by `TASK-time-zones.md`, see its §6 for the full rule, including the
+Brasília-time central re-stamps and UF-level stamps):
 
 - `tseInstant(dt, ht)` (`packages/contracts`) appends `-03:00` to every `dt/ht`. For
   municipalities in AC, AM, RO, RR, MT, MS (UTC−4/−5) and Fernando de Noronha (UTC−2),

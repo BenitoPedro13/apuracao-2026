@@ -120,14 +120,15 @@ test('timeline: gaps longer than maxGap are cut, and every event is still reache
 
 // The full 1st-round export (scripts/export-capture.ts, gitignored): runs where it exists.
 const CAPTURE = fileURLToPath(new URL('../../../.capture/ele2026-1t', import.meta.url));
-test.skipIf(!existsSync(CAPTURE))('a municipal file appears by its own hg even when its row says later (pe30015)', () => {
+test.skipIf(!existsSync(CAPTURE))('pe30015 (Fernando de Noronha, UTC−2): its row is local time, before the -ab was generated', () => {
   const names = ['ele2026_6259_dados_pe_pe-e006259-ab.jws', 'ele2026_6259_dados_pe_pe30015-c0003-e006259-u.jws'];
   const cap = new Map(names.map((n) => [n.replace(/_/g, '/'), readFileSync(`${CAPTURE}/${n}`)] as const));
   const p = planReveal(cap, REPLAY_START_1T);
   const ab = p.entries.get('ele2026/6259/dados/pe/pe-e006259-ab.jws') as Extract<PlanEntry, { kind: 'coverage' }>;
   const mu = p.entries.get('ele2026/6259/dados/pe/pe30015-c0003-e006259-u.jws') as Extract<PlanEntry, { kind: 'file' }>;
-  // The -ab (hg 06/10 16:59:20) carries pe30015's row at 17:57:45; the file says hg 16:59:33.
+  // The -ab (hg 06/10 16:59:20 Brasília) stamps pe30015's row 17:57:45 Noronha time =
+  // 16:57:45 Brasília. Read as Brasília time it looked 58 min after the file's generation.
   expect(ab.finalAt).toBe(at('2026-10-06T16:59:20-03:00'));
-  expect(ab.rows.find((r) => r.row['cdabr'] === '30015')!.at).toBe(at('2026-10-06T17:57:45-03:00'));
-  expect(mu.at).toBe(at('2026-10-06T16:59:33-03:00'));
+  expect(ab.rows.find((r) => r.row['cdabr'] === '30015')!.at).toBe(at('2026-10-06T16:57:45-03:00'));
+  expect(mu.at).toBe(at('2026-10-06T16:57:45-03:00'));
 });

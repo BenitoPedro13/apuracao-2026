@@ -19,7 +19,11 @@ export async function prepare(path: string, role: PathRole, bytes: Uint8Array, k
   const file = parsed.data as { idg: string };
   try {
     let data: FileData;
-    if (role.role === 'result') data = extractResult(parsed.data as TseResultFile, role.office);
+    // dt/ht are local to the municipality, or to the UF for a UF aggregate (research 03 §2).
+    if (role.role === 'result') {
+      const place = role.mu ? { mu: role.mu } : role.area === 'br' || role.area === 'zz' ? {} : { uf: role.area };
+      data = extractResult(parsed.data as TseResultFile, role.office, place);
+    }
     else if (role.role === 'coverage') data = extractCoverage(parsed.data as TseCoverageFile);
     else data = extractIndex(parsed.data as TseMunicipalityIndex);
     return { ok: true, sha256, idg: Number(file.idg), data };

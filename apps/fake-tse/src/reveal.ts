@@ -1,6 +1,6 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { tseInstant } from '@apuracao/contracts';
-import { coveragePath, parsePath, type Area } from '@apuracao/tse';
+import { coveragePath, localOffsetMinutes, parsePath, totalizationInstant, type Area } from '@apuracao/tse';
 import { jwsPayload, type Signer } from './sign.js';
 
 // Staged reveal (TASK-fake-tse.md §2.2): what the TSE was serving at real instant `tReal`,
@@ -9,7 +9,7 @@ import { jwsPayload, type Signer } from './sign.js';
 //
 // - `-u` files appear byte-identical at one instant and never change. A municipal file
 //   appears at its row's `dt/ht` in its UF's `-ab` (the moment the TSE said it was
-//   totalized), or at its own `hg` if that's earlier. That's not always the file's own
+//   totalized, read in the municipality's local time), or at its own `hg` if that's earlier. That's not always the file's own
 //   `dt/ht`: sp71072's final file says 05/10 12:51:05 (a re-totalization) while its row
 //   says 04/10 21:50:33.
 // - `-ab` files are rebuilt per step from the final file: rows with `ht ≤ tReal` kept
@@ -64,8 +64,15 @@ export const REPLAY_START_1T = Date.parse('2026-10-04T17:00:00-03:00');
 /** Rebuilt idg = final − OFFSET + step: increases per step, stays below the real final idg. */
 export const IDG_OFFSET = 1_000_000;
 
-const instantOf = (dt: unknown, ht: unknown): number =>
-  typeof dt === 'string' && typeof ht === 'string' && dt && ht ? Date.parse(tseInstant(dt, ht)) : Infinity;
+/** A Brasília-time stamp (`dg/hg`, and aggregates' `dt/ht` until TASK-time-zones.md §2.1 item 2). */
+const instantOf = (dt: unknown, ht: unknown, offsetMinutes?: number): number =>
+  typeof dt === 'string' && typeof ht === 'string' && dt && ht ? Date.parse(tseInstant(dt, ht, offsetMinutes)) : Infinity;
+
+/** A municipal file's own totalization stamp: local, unless it was a central re-stamp (research 03 §2). */
+const fileTotalizedAt = (p: Record<string, unknown>, mu: string): number => {
+  const { dt, ht, dg, hg } = p as Record<string, string>;
+  return dt && ht && dg && hg ? Date.parse(totalizationInstant(dt, ht, dg, hg, { mu })) : Infinity;
+};
 
 const payloadOf = (bytes: Buffer) => JSON.parse(jwsPayload(bytes).toString('utf8')) as Record<string, unknown>;
 
@@ -84,7 +91,14 @@ export function planReveal(capture: Capture, origin: number): Plan {
     const info = parsePath(path);
     if (info.fileType === 'ab') {
       const { abr, ...header } = payloadOf(bytes) as { abr: Record<string, unknown>[] } & Record<string, unknown>;
-      const rows = abr.map((row) => ({ at: instantOf(row['dt'], row['ht']), row }));
+      // Municipality rows are stamped in the municipality's local time (research 03 §2).
+      const rows = abr.map((row) => ({
+        at:
+          row['tpabr'] === 'mun' && typeof row['dt'] === 'string' && typeof row['ht'] === 'string' && row['dt']
+            ? instantOf(row['dt'], row['ht'], localOffsetMinutes({ mu: String(row['cdabr']) }, row['dt'], row['ht']))
+            : instantOf(row['dt'], row['ht']),
+        row,
+      }));
       for (const r of rows) if (r.row['tpabr'] === 'mun') muAt.set(`${path}|${String(r.row['cdabr'])}`, r.at);
       const finalIdg = Number(header['idg']);
       if (!(finalIdg >= IDG_OFFSET + rows.length)) throw new Error(`${path}: idg ${String(header['idg'])} too small to rebuild`);
@@ -114,7 +128,7 @@ export function planReveal(capture: Capture, origin: number): Plan {
       // pe30015 file says hg 16:59:33; the row would hide it for an hour after the -ab
       // showing that row went out.
       at = Math.min(muAt.get(`${cov}|${info.scope.mu}`) ?? Infinity, instantOf(p['dg'], p['hg']));
-      if (at === Infinity) at = instantOf(p['dt'], p['ht']);
+      if (at === Infinity) at = fileTotalizedAt(p, info.scope.mu!);
       if (at === Infinity) {
         const c = entries.get(cov);
         at = c?.kind === 'coverage' ? c.finalAt : instantOf(p['dg'], p['hg']);

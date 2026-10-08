@@ -1,0 +1,30 @@
+{
+  "90069": {
+    "utcOffsetMinutes": -240,
+    "source": "legal: IANA tzdb 2026e zone1970.tab, America/Cuiaba = Mato Grosso (UTC−4); urn opening disagreed with the BU-receipt bound"
+  },
+  "90905": {
+    "utcOffsetMinutes": -240,
+    "source": "legal: IANA tzdb 2026e zone1970.tab, America/Cuiaba = Mato Grosso (UTC−4); urn opening disagreed with the BU-receipt bound"
+  },
+  "90921": {
+    "utcOffsetMinutes": -240,
+    "source": "legal: IANA tzdb 2026e zone1970.tab, America/Cuiaba = Mato Grosso (UTC−4); urn opening disagreed with the BU-receipt bound"
+  },
+  "75779": {
+    "utcOffsetMinutes": -180,
+    "source": "legal: IANA tzdb 2026e zone1970.tab, America/Sao_Paulo includes PR (UTC−3); urn opening disagreed with the BU-receipt bound"
+  },
+  "79677": {
+    "utcOffsetMinutes": -180,
+    "source": "legal: IANA tzdb 2026e zone1970.tab, America/Sao_Paulo includes PR (UTC−3); urn opening disagreed with the BU-receipt bound"
+  },
+  "79731": {
+    "utcOffsetMinutes": -180,
+    "source": "legal: IANA tzdb 2026e zone1970.tab, America/Sao_Paulo includes PR (UTC−3); urn opening disagreed with the BU-receipt bound"
+  },
+  "30406": {
+    "ianaZone": "Africa/Casablanca",
+    "source": "legal: IANA tzdb 2026e, Morocco UTC+1 outside Ramadan (2026: Feb–Mar). The BU check (UTC+0.19) is inconclusive: 1 section, and abroad BUs arrive in one batch at ~17:08 Brasília, so a ~50 min totalization lag can't be told from an offset"
+  }
+}

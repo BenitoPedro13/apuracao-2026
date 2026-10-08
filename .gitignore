@@ -50,3 +50,6 @@ cdk.out
 # fake-tse capture (scripts/export-capture.ts, ~600 MB of TSE files) and replay runs
 /.capture/
 /.replay/
+
+# Reference screenshots and network captures from other sites (user, 2026-10-08): local only
+/docs/refs/

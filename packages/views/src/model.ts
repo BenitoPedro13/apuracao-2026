@@ -1,5 +1,5 @@
 import { tseInstant, type Elections, type Office, type TseCoverageFile, type TseMunicipalityIndex, type TseResultFile } from '@apuracao/contracts';
-import { ABROAD, OFFICES, parsePath } from '@apuracao/tse';
+import { ABROAD, OFFICES, parsePath, totalizationInstant, type StampPlace } from '@apuracao/tse';
 
 // What the projector keeps per TSE file: a compact extract of the fields the views read,
 // not the parsed file (~11k files × ~30 KB of parsed JSON would not fit a checkpoint).
@@ -93,7 +93,11 @@ export type FileData = ResultData | CoverageData | IndexData;
 
 const pct = (d: { raw: string }): Pct => ({ raw: d.raw });
 
-export function extractResult(f: TseResultFile, office: Office): ResultData {
+/**
+ * `place`: where the file's `dt/ht` local time is (its municipality, or its UF for a UF
+ * aggregate; none for br/zz: Brasília). `dg/hg` are always Brasília (research 03 §2).
+ */
+export function extractResult(f: TseResultFile, office: Office, place: StampPlace = {}): ResultData {
   const code = office === 'president' ? OFFICES.president : OFFICES.governor;
   const carg = f.carg.find((c) => Number(c.cd) === code);
   if (!carg) throw new Error(`no office ${code} in the file`);
@@ -119,7 +123,7 @@ export function extractResult(f: TseResultFile, office: Office): ResultData {
   return {
     kind: 'result',
     generatedAt: tseInstant(f.dg, f.hg),
-    totalizedAt: f.dt && f.ht ? tseInstant(f.dt, f.ht) : null,
+    totalizedAt: f.dt && f.ht ? totalizationInstant(f.dt, f.ht, f.dg, f.hg, place) : null,
     tf: f.tf,
     s: { ts: f.s.ts, st: f.s.st, pst: pct(f.s.pst) },
     e: { te: f.e.te, c: f.e.c, pc: pct(f.e.pc), a: f.e.a, pa: pct(f.e.pa) },

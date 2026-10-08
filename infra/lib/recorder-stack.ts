@@ -81,17 +81,26 @@ export class RecorderStack extends cdk.Stack {
     // Alarms (the full set is Phase 4). Email subscriptions need a one-time confirmation.
     const topic = new sns.Topic(this, 'Alerts', { topicName: 'apuracao26-alerts' });
     topic.addSubscription(new subs.EmailSubscription(props.alertEmail));
-    const metric = (name: string, dims: Record<string, string>, statistic: string) =>
-      new cloudwatch.Metric({ namespace: 'apuracao26', metricName: name, dimensionsMap: { Service: 'recorder', ...dims }, statistic, period: cdk.Duration.minutes(5) });
+    const metric = (name: string, dims: Record<string, string>, statistic: string, minutes = 5) =>
+      new cloudwatch.Metric({ namespace: 'apuracao26', metricName: name, dimensionsMap: { Service: 'recorder', ...dims }, statistic, period: cdk.Duration.minutes(minutes) });
 
-    // Recorder down, lease lost, or S3 failing: segments stop (a heartbeat is written every 60 s).
+    // Recorder down, lease lost, or S3 failing: segments stop. A live recorder writes a
+    // heartbeat segment every 60–65 s. FILL(m, 0) turns a silent period into a real 0, because
+    // CloudWatch is slow to treat *missing* data as breaching: 16 min (one 5-min period) and
+    // 11.8 min (2 × 2-min periods) in the 2026-10-08 stop tests.
     new cloudwatch.Alarm(this, 'RecorderSilent', {
       alarmName: 'apuracao26-recorder-silent',
-      alarmDescription: 'No observation segment written for 5 minutes',
-      metric: metric('segments_written', {}, 'Sum'),
+      alarmDescription: 'No observation segment written for two consecutive 2-minute periods',
+      metric: new cloudwatch.MathExpression({
+        expression: 'FILL(m, 0)',
+        usingMetrics: { m: metric('segments_written', {}, 'Sum', 2) },
+        period: cdk.Duration.minutes(2),
+        label: 'segments_written (missing = 0)',
+      }),
       threshold: 1,
       comparisonOperator: cloudwatch.ComparisonOperator.LESS_THAN_THRESHOLD,
-      evaluationPeriods: 1,
+      evaluationPeriods: 2,
+      datapointsToAlarm: 2,
       treatMissingData: cloudwatch.TreatMissingData.BREACHING,
     }).addAlarmAction(new cwActions.SnsAction(topic));
 

@@ -52,11 +52,11 @@ test('alarms: recorder silent for 5 min, and 2nd-round discovery, to SNS', () =>
   const t = Template.fromStack(rec);
   t.hasResourceProperties('AWS::CloudWatch::Alarm', {
     AlarmName: 'apuracao26-recorder-silent',
-    MetricName: 'segments_written',
-    Period: 300,
+    Metrics: Match.arrayWith([Match.objectLike({ Expression: 'FILL(m, 0)' })]),
+    EvaluationPeriods: 2,
+    DatapointsToAlarm: 2,
     Threshold: 1,
     ComparisonOperator: 'LessThanThreshold',
-    TreatMissingData: 'breaching',
   });
   t.resourceCountIs('AWS::CloudWatch::Alarm', 3);
   t.hasResourceProperties('AWS::SNS::Subscription', { Protocol: 'email', Endpoint: 'test@example.invalid' });

@@ -1,5 +1,7 @@
 # TASK: The recorder (Phase 1, must-have 1)
 
+**Status (2026-10-08): live on AWS, gate met 3 days early.** Outcome and deviations are in §6.
+
 Phase 1 of `TASK-implementation-plan.md`. **Gate: Sun 2026-10-11.** By Sunday night, the
 recorder must be recording unattended on Fargate, or everything else pauses. This document
 also covers the raw bucket and the deploy, which the plan had as a separate
@@ -203,3 +205,55 @@ cents + logs ≈ $1. Time: 10-08 → 10-11.
 8. The alarm: stop the service (`desiredCount 0`) for 6 min, and the SNS email arrives.
    Restore.
 9. AWS Cost Explorer on 10-12: ≤ $1 spent for 10-11.
+
+## 6. Outcome and deviations (2026-10-08)
+
+**Local verification (§5.1–5.3):** `pnpm turbo run lint check-types test build` 28/28.
+The recorder has 26 unit tests and 7 integration tests (testcontainers RustFS + fake-tse v0,
+stable over repeated runs): capture, idempotent second pass, politeness, restart, crash
+takeover, and handover without duplicates. The S3 conformance suite passes on RustFS and on
+the real bucket, including a governance-retention write.
+
+**Deployed (§5.4–5.9):**
+
+| Check | Result |
+|---|---|
+| 4. deploy | `RawStack` + `RecorderStack` deployed; 1 task RUNNING (ARM64, 0.25 vCPU / 0.5 GB) |
+| 5. capture | **11,443** blobs = 11,443 expected paths (research 02 §9), all 200 with a valid `prod` signature; 10 req/s throughout; no 429/503; 03:26–03:47 UTC |
+| 6. soak | 1st round at a 600 s minimum interval. Segment gaps ≤ 11 s through capture and two deploys. `[12 h figures: fill in on 10-08 evening]` |
+| 7. takeover | Two real deploys. 2nd: old task stopped 03:55:48.59 (final snapshot 03:55:48.09); new task took generation 3 at 03:55:53.4 (**4.8 s**), restored that snapshot, and wrote **0 duplicate observations**. A crash takeover (no handover) is covered by the integration test (≤ TTL + renew) |
+| 8. alarm | `apuracao26-recorder-silent` emails `ALERT_EMAIL` (subscription confirmed). Three stop tests: one 5-min period, missing = breaching → **16 min**; 2 × 2-min periods → **11.8 min**; 2 × 2-min periods over `FILL(m, 0)` → **4.9 min** (kept). CloudWatch is slow to treat *missing* data as breaching, so the alarm never sees missing data. The recorder was restored after each test and restored its shutdown snapshot each time (generations 4, 5, 6) |
+| 9. cost | `[check Cost Explorer on 10-09]` |
+
+**Findings and fixes along the way:**
+- **Bug (caught by the politeness test):** activation and restarts could schedule a file
+  before its `Expires`. Fixed in one place: every path's last `Expires` is a `notBefore`
+  (persisted in the snapshot), and every scheduling call is clamped to it.
+- **Bug (caught by the integration test):** accepted coverage data was re-validated with
+  the input schema, failed silently, and no municipal file was ever fetched. Fixed.
+- **Real TSE shape (research 02 §9):** files with no votes have `dt`/`ht` = `""` and no
+  `cand.dvt`. 41 abroad cities, signed and valid, failed the schema. The contract now
+  accepts both, and `zz29424` is a sample.
+- **Duplicates on deploy:** the first deploy wrote 818 duplicate `version` observations
+  (same sha), because the standby loaded the snapshot at process start, ~80 s before the
+  handover. State now loads on each lease acquisition, and a leader never snapshots before
+  loading. The second deploy wrote 0.
+- **Commit hygiene:** `abeca3b` was committed with the infra suite failing (`cdk.out/`
+  holds a staged copy of the repo, and Vitest ran its tests). Fixed in `c9a0c2d`, and
+  commits are now gated on the pipeline's result.
+
+**Deviations from the plan:**
+- **Object Lock without default retention.** The recorder sets governance retention per
+  object on `raw/` and `obs/`. A bucket default would have locked every lease renewal and
+  snapshot (~140k object versions by the 25th) for 10 years.
+- **State restore is from a snapshot** (`state/recorder/v1/snapshot.json.gz`, every 60 s
+  and on shutdown), a projection of the log, rather than by replaying segments. A crash
+  costs at most 60 s of re-fetching, recorded as duplicate `version` observations, which
+  the projector already dedups by `(path, sha256)`.
+- **Bucket name** `apuracao26-raw-860897618882` (the account id keeps it globally unique).
+- **RustFS 1.0.1** is the local S3 (the first candidate to pass conformance).
+- **The image is built by `cdk deploy`** (`ContainerImage.fromAsset`, `pnpm deploy
+  --legacy`). There's no CI deploy yet, because there's no GitHub remote.
+- **HTTP/2** is requested via undici `allowH2`. Whether Akamai negotiates it is not yet
+  observed.
+

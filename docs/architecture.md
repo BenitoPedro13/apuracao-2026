@@ -707,6 +707,7 @@ do the same for ~$10 more, and was dropped for cost.
 | TSE national unreachable | `tse_last_success_age_s{br}` > 150 | page |
 | TSE error rate | > 20% over 5 min, or breaker open | page |
 | No recorder lease holder | lease expired > 60 s | page |
+| Recorder silent (deployed 2026-10-08) | `FILL(segments_written, 0)` < 1 in 2 consecutive 2-min periods: alarms ~5 min after the recorder stops (measured). Never alarm on *missing* data: CloudWatch took 12–16 min to act on it | page |
 | Broker path broken | `projector_offset_lag` > 500 for 3 min, or projector in S3 mode | page |
 | Trust | `sig_invalid_total` or `schema_failed_total` > 0, or `same-idg-different-bytes` | page |
 | Stuck municipalities | `tse_stuck_mun` > 50 for 10 min | warn |

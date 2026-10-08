@@ -165,3 +165,30 @@ Found while testing `packages/contracts` against the RJ governor file
 - `[VERIFY: meaning of van ("anulado", 0 in every sample) and vnt; the TSE's EA spec PDFs,
   research 01 §6]`
 
+## 9. The full 1st-round capture (verified 2026-10-08, by the recorder on AWS)
+
+The recorder's first run (03:26–03:47 UTC, 10 req/s, from Fargate in sa-east-1) fetched
+every 1st-round file for president (`6257`) and governor (`6259` `c0003`):
+
+| Group | Files |
+|---|---|
+| catalog + 2 municipality indexes | 3 |
+| president: coverage + aggregate, br + 27 UFs + zz | 29 + 29 |
+| governor: coverage + aggregate, 27 UFs | 27 + 27 |
+| president municipal, incl. 186 abroad | 5,757 |
+| governor municipal | 5,571 |
+| **total** | **11,443**, all 200, all with a valid `prod` signature |
+
+- No 429/503 at 10 req/s from one IP; the AIMD rate never dropped.
+- Before failure logging was added, ~3% of municipal requests failed once and succeeded on
+  retry (cause not captured). After the redeploy with logging, 0 failures in the next
+  10+ minutes. `[VERIFY: watch the "fetch failed" log during the soak; is it Akamai
+  connection resets on the first burst?]`
+- **Files with no votes have empty timestamps and no `dvt`.** 41 abroad cities had their only
+  section not installed (`s.sni = "1"`, all votes `"0"`). Their `-u` files have
+  `"dt": "", "ht": ""` and candidates without the `dvt` key
+  (`samples/ele2026_6257_dados_zz_zz29424-c0001-e006257-u.json`). The contract now accepts
+  both. Not-yet-counted municipalities on election night probably look the same.
+- The 41 observations recorded before the fix say `schema: "failed"`. The log is immutable,
+  so they stay; projections re-validate blobs with the current schema.
+

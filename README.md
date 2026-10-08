@@ -4,8 +4,8 @@ A live vote-count dashboard for Brazil's 2026 elections, built on the TSE's offi
 feed. It records every published version of every file, so the count can be replayed
 minute by minute.
 
-**Status:** architecture proposed (2026-10-07), awaiting sign-off. No code yet. Next: Phase 0
-of the implementation plan (monorepo scaffold, contracts, TSE parsing).
+**Status:** architecture accepted (2026-10-07). No code yet. Next: Phase 0, the monorepo
+scaffold ([`docs/tasks/TASK-scaffold-monorepo.md`](docs/tasks/TASK-scaffold-monorepo.md)).
 **Deadline:** 2nd round, Sunday 2026-10-25.
 
 - What we know about the data: [`docs/research/01-tse-results-feed.md`](docs/research/01-tse-results-feed.md),

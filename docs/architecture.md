@@ -1,11 +1,11 @@
 # Architecture — Apuração 2026
 
-**Status:** proposed, 2026-10-07. Written against `docs/research/01-tse-results-feed.md` and
+**Status:** accepted, 2026-10-07. Written against `docs/research/01-tse-results-feed.md` and
 `docs/research/02-signatures-cache-and-map-mesh.md` (re-verified today). Decisions the user
 made on 2026-10-07: **AWS (existing credits), no custom domain for now, cookieless analytics
 with no ads, and a message broker on the election-night critical path for learning value.**
-Everything else here is a recommendation until the user signs it off. Open questions are in
-§15.
+The user signed off on the rest on 2026-10-07. The decisions on the former open questions
+are in §15.
 
 Build order and dates: `docs/tasks/TASK-implementation-plan.md`.
 
@@ -618,7 +618,7 @@ MSK/S3. A staging run against real MSK/S3 is part of the dress rehearsal (§9.4)
 4. **Chaos:** kill a recorder, kill a broker, kill the projector, block S3 for 60 s, serve a
    previously served version again (regression), corrupt a signature.
 
-> **Invariant check — needs the user's sign-off (§15 Q2).** Step 3 serves *coverage files
+> **Invariant check: approved by the user on 2026-10-07 under exactly these conditions (§15 Q2).** Step 3 serves *coverage files
 > with rows withheld*, i.e. files that are real row by row but not byte-identical to any
 > file the TSE published. Every *number* is real and none is edited, but the file as a
 > whole didn't exist. These files are test fixtures only: they are served on localhost or a
@@ -800,7 +800,7 @@ Two caps, both decided before the night:
    flat-rate plans, and that a plan works on the default *.cloudfront.net hostname]`.
 
 **Expected total for the election: ≈ $40, plus $0–15 for CloudFront with either cap in
-place.** An AWS Budget alarm at $60 emails the user if something is left switched on.
+place.** AWS Budget alarms at $60 and $85 (of the $100 credit, §15) email the user if something is left switched on.
 
 ---
 
@@ -913,21 +913,27 @@ hosting, and the data origin needs AWS anyway).
 
 ---
 
-## 15. Open questions for the user
+## 15. Decisions on the open questions (user, 2026-10-07)
 
-1. **How much AWS credit is available, and until when?** The plan costs ≈ $40 plus $0–15 of
-   CloudFront with the caps in §11.2 (uncapped, $176 at 50k peak viewers). Do credits cover
-   CloudFront flat-rate plans?
-2. **Can the replay harness serve coverage files with rows withheld** (every number real,
-   but the files never existed as such), under the test-only conditions of §9.2? If not, the
-   harness can only reveal whole files, and the change-detection path is first exercised
-   for real on the 25th.
-3. **Is 50k concurrent viewers the right design peak?** A lower figure changes nothing
-   architectural, only the cost table.
-4. **Governor views:** must-have or nice-to-have for the 25th? (The plan treats them as
-   nice-to-have; the recorder records them regardless.)
-5. **Domain:** OK to launch on `dXXXX.cloudfront.net` and add a domain later?
-6. **Umami:** reuse your existing Umami account/site, or a new one?
-7. **Off-cloud third recorder** on your own machine on election night: yes or no?
-8. **Should the raw `.jws` mirror be public** ("verify this number")? It republishes TSE
-   files. They're public data, but it's your call.
+The user answered question 1. For questions 2–8, the user accepted the recommended defaults.
+
+1. **AWS credit: $100, valid for 6 months** (to ~2027-04). That covers the ≈ $40 baseline
+   (§11.1), but **not** an uncapped 50k-viewer night (≈ $176, §11.2). So both CloudFront
+   caps in §11.2 are **mandatory**, not optional: adaptive `pollSeconds` *and* the flat-rate
+   plan (or, if credits can't pay for it, the hard `pollSeconds` escalation at 10k viewers).
+   The AWS Budget alarm stays at $60, and a second alarm is added at $85.
+   `[VERIFY: whether credits pay for CloudFront flat-rate plans. Check the credit's terms in
+   the Billing console → Credits ("Applicable products") before 10-15.]` After the election,
+   the buckets and the distribution cost cents a month, so the remaining credit lasts the
+   whole 6 months.
+2. **Replay harness with rows withheld: yes, test-only.** Under §9.2's conditions: such files
+   are served only by `apps/fake-tse`, are never written to `apuracao26-raw`, and are
+   labelled synthetic-coverage in the harness. Every number in them is a real TSE number.
+3. **Design peak: 50k concurrent viewers.**
+4. **Governor views: nice-to-have** (should-have #7 in the implementation plan). Recording
+   them is must-have.
+5. **Domain: launch on `dXXXX.cloudfront.net`.** A domain may come later.
+6. **Umami: the user's existing account, with a new site** for this project.
+7. **Off-cloud third recorder: yes, as nice-to-have #10.** It writes only to its own local
+   raw log and never to `apuracao26-raw`.
+8. **Public `.jws` mirror: yes** (nice-to-have #8, "verify this number").

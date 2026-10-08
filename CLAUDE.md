@@ -24,14 +24,15 @@ Bolsonaro) plus governor in AC, AM, DF, ES, RJ, RN and TO. Anything not live and
 by then waits for post-election replay and analysis. Scope decisions are made against this
 date.
 
-**Status:** architecture proposed (2026-10-07), awaiting the user's sign-off on its open
-questions. No app code yet. Read in this order:
+**Status:** architecture accepted (2026-10-07, decisions in `architecture.md` §15: $100
+AWS credit for 6 months, so the CloudFront caps are mandatory). No app code yet. Next:
+`docs/tasks/TASK-scaffold-monorepo.md` (Phase 0). Read in this order:
 
 1. `docs/research/01-tse-results-feed.md` and `02-signatures-cache-and-map-mesh.md`: the
    verified facts about the TSE feed (URLs, file shapes, caching, signed `.jws` siblings,
    codes) and the IBGE map mesh, with real captured files in `docs/research/samples/`.
 2. `docs/architecture.md`: the system design (capacity numbers, components, storage keys,
-   contracts, failure modes, testing, cost, ADRs, open questions).
+   contracts, failure modes, testing, cost, ADRs, decisions).
 3. `docs/tasks/TASK-implementation-plan.md`: the phased build order to 2026-10-25, the
    must-have cut and the gates. Each phase gets its own task document (§1).
 
@@ -58,7 +59,7 @@ verify against each tool's current docs before installing (§2.0).
 | Web | Next.js 16 static export, shadcn/ui, TanStack Query; map in Canvas 2D | frontend rules are in the user's global `~/.claude/CLAUDE.md` and apply unchanged |
 | Map geometry | IBGE Malha Municipal 2025 → mapshaper → TopoJSON (~330 KB gzip) | joins 5,571/5,571 on `cdi` |
 | Contracts | Zod 4 in `packages/contracts` | no non-TS services, so nothing to hand-mirror |
-| Infra | AWS CDK (TypeScript), GitHub Actions | sa-east-1; paid from the user's AWS credits; ≈ $40 total + $0–15 CloudFront (`architecture.md` §11). Nothing that bills by the hour runs before it has a job |
+| Infra | AWS CDK (TypeScript), GitHub Actions | sa-east-1; paid from the user's AWS credits ($100, valid to ~2027-04); ≈ $40 total + $0–15 CloudFront (`architecture.md` §11). Nothing that bills by the hour runs before it has a job |
 | Observability | CloudWatch EMF metrics, canary Lambdas (every 1 min), SNS email/SMS | `architecture.md` §10 |
 | Analytics | Umami, cookieless, no ads | user decision 2026-10-07 |
 | Local / tests | docker compose + testcontainers: Redpanda (Kafka API), MinIO (S3 API) | real brokers/stores, never mocks |

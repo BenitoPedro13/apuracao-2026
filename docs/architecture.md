@@ -462,7 +462,7 @@ absorbs any multiple of traffic.
 | `national-president` | ~3 KB | the 2 candidates (votes, TSE % string, elected flag), valid/blank/null, turnout/abstention, sections counted, TSE timestamps, status |
 | `uf-president/{uf}` ×28 (27 + `zz`) | ~2 KB each | same, per UF, plus municipalities final/partial/not started (from `br-ab`) |
 | `regions-president` | ~2 KB | 5 regions, computed from UF files (labelled as our sum, §7.4) |
-| `map-president` | **~20 KB** | columnar arrays over the 5,571 municipalities, in geometry order: leader, margin (basis points), sections counted (basis points), status code |
+| `map-president` | **~20 KB** | columnar arrays over the 5,571 municipalities, in geometry order: leader, margin (basis points), sections counted (basis points), status code. Leader −1 with margin 0 is an exact tie, not missing data: the 1st round has two (research 02 §9), and the map and its table must show them as ties |
 | `governor/{uf}` ×7 | ~2 KB each | per-state governor headline + municipal columns for that UF |
 | `timeline-chunk` | ~4 KB per 60 points | the timeline projection (§5.3) |
 | `feed-chunk` | ~2 KB per 50 items | updates feed |

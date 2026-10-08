@@ -207,10 +207,20 @@ $0.005.
   row: views appear; the pointer only moves forward, also with two projectors and with a
   pointer of another epoch (moved only with `PROMOTE`); a rebuild equals the live
   projector; kill → restart from the checkpoint gives views byte-identical to a rebuild.
-- **Item 3 (the real log on AWS): pending.** The AWS session expired before it could run
-  (`aws login` needed). Run:
-  `RAW_BUCKET=apuracao26-raw-860897618882 ELECTIONS=president=6257,governor=6259 node apps/projector/dist/main.js rebuild --source s3 --epoch rebuild-1 --out <dir>`
-  three times and record wall time, rejections and the reconciliation summary here.
+- **Item 3 (the real log on AWS): done 2026-10-08**, publishing to a local directory
+  (`.replay/real/pub`) rather than RustFS. 3 runs: wall 39.4 / 32.2 / 30.7 s (median
+  32.2 s; ~90% of it is the 11,387 blob GETs from a laptop in Brazil to sa-east-1),
+  910 segments, 12,261 observations, `seq` 11,387, **0 rejected** (signature or schema, the
+  41 zero-vote files included), reconciliation 0 identity failures and 56/56 comparable
+  sums equal (Σ municipal = UF per candidate, Σ UFs + zz = br), and the 114 views
+  identical across the three runs. 11,443 − 11,387 = the 56 files the views don't fold (the
+  catalog and the 55 UF/zz coverage files). The national view is the sample's br file
+  (byte-identical), so it equals item 1. `MapView`: 5,571 entries, all `final`.
+  **The criterion "a leader set for every one" was wrong:** 2 municipalities are exact
+  ties in the TSE's files, and the view correctly gives them leader −1 and margin 0:
+  Crixás do Tocantins (TO, 73555), Lula 679 × Flávio Bolsonaro 679 of 1,422 valid votes,
+  and Trabiju (SP, 62448), 574 × 574 of 1,243. The map must draw a tie as a tie (not as
+  "no data"): recorded in `architecture.md` §6 (map view) for the web task.
 - Found while building:
   - A projector that took over the lease and restored a checkpoint never wrote a pointer
     until the data changed. A new leader now publishes once on takeover.

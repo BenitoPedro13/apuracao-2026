@@ -195,8 +195,21 @@ every 1st-round file for president (`6257`) and governor (`6259` `c0003`):
   (`br-c0001-e006257-u` has the same `dt/ht`). So the final files were regenerated after
   the count, and only the coverage row keeps the original totalization instant. The
   recorder's tier-2 check (`tseTotalizedAt ≥` the row instant) still accepts it; fake-tse
-  reveals municipal files at the row instant (samples, 2026-10-08).
-  `[VERIFY: how many of the 11,328 municipal files differ from their row, on the export]`
+  reveals municipal files at the row instant.
+  **On the full export (2026-10-08): 11,287 of the 11,328 municipal files with a `dt/ht`
+  differ from their row.** 11,051 are later (almost all 05/10 12:51:05, the re-totalization).
+  **236 are earlier, all governor (`6259`): PE 185, AM 51.** Their coverage rows were
+  re-stamped 5 min to ~43 h after the file's `dt/ht` (the last at 06/10 17:57:45 BRT, PE)
+  with no newer `-u` file. If that happens on the night, the recorder's tier-2 check sees the
+  file as older than its trigger, retries `PENDING_MAX_TRIES` (5) times and then counts it
+  in `tse_stuck_mun` and stops. The version it fetched is still stored, so nothing is lost,
+  but a later real update to that file would only be fetched on the next coverage change.
+  `[VERIFY: on the night, whether row re-stamps without a new -u happen during the count]`
+- **The earliest coverage row instant is 16:16:53 BRT on 04/10**, before the 17:00 close in
+  Brasília (25 instants before 17:00; presumably abroad sections in earlier time zones
+  `[VERIFY: which rows]`). fake-tse reveals them at the replay start.
+- **Two exact ties for president in the 1st round:** Crixás do Tocantins (TO 73555), 679 ×
+  679, and Trabiju (SP 62448), 574 × 574, Lula × Flávio Bolsonaro.
 - The 41 observations recorded before the fix say `schema: "failed"`. The log is immutable,
   so they stay; projections re-validate blobs with the current schema.
 

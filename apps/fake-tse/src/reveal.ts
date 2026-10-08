@@ -9,8 +9,9 @@ import { jwsPayload, type Signer } from './sign.js';
 //
 // - `-u` files appear byte-identical at one instant and never change. A municipal file
 //   appears at its row's `dt/ht` in its UF's `-ab` (the moment the TSE said it was
-//   totalized). That's not always the file's own `dt/ht`: sp71072's final file says
-//   05/10 12:51:05 (a re-totalization) while its row says 04/10 21:50:33.
+//   totalized), or at its own `hg` if that's earlier. That's not always the file's own
+//   `dt/ht`: sp71072's final file says 05/10 12:51:05 (a re-totalization) while its row
+//   says 04/10 21:50:33.
 // - `-ab` files are rebuilt per step from the final file: rows with `ht ≤ tReal` kept
 //   verbatim, later rows removed (never zeroed), test-signed. Once `tReal ≥` the file's own
 //   `hg`, the original file is served unmodified.
@@ -108,7 +109,11 @@ export function planReveal(capture: Capture, origin: number): Plan {
     let at: number;
     if (info.scope?.level === 'mu') {
       const cov = coveragePath(info.election!, info.scope.uf as Area);
-      at = muAt.get(`${cov}|${info.scope.mu}`) ?? Infinity;
+      // The row instant, but never after the file's own hg: it existed from then on. PE's
+      // governor -ab (hg 06/10 16:59:20) has a row for pe30015 at 17:57:45, while the
+      // pe30015 file says hg 16:59:33; the row would hide it for an hour after the -ab
+      // showing that row went out.
+      at = Math.min(muAt.get(`${cov}|${info.scope.mu}`) ?? Infinity, instantOf(p['dg'], p['hg']));
       if (at === Infinity) at = instantOf(p['dt'], p['ht']);
       if (at === Infinity) {
         const c = entries.get(cov);

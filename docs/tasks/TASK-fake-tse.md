@@ -50,8 +50,13 @@ real instant `tReal` (Brasília time on 2026-10-04), given only final files.
   instant the TSE said that municipality was totalized), byte-identical, with the TSE's
   signature. 404 before. *Changed while building:* the plan said "at their own `ht`, which
   equals the row", but it doesn't always: `sp71072`'s final file says 05/10 12:51:05 (a
-  re-totalization the next day) while its row says 04/10 21:50:33. A file with no row instant
-  (the 41 abroad cities with no votes) appears with its coverage file's final version.
+  re-totalization the next day) while its row says 04/10 21:50:33. **But never after the
+  file's own `hg`**, since it existed from then on: PE's governor `-ab` (`hg` 06/10 16:59:20)
+  has a row for `pe30015` stamped 17:57:45, and the file says `hg` 16:59:33. Revealing it at
+  the row hid it for an hour after the `-ab` naming it went out, and the recorder gave up
+  after 5 tries (found by the first full replay: 11,442 of 11,443 served). The rule moves 42
+  files: `pe30015` and the 41 abroad cities with no votes (empty row instant), which now
+  appear at their own `hg` on 05/10.
 - **Aggregate `-u` files** (br, UF, zz) appear at their own final `dt/ht` (`dg/hg` when
   empty), byte-identical. So the national headline is `not_published` until the end of the
   replay. That's the truth about what we hold; **nothing is interpolated** (invariant 1).

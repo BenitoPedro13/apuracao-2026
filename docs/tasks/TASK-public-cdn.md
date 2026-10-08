@@ -169,12 +169,12 @@ they skip it). ~1 day of work.
 5. Cost check the next day in Cost Explorer: CloudFront, S3 and Fargate lines for 10-08/09
    under $0.50 together.
 
-## 6. Decision needed
+## 6. Decision (user, 2026-10-08): (a)
 
 What the site shows **between 10-18 and the first 2nd-round file** (the projector's
 `ELECTIONS` from 10-18):
 
-- **(a) The 1st round's final result until 2nd-round files exist** (recommended). The
+- **(a) The 1st round's final result until 2nd-round files exist** (recommended; **chosen**). The
   `1t-final` seed stays the pointer; the projector runs with `ELECTIONS=president=6258,governor=6260`
   under epoch `2t-1` and is promoted (`PROMOTE=true`, the runbook's deliberate switch) when
   the recorder discovers `6258` (the `apuracao26-election-6258-live` alarm). The site is

@@ -5,7 +5,7 @@ feed. It records every published version of every file, so the count can be repl
 minute by minute.
 
 **Status:** monorepo scaffolded (2026-10-07); the packages are empty shells. Next: Phase 0
-part 2, contracts and TSE parsing. AWS bootstrap is waiting on `aws login`.
+part 2, contracts and TSE parsing. CDK is bootstrapped in sa-east-1, and the budget alarms are live.
 **Deadline:** 2nd round, Sunday 2026-10-25.
 
 - What we know about the data: [`docs/research/01-tse-results-feed.md`](docs/research/01-tse-results-feed.md),

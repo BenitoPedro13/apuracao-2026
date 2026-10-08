@@ -1,7 +1,6 @@
 # TASK: Scaffold the monorepo (Phase 0, part 1)
 
-**Status (2026-10-07): done, except §2 step 9 (`cdk bootstrap` + `cdk deploy BudgetStack`),
-which waits on the user's `aws login`.** Deviations from the plan are in §6.
+**Status (2026-10-07): done.** Deviations from the plan are in §6.
 
 Phase 0 of `TASK-implementation-plan.md`, must be done by **Thu 2026-10-08**. Part 2 is
 `TASK-contracts-and-tse-parsing.md` (written after this one lands).
@@ -121,8 +120,13 @@ the credit is $100 against a plan of ≈ $40 + $0–15. Cost: about half a day, 
 Verification 1–4 pass: a frozen-lockfile install; `pnpm turbo run lint check-types test
 build` runs 28/28 tasks and then `FULL TURBO` (28 cached); the synth emits one
 `AWS::Budgets::Budget` (100 USD, ANNUALLY, `IncludeCredit: false`, ACTUAL alerts at 60 and
-85); Redpanda v26.2.4 is healthy (`rpk cluster info` shows 1 broker). Verification 5 waits on
-`aws login`. 6 waits on a GitHub remote.
+85); Redpanda v26.2.4 is healthy (`rpk cluster info` shows 1 broker). Verification 5 passes:
+`cdk bootstrap aws://860897618882/sa-east-1` succeeded; `cdk deploy BudgetStack` succeeded;
+`aws budgets describe-budgets` lists `apuracao26-credit` (100 USD, ANNUALLY,
+IncludeCredit false, actual spend so far in 2026 $3.19) with ACTUAL notifications at 60 and
+85. The budget is account-wide, so other projects' spend in this account (e.g.
+`renewable-pulse`, which has its own $20/month budget) counts toward it. Verification 6
+waits on a GitHub remote.
 
 Deviations, each recorded in CLAUDE.md "Toolchain quirks" where it's a lasting rule:
 

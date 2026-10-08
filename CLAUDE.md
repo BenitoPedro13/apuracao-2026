@@ -26,7 +26,7 @@ date.
 
 **Status:** architecture accepted (2026-10-07, decisions in `architecture.md` §15: $100
 AWS credit for 6 months; ~100 expected viewers, 50k capacity target, nothing pre-paid). Monorepo scaffolded
-(`TASK-scaffold-monorepo.md`, done except `cdk bootstrap`/deploy, which wait on `aws login`).
+(`TASK-scaffold-monorepo.md`, done; CDK bootstrapped in sa-east-1, `BudgetStack` deployed).
 Next: `docs/tasks/TASK-contracts-and-tse-parsing.md` (Phase 0, part 2). Read in this order:
 
 1. `docs/research/01-tse-results-feed.md` and `02-signatures-cache-and-map-mesh.md`: the

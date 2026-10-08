@@ -86,7 +86,8 @@ the mass audience on election night goes to the TSE app and the big portals (g1,
 Folha). A personal dashboard with no domain and no marketing realistically sees 1–5k
 concurrent viewers, but one share from a large account can push a niche tracker into the
 tens of thousands. 50k is that case. Because readers only touch the CDN, *capacity* doesn't
-change with the number. Only *cost* does, so §11 prices 5k, 50k and 250k.
+change with the number. Only *cost* does, so §11 prices 5k, 50k and 250k. The user expects
+**~100** (§15 Q3). 50k stays the capacity target, but nothing is pre-paid for it.
 
 Per viewer, with a visible tab (hidden tabs stop polling):
 
@@ -788,19 +789,32 @@ free per month) and per GB ($0.110 after 1 TB free). Each viewer checks the poin
 | 50,000 (design peak, §2.3) | 90 M / 510 GB | ≈ $176 |
 | 250,000 (extreme) | 450 M / 2.5 TB | ≈ $1,130 |
 
-Two caps, both decided before the night:
+**Expected audience: ~100 concurrent viewers** (user, 2026-10-07, §15 Q3). That is
+~0.1 M requests and ~1 GB over the night, far inside the pay-as-you-go free tier (10 M
+requests, 1 TB a month). **So CloudFront stays on pay-as-you-go, which costs $0, and no
+flat-rate plan is bought up front.** The 50k design peak is a *capacity* requirement (the
+architecture must serve it, and the load test proves it, §9.3). It is not a cost we
+pre-pay for. The cost of an unexpected spike is bounded by:
 
-1. **Adaptive polling.** `latest.json` carries `pollSeconds` (default 20). If the canary or
-   CloudFront metrics show more than ~10k concurrent viewers, raise it to 45 s from the
-   runbook (one pointer write, no deploy). That roughly halves requests at the cost of up to
-   25 s more staleness, still within the TSE's own 60 s cache.
-2. **CloudFront flat-rate Pro plan ($15/month, no overage charges).** Its 10 M-request
-   allowance tolerates a first spike of 3×, and beyond that "delivery may be adjusted", not
-   billed. It turns the worst case into a fixed $15. `[VERIFY: whether AWS credits pay for
-   flat-rate plans, and that a plan works on the default *.cloudfront.net hostname]`.
+1. **Adaptive polling.** `latest.json` carries `pollSeconds` (default 20). The runbook
+   raises it to 60 s (the TSE's own cache window) above 5k concurrent viewers, read from
+   CloudFront's request metric (one pointer write, no deploy). This only cuts the *pointer*
+   requests. Views are still fetched about once per new `seq` (~1/min), so a sustained 50k
+   night at 60 s is still ~60 M requests ≈ **$110**. That's more than the credit left after
+   the baseline, so polling alone **is not** the cap.
+2. **The cap is the flat-rate Pro plan ($15/month, no overage charges), switched on
+   reactively** from the runbook when CloudFront shows more than 5k concurrent viewers. Its
+   10 M allowance with 3× spike tolerance covers ~30 M requests. Beyond that, delivery
+   degrades instead of being billed. It's not bought up front, because at the expected
+   audience it would buy nothing.
+   `[VERIFY before 10-15: whether AWS credits pay for flat-rate plans; whether a plan can be
+   attached to an existing distribution mid-month and how long that takes; that it works on
+   the default *.cloudfront.net hostname. If it can't be attached quickly, attach it on
+   10-24 instead: $15 for certainty.]`
 
-**Expected total for the election: ≈ $40, plus $0–15 for CloudFront with either cap in
-place.** AWS Budget alarms at $60 and $85 (of the $100 credit, §15) email the user if something is left switched on.
+**Expected total for the election: ≈ $40, with CloudFront at $0 at the expected audience.**
+AWS Budget alarms at $60 and $85 (of the $100 credit, §15) email the user if something is
+left switched on.
 
 ---
 
@@ -915,25 +929,27 @@ hosting, and the data origin needs AWS anyway).
 
 ## 15. Decisions on the open questions (user, 2026-10-07)
 
-The user answered question 1. For questions 2–8, the user accepted the recommended defaults.
+All eight answered by the user on 2026-10-07.
 
 1. **AWS credit: $100, valid for 6 months** (to ~2027-04). That covers the ≈ $40 baseline
-   (§11.1), but **not** an uncapped 50k-viewer night (≈ $176, §11.2). So both CloudFront
-   caps in §11.2 are **mandatory**, not optional: adaptive `pollSeconds` *and* the flat-rate
-   plan (or, if credits can't pay for it, the hard `pollSeconds` escalation at 10k viewers).
-   The AWS Budget alarm stays at $60, and a second alarm is added at $85.
-   `[VERIFY: whether credits pay for CloudFront flat-rate plans. Check the credit's terms in
-   the Billing console → Credits ("Applicable products") before 10-15.]` After the election,
+   (§11.1) and the expected audience (Q3) at $0 of CloudFront. It does **not** cover an
+   uncapped 50k-viewer night at 20 s polling (≈ $176). So the spike response in §11.2 (pollSeconds to 60 s, and the
+   flat-rate Pro plan switched on above 5k viewers) is a mandatory runbook step. The AWS Budget alarm stays at $60, and a
+   second alarm is added at $85. After the election,
    the buckets and the distribution cost cents a month, so the remaining credit lasts the
    whole 6 months.
 2. **Replay harness with rows withheld: yes, test-only.** Under §9.2's conditions: such files
    are served only by `apps/fake-tse`, are never written to `apuracao26-raw`, and are
    labelled synthetic-coverage in the harness. Every number in them is a real TSE number.
-3. **Design peak: 50k concurrent viewers.**
+3. **Expected ~100 concurrent viewers; the architecture must still support 50k.** The
+   design peak (§2.3) and its load test stay at 50k (k6 at 5k virtual viewers, 1:10).
+   Nothing is pre-provisioned or pre-paid for it: viewer capacity is CloudFront's, and our
+   own tasks don't scale with viewers. CloudFront stays on pay-as-you-go ($0 at this
+   audience, §11.2).
 4. **Governor views: nice-to-have** (should-have #7 in the implementation plan). Recording
    them is must-have.
 5. **Domain: launch on `dXXXX.cloudfront.net`.** A domain may come later.
 6. **Umami: the user's existing account, with a new site** for this project.
-7. **Off-cloud third recorder: yes, as nice-to-have #10.** It writes only to its own local
+7. **Off-cloud third recorder: yes, as nice-to-have #10** (user, 2026-10-07). It writes only to its own local
    raw log and never to `apuracao26-raw`.
 8. **Public `.jws` mirror: yes** (nice-to-have #8, "verify this number").

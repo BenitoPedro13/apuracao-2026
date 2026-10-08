@@ -24,12 +24,10 @@ Bolsonaro) plus governor in AC, AM, DF, ES, RJ, RN and TO. Anything not live and
 by then waits for post-election replay and analysis. Scope decisions are made against this
 date.
 
-**Status:** architecture accepted (2026-10-07, decisions in `architecture.md` §15: $100
-AWS credit for 6 months; ~100 expected viewers, 50k capacity target, nothing pre-paid). Monorepo scaffolded
-(`TASK-scaffold-monorepo.md`, done; CDK bootstrapped in sa-east-1, `BudgetStack` deployed).
-`packages/contracts` (TSE file schemas, `Observation`, `ResultStatus`) and `packages/tse`
-(paths, `.jws` verification, `parseTseFile`) are done (`TASK-contracts-and-tse-parsing.md`).
-Next: Phase 1, `TASK-recorder.md`. Read in this order:
+**Status (2026-10-08):** Phase 0 and Phase 1 are done. **The recorder is live on AWS**
+(`TASK-recorder.md` §6): it captured all 11,443 1st-round files, soaks against the TSE CDN,
+and will discover the 2nd round by itself. Next: Phase 2, starting with
+`docs/tasks/TASK-projector-and-views.md`. Read in this order:
 
 1. `docs/research/01-tse-results-feed.md` and `02-signatures-cache-and-map-mesh.md`: the
    verified facts about the TSE feed (URLs, file shapes, caching, signed `.jws` siblings,

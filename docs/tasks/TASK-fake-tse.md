@@ -213,20 +213,17 @@ Cost: ~1.5 days. AWS: one export of ~11.4k GETs ≈ $0.005.
    | 2 | 35.1 min | 11,443 / 11,443 | 0 | 0 | 242 / 86.3 | 6.6 / 9.6 / 20.4 s | yes | yes |
    | 3 | 40.8 min | 11,146 / 11,443 | 0 | 0 | 213 / 78.4 | 8.0 / 45.6 / 66.4 s | yes | **no** |
 
-   **Run 3 is invalid as a measurement, and it found a real defect.** It overlapped with
-   heavy work on the same laptop (two `cdk synth` runs copying a 1.5 GB Docker context, the
-   infra tests, a CloudFormation deploy). At 18:14:13Z everything stalled for > 10 s (a
-   burst of fetch timeouts; the projector lost its lease), which explains its lag. Then at
-   18:32Z **the recorder stopped completely for 11 minutes**: no TSE request, no segment,
-   not even the 60 s heartbeat, while it still held the lease with rate 100 and the breaker
-   closed. The harness saw the pipeline quiet and ended the run before the replay's tail,
-   so 297 files (186 PE governor, 53 abroad, the aggregates) were never fetched.
-   The cause the evidence points to: **the AWS SDK's S3 calls have no timeout by default**
-   (`@smithy/node-http-handler` 4.12.1: `requestTimeout` and `connectionTimeout` default to
-   0 = none), so a PUT that never completes holds one of the recorder's 16 concurrency
-   slots forever; 16 of them stop the recorder, silently. The local emulator under load
-   triggered it; on the night it's the same code against real S3. The fix needs its own
-   task doc (`TASK-s3-timeouts.md`), and then 3 clean runs on an otherwise idle machine.
-   **The medians of three are pending until then**; runs 1–2 already meet every §5 target
+   **Run 3 is invalid: the laptop slept.** The user closed the lid during it (confirmed
+   2026-10-08). Every process froze together, which is what the data shows: at 18:32Z the
+   recorder stopped for 11 minutes (no TSE request, no segment, not even the 60 s
+   heartbeat) while still holding the lease, with no error logged; on wake the replay clock
+   had reached its end, the harness saw the pipeline quiet and ended the run before the
+   tail, so 297 files were never fetched. The > 10 s stall at 18:14Z (a burst of fetch
+   timeouts, the projector's lease lost) is consistent with the same cause.
+   A related fact checked while diagnosing it, not shown by this run: **the AWS SDK's S3
+   calls have no timeout by default** (`@smithy/node-http-handler` 4.12.1: `requestTimeout`
+   and `connectionTimeout` default to 0 = none), so a PUT that never completes would hold
+   one of the recorder's 16 concurrency slots forever. A latent risk for its own task doc.
+   **The medians of three wait for a third clean run** (lid open); runs 1–2 already meet every §5 target
    (0 lost, 0 early, busiest minute ≤ 103.3 req/s, lag p95 ≤ 15 s, rebuild = live, national
    = real log).

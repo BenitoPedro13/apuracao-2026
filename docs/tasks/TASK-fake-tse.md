@@ -211,7 +211,9 @@ Cost: ~1.5 days. AWS: one export of ~11.4k GETs ≈ $0.005.
    |---|---|---|---|---|---|---|---|---|
    | 1 | 35.1 min | 11,443 / 11,443 | 0 | 0 | 213 / 85.3 | 6.2 / 8.7 / 13.2 s | yes | yes |
    | 2 | 35.1 min | 11,443 / 11,443 | 0 | 0 | 242 / 86.3 | 6.6 / 9.6 / 20.4 s | yes | yes |
-   | 3 | 40.8 min | 11,146 / 11,443 | 0 | 0 | 213 / 78.4 | 8.0 / 45.6 / 66.4 s | yes | **no** |
+   | 3 | 40.8 min | 11,146 / 11,443 | 0 | 0 | 213 / 78.4 | 8.0 / 45.6 / 66.4 s | yes | **no** (invalid, below) |
+   | 3b | 35.1 min | 11,443 / 11,443 | 0 | 0 | 185 / 85.3 | 6.2 / 8.7 / 10.9 s | yes | yes |
+   | **median (1, 2, 3b)** | 35.1 min | 11,443 | **0** | **0** | 213 / **85.3** | 6.2 / **8.7** / 13.2 s | **yes** | **yes** |
 
    **Run 3 is invalid: the laptop slept.** The user closed the lid during it (confirmed
    2026-10-08). Every process froze together, which is what the data shows: at 18:32Z the
@@ -224,6 +226,9 @@ Cost: ~1.5 days. AWS: one export of ~11.4k GETs ≈ $0.005.
    calls have no timeout by default** (`@smithy/node-http-handler` 4.12.1: `requestTimeout`
    and `connectionTimeout` default to 0 = none), so a PUT that never completes would hold
    one of the recorder's 16 concurrency slots forever. A latent risk for its own task doc.
-   **The medians of three wait for a third clean run** (lid open); runs 1–2 already meet every §5 target
-   (0 lost, 0 early, busiest minute ≤ 103.3 req/s, lag p95 ≤ 15 s, rebuild = live, national
-   = real log).
+   Run 3b (19:06Z, lid open, `caffeinate`, harness max stall 0.5 s) replaced it. **Every §5
+   item 3 target is met on the median of three valid runs:** 0 lost versions, 0 requests
+   before `Expires`, 0 query strings, busiest minute 85.3 req/s (≤ 103.3, the token bucket's
+   ceiling at `RATE_MAX` 100), publish lag p95 8.7 s (≤ 15 s), the final views equal
+   `projector rebuild` on the same raw log, and the national view equals the real-log
+   rebuild's. The harness now marks a run invalid when it stalls > 5 s (`a22a31e`).

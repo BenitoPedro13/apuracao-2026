@@ -197,10 +197,12 @@ one). What changed from the plan, and the measurements:
   in every table; an exact municipal tie shows "Empate".
 - **Shared code:** `viewKey`/`manifestKey`/`POINTER_KEY` moved from the projector to
   `contracts`; `EpochsIndex` + `EPOCHS_KEY` added; `@apuracao/tse/codes` subpath export.
-- **Not done here:** Umami (`[VERIFY]` stays); candidate photos (initials, §2.6); writing
-  `epochs.json` and the first deploy to the bucket (both scripts dry-run clean: `epochs.json`
-  would list `1t-final` at seq 11,387 with the pointer's manifest hash; the deploy would put
-  25 immutable + 12 short-lived objects, nothing under `data/`, pointer ETag unchanged).
+- **Published (2026-10-08, approved by the user):** `epochs.json` lists `1t-final`
+  ("1º turno", president 6257, governor 6259) at seq 11,387 with the pointer's manifest
+  hash; the first deploy put 25 immutable + 12 short-lived objects, nothing under `data/`.
+  The site is at
+  `https://apuracao26-pub-860897618882.s3.sa-east-1.amazonaws.com/index.html`.
+- **Not done here:** Umami (`[VERIFY]` stays); candidate photos (initials, §2.6).
 
 ### Verification results (§5)
 
@@ -226,7 +228,11 @@ one). What changed from the plan, and the measurements:
    app), after removing Radix Select/Toggle/ToggleGroup (−35 KB) and the TSE time-zone table
    (−20 KB). The 150 KB target was set without a measurement; proposed: ≤ 260 KB total,
    ≤ 80 KB ours, with the 2.5 s budget above as the real gate. **Needs the user's call.**
-7. Deploy: dry run only (above); the live check waits for the go-ahead.
+7. Deploy (live bucket): `index.html` 200, `text/html`, gzip, `max-age=60`; its 9
+   `_next/static` assets all 200, `max-age=31536000, immutable`; `data/v1/latest.json`
+   ETag `"18772c75…"` before and after (unchanged); `epochs.json` 200, `max-age=300`.
+   Headless Chromium on the deployed URL (cold, from NL): Lula 45,16% / 53.879.538 and
+   Flávio Bolsonaro 47,03% / 56.104.503 after 7.8 s, 0 console errors or failed requests. ✓
 
 Observed from this machine (NL, 0.23–1.2 s connect to sa-east-1): plan B's S3 endpoint is
 HTTP/1.1 (6 connections), so the 33 views of a cold load take ~6 serial rounds, ~11 s here.

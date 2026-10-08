@@ -13,7 +13,8 @@ The 1st round's final results are public at
 fake-tse replays the 1st round's real files on an accelerated clock, for end-to-end runs
 before the night (`docs/tasks/TASK-fake-tse.md`). The web app (`apps/web`, Next.js static
 export) shows the night's panels from those views: headline, UF and municipality tables,
-regions, status and freshness (`docs/tasks/TASK-web-shell-and-data-hooks.md`); the map is
+regions, status and freshness (`docs/tasks/TASK-web-shell-and-data-hooks.md`), and is live
+at `https://apuracao26-pub-860897618882.s3.sa-east-1.amazonaws.com/index.html`; the map is
 next (`TASK-map.md`).
 **Deadline:** 2nd round, Sunday 2026-10-25.
 

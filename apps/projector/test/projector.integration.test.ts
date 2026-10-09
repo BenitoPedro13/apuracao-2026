@@ -151,13 +151,13 @@ describe('one projector, live', () => {
     const before = pointer.refreshedAt;
     await sleep(2_500);
     expect((await pub(b).readPointer())!.pointer.refreshedAt > before).toBe(true);
-  });
+  }, 30_000); // ~200 view GETs + a 2.5 s wait: 5.0 s on the CI runner (38ab10b)
 
   test('replay = live: a rebuild of the same log renders byte-identical views', async () => {
     const r = projector('rebuild', await bucket('pub-rebuild'), { EPOCH: 'rebuild-1' });
     await r.rebuild();
     expect(r.render().views).toEqual(p.render().views);
-  });
+  }, 30_000); // a full rebuild against RustFS: 6.0 s on the CI runner (38ab10b)
 
   test('forward-only: a pointer ahead of us (same epoch) is never moved back', async () => {
     const ahead = await bucket('pub-ahead');

@@ -205,7 +205,9 @@ describe('determinism, idempotency, order independence', () => {
       }
       expect(render(foldAll(shuffled), CFG).views).toEqual(reference);
     }
-  });
+    // 21 full renders (5,571-row map and tables each): ~1 s on a laptop, 13 s on a GitHub
+    // runner sharing its CPU with the testcontainers suites (CI, 2026-10-09).
+  }, 60_000);
 });
 
 describe('acceptance and fetch health', () => {

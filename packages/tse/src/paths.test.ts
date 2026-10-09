@@ -15,6 +15,10 @@ test('builders reproduce every sample file name', () => {
     resultPath('6257', OFFICES.president, 'zz', undefined, 'json'),
     resultPath('6259', OFFICES.governor, 'rj', undefined, 'json'),
     resultPath('6257', OFFICES.president, 'zz', '29424', 'json'),
+    resultPath('6259', OFFICES.senator, 'sp', undefined, 'json'),
+    resultPath('6259', OFFICES.federalDeputy, 'sp', undefined, 'json'),
+    resultPath('6259', OFFICES.stateDeputy, 'ac', undefined, 'json'),
+    resultPath('6259', OFFICES.districtDeputy, 'df', undefined, 'json'),
   ]);
   expect(new Set(sampleNames('json').map(samplePath))).toEqual(built);
   expect(resultPath('6259', OFFICES.governor, 'rj', '60011')).toBe(samplePath('ele2026_6259_dados_rj_rj60011-c0003-e006259-u.jws'));

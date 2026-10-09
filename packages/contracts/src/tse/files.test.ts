@@ -122,3 +122,40 @@ describe('TseElectionCatalog', () => {
     expect(byCode.get('6259')).toBe('6260');
   });
 });
+
+// Senate and deputies, 1st round (TASK-legislative-archive.md §1.1).
+describe('TseResultFile: senate and deputies', () => {
+  const LEGISLATIVE = {
+    senate: 'ele2026_6259_dados_sp_sp-c0005-e006259-u.json',
+    federal: 'ele2026_6259_dados_sp_sp-c0006-e006259-u.json',
+    state: 'ele2026_6259_dados_ac_ac-c0007-e006259-u.json',
+    district: 'ele2026_6259_dados_df_df-c0008-e006259-u.json',
+  };
+  const parties = (f: TseResultFile) => f.carg[0]!.agr.flatMap((a) => a.par);
+
+  test.each(Object.values(LEGISLATIVE))('%s: elected = nv, Σ party (tvtn + tvtl) = vv, vv = vnom + vl', (name) => {
+    const f = TseResultFile.parse(load(name));
+    const office = f.carg[0]!;
+    expect(candidates(f).filter((c) => c.e === 's').length).toBe(office.nv);
+    expect(parties(f).reduce((t, p) => t + (p.tvtn ?? 0) + (p.tvtl ?? 0), 0)).toBe(f.v.vv);
+    expect(f.v.vnom + (f.v.vl ?? 0)).toBe(f.v.vv);
+    for (const p of parties(f)) {
+      expect(p.tvtn).toBe(p.cand.filter((c) => c.dvt === 'Válido').reduce((t, c) => t + c.vap, 0));
+    }
+  });
+
+  test('deputies: the lists\' vag sum to nv; SP elects 70 federal deputies, quotient 338,203', () => {
+    for (const name of [LEGISLATIVE.federal, LEGISLATIVE.state, LEGISLATIVE.district]) {
+      const office = TseResultFile.parse(load(name)).carg[0]!;
+      expect(office.agr.reduce((t, a) => t + (a.vag ?? 0), 0)).toBe(office.nv);
+    }
+    const sp = TseResultFile.parse(load(LEGISLATIVE.federal)).carg[0]!;
+    expect([sp.nv, sp.qe]).toEqual([70, 338_203]);
+  });
+
+  test('senate: 2 seats in SP, both "Eleito"; vag does not count senate seats', () => {
+    const f = TseResultFile.parse(load(LEGISLATIVE.senate));
+    expect(candidates(f).filter((c) => c.e === 's').map((c) => c.st)).toEqual(['Eleito', 'Eleito']);
+    expect(f.carg[0]!.agr.reduce((t, a) => t + (a.vag ?? 0), 0)).toBe(0);
+  });
+});

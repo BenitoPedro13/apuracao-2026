@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { TseCoverageFile, TseMunicipalityIndex, TseResultFile } from '@apuracao/contracts';
 import { parseTseFile, verifyJws, type Keyring } from '@apuracao/tse';
-import { extractCoverage, extractIndex, extractResult, type FileData, type PathRole } from './model.js';
+import { extractCoverage, extractIndex, extractLegislative, extractResult, type FileData, type PathRole } from './model.js';
 
 /**
  * A stored blob, re-verified and re-parsed with the *current* key ring and contracts
@@ -24,6 +24,7 @@ export async function prepare(path: string, role: PathRole, bytes: Uint8Array, k
       const place = role.mu ? { mu: role.mu } : role.area === 'br' || role.area === 'zz' ? {} : { uf: role.area };
       data = extractResult(parsed.data as TseResultFile, role.office, place);
     }
+    else if (role.role === 'legislative') data = extractLegislative(parsed.data as TseResultFile, role.office, role.area);
     else if (role.role === 'coverage') data = extractCoverage(parsed.data as TseCoverageFile);
     else data = extractIndex(parsed.data as TseMunicipalityIndex);
     return { ok: true, sha256, idg: Number(file.idg), data };

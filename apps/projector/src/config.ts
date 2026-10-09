@@ -1,6 +1,6 @@
 import { hostname } from 'node:os';
 import { refuseTestKeyInProduction } from '@apuracao/s3kit';
-import { ELECTION_CODES, GOVERNOR_RUNOFF_UFS, UFS, type Election } from '@apuracao/tse';
+import { ELECTION_CODES, ELECTIONS, GOVERNOR_RUNOFF_UFS, UFS, type Election } from '@apuracao/tse';
 import { z } from 'zod';
 
 const ElectionList = z.string().transform((s, ctx) => {
@@ -42,7 +42,7 @@ const Env = z.object({
   LEASE_RENEW_MS: z.coerce.number().int().positive().default(10_000),
 });
 
-export type ProjectorConfig = z.output<typeof Env> & { governorUfs: string[] };
+export type ProjectorConfig = z.output<typeof Env> & { governorUfs: string[]; legislative: boolean };
 
 export function loadConfig(env: Record<string, string | undefined> = process.env): ProjectorConfig {
   const c = Env.parse(Object.fromEntries(Object.entries(env).filter(([, v]) => v !== '')));
@@ -53,5 +53,6 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
       : [...UFS];
   refuseTestKeyInProduction(c.TSE_TEST_JWK_URL, { RAW_BUCKET: c.RAW_BUCKET, PUB_BUCKET: c.PUB_BUCKET });
   for (const uf of governorUfs) if (!(UFS as readonly string[]).includes(uf)) throw new Error(`GOVERNOR_UFS: unknown UF ${uf}`);
-  return { ...c, governorUfs };
+  // Senate and deputies exist only in the 1st-round state election (TASK-legislative-archive.md §2.3).
+  return { ...c, governorUfs, legislative: c.ELECTIONS.governor === ELECTIONS.state1 };
 }

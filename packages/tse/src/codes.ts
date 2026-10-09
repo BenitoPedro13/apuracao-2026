@@ -12,7 +12,15 @@ export const ELECTIONS = {
 export type Election = (typeof ELECTIONS)[keyof typeof ELECTIONS];
 export const ELECTION_CODES: readonly Election[] = Object.values(ELECTIONS);
 
-export const OFFICES = { president: 1, governor: 3 } as const;
+export const OFFICES = {
+  president: 1,
+  governor: 3,
+  // 1st round only (the 2nd round elects neither); one file per UF, no national file.
+  senator: 5,
+  federalDeputy: 6,
+  stateDeputy: 7, // 26 UFs: DF has no Assembleia (df-c0007 is 404)
+  districtDeputy: 8, // DF only
+} as const;
 
 export const UFS = [
   'ac', 'al', 'am', 'ap', 'ba', 'ce', 'df', 'es', 'go', 'ma', 'mg', 'ms', 'mt', 'pa',

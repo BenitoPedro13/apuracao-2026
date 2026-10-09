@@ -2,6 +2,9 @@ import { createHash } from 'node:crypto';
 import {
   RESULT_STATUS_CODE,
   type CandidateHeader,
+  type LegislativeBrView,
+  type LegislativeOffice,
+  type LegislativeUfView,
   type MapIndexView,
   type MapView,
   type MunicipalityRow,
@@ -15,7 +18,7 @@ import {
 import { ABROAD, OFFICES, UFS, coveragePath, municipalityIndexPath, resultPath, type Area, type Election } from '@apuracao/tse';
 import { canonicalJson } from './canonical.js';
 import type { PathEntry, ViewState } from './fold.js';
-import { cmp, type CoverageData, type IndexData, type ResultData, type ViewsConfig } from './model.js';
+import { cmp, legislativeCode, type CoverageData, type IndexData, type LegislativeData, type ResultData, type ViewsConfig } from './model.js';
 import { REGIONS } from './regions.js';
 
 // render(state) → named views (TASK §2.1). Deterministic: no wall clock, no randomness,
@@ -30,7 +33,7 @@ export function statusOf(entry: PathEntry | undefined): ResultStatus {
   if (health === 'absent') return 'not_published';
   if (health === 'error') return 'fetch_failed';
   const data = entry?.accepted?.data;
-  if (!data || data.kind !== 'result') return 'not_published';
+  if (!data || (data.kind !== 'result' && data.kind !== 'legislative')) return 'not_published';
   if (data.s.st === 0) return 'no_sections';
   if (data.s.st < data.s.ts) return 'counting';
   // `[VERIFY: tf/and values during a live count, on the first 2nd-round files]`
@@ -149,6 +152,7 @@ export function render(state: ViewState, cfg: ViewsConfig): Rendered {
   }
 
   objects.set('regions/president', regions(state, pres));
+  if (cfg.legislative) for (const office of LEGISLATIVE_OFFICES) legislative(state, cfg, office, objects);
 
   // Municipality tables and the map need the -cm index.
   for (const office of ['president', 'governor'] as const) {
@@ -248,6 +252,77 @@ export function render(state: ViewState, cfg: ViewsConfig): Rendered {
   const views = new Map<string, string>();
   for (const name of [...objects.keys()].sort(cmp)) views.set(name, canonicalJson(objects.get(name)));
   return { views, objects };
+}
+
+const LEGISLATIVE_OFFICES: readonly LegislativeOffice[] = ['senate', 'federal-deputy', 'state-deputy'];
+
+/** `legislative/{office}/{uf}` and the summed `legislative/{office}/br` (TASK-legislative-archive.md §2.2). */
+function legislative(state: ViewState, cfg: ViewsConfig, office: LegislativeOffice, objects: Map<string, unknown>): void {
+  const election = electionOf(cfg, 'governor');
+  // Every office has a race in all 27 UFs; DF's state-deputy file is office 8 (§1.1).
+  const ufs = UFS;
+  const shownData: (LegislativeData | undefined)[] = [];
+  const statuses: ResultStatus[] = [];
+  const sources: string[] = [];
+  for (const uf of ufs) {
+    const e = state.paths[resultPath(election, legislativeCode(office, uf), uf as Area)];
+    const status = statusOf(e);
+    const a = e?.accepted;
+    const d = a && a.data.kind === 'legislative' && e?.health?.kind !== 'absent' ? (a.data as LegislativeData) : undefined;
+    shownData.push(d);
+    statuses.push(status);
+    if (d) sources.push(a!.sha256);
+    const view: LegislativeUfView = {
+      v: 1,
+      kind: 'legislative',
+      election,
+      office,
+      area: uf,
+      sources: d ? [a!.sha256] : [],
+      status,
+      failingSince: status === 'fetch_failed' ? e!.health!.at : null,
+      tse: d ? { idg: String(a!.idg), generatedAt: d.generatedAt, totalizedAt: d.totalizedAt } : null,
+      officeName: d?.officeName ?? null,
+      seats: d?.nv ?? null,
+      quotient: d?.qe ?? null,
+      sections: d ? { total: d.s.ts, counted: d.s.st, countedPct: d.s.pst } : null,
+      electorate: d ? { total: d.e.te, turnout: d.e.c, turnoutPct: d.e.pc, abstention: d.e.a, abstentionPct: d.e.pa } : null,
+      votes: d
+        ? { total: d.v.tv, valid: d.v.vv, validWithSubJudice: d.v.vvc, blank: d.v.vb, blankPct: d.v.pvb, null: d.v.tvn, nullPct: d.v.ptvn, subJudice: d.v.vansj }
+        : null,
+      nominal: d?.vnom ?? null,
+      label: d?.vl ?? null,
+      parties: d?.parties.map((p) => ({ ...p })) ?? [],
+      candidates: d?.cand.map((c) => ({ ...c, pct: { raw: c.pct.raw }, alternates: c.alternates.map((x) => ({ ...x })) })) ?? [],
+    };
+    objects.set(`legislative/${office}/${uf}`, view);
+  }
+
+  const byParty = new Map<string, (number | null)[]>();
+  shownData.forEach((d, i) => {
+    for (const p of d?.parties ?? []) {
+      if (p.seats === 0) continue;
+      const row = byParty.get(p.party) ?? ufs.map((_, j) => (shownData[j] ? 0 : null));
+      row[i] = (row[i] ?? 0) + p.seats;
+      byParty.set(p.party, row);
+    }
+  });
+  const sum = (xs: (number | null)[]) => xs.reduce<number>((t, x) => t + (x ?? 0), 0);
+  const parties = [...byParty.entries()]
+    .map(([party, byUf]) => ({ party, seatsCalc: sum(byUf), byUf }))
+    .sort((a, b) => b.seatsCalc - a.seatsCalc || cmp(a.party, b.party));
+  const br: LegislativeBrView = {
+    v: 1,
+    kind: 'legislative-br',
+    election,
+    office,
+    sources: uniqSorted(sources),
+    ufs: ufs.map((uf, i) => ({ uf, status: statuses[i]!, seats: shownData[i]?.nv ?? null })),
+    complete: shownData.every((d) => d !== undefined),
+    seatsCalc: sum(parties.map((p) => p.seatsCalc)),
+    parties,
+  };
+  objects.set(`legislative/${office}/br`, br);
 }
 
 function regions(state: ViewState, pres: Election): RegionsView {

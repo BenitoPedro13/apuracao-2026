@@ -1,4 +1,4 @@
-import { tseInstant, type Elections, type Office, type TseCoverageFile, type TseMunicipalityIndex, type TseResultFile } from '@apuracao/contracts';
+import { tseInstant, type Elections, type LegislativeOffice, type Office, type TseCoverageFile, type TseMunicipalityIndex, type TseResultFile } from '@apuracao/contracts';
 import { ABROAD, OFFICES, parsePath, totalizationInstant, type StampPlace } from '@apuracao/tse';
 
 // What the projector keeps per TSE file: a compact extract of the fields the views read,
@@ -8,13 +8,27 @@ export interface ViewsConfig {
   elections: Elections;
   /** UFs that get governor views (27 in the 1st round, GOVERNOR_RUNOFF_UFS on the night). */
   governorUfs: readonly string[];
+  /** Senate and deputies views: only for a 1st-round state election (TASK-legislative-archive.md §2.3). */
+  legislative: boolean;
 }
+
+/** TSE office code(s) of a legislative office: Assembleias are 7, the CLDF (DF) is 8. */
+export const legislativeCode = (office: LegislativeOffice, area: string): number =>
+  office === 'senate' ? OFFICES.senator : office === 'federal-deputy' ? OFFICES.federalDeputy : area === 'df' ? OFFICES.districtDeputy : OFFICES.stateDeputy;
+
+const LEGISLATIVE_BY_CODE: Record<number, LegislativeOffice> = {
+  [OFFICES.senator]: 'senate',
+  [OFFICES.federalDeputy]: 'federal-deputy',
+  [OFFICES.stateDeputy]: 'state-deputy',
+  [OFFICES.districtDeputy]: 'state-deputy',
+};
 
 /** The role a path plays in the views; null = not folded (TASK §2.4 item 8). */
 export type PathRole =
   | { role: 'index'; office: Office }
   | { role: 'coverage' }
-  | { role: 'result'; office: Office; area: string; mu?: string };
+  | { role: 'result'; office: Office; area: string; mu?: string }
+  | { role: 'legislative'; office: LegislativeOffice; area: string };
 
 export function classify(path: string, cfg: ViewsConfig): PathRole | null {
   let info;
@@ -33,6 +47,12 @@ export function classify(path: string, cfg: ViewsConfig): PathRole | null {
     return info.election === president && info.scope?.level === 'br' ? { role: 'coverage' } : null;
   }
   if (info.fileType !== 'u' || !info.scope) return null;
+  const legislative = info.office === undefined ? undefined : LEGISLATIVE_BY_CODE[info.office];
+  if (legislative) {
+    // UF files only; the code must match the UF (7 outside DF, 8 in DF).
+    if (!cfg.legislative || info.election !== governor || info.scope.level !== 'uf' || !info.scope.uf || info.scope.uf === ABROAD) return null;
+    return legislativeCode(legislative, info.scope.uf) === info.office ? { role: 'legislative', office: legislative, area: info.scope.uf } : null;
+  }
   let office: Office;
   if (info.election === president && info.office === OFFICES.president) office = 'president';
   else if (info.election === governor && info.office === OFFICES.governor) office = 'governor';
@@ -89,7 +109,19 @@ export interface IndexData {
   areas: Record<string, IndexEntry[]>;
 }
 
-export type FileData = ResultData | CoverageData | IndexData;
+export interface LegislativeData extends Omit<ResultData, 'kind' | 'cand'> {
+  kind: 'legislative';
+  officeName: string;
+  nv: number | null;
+  qe: number | null;
+  vnom: number;
+  vl: number | null;
+  parties: { n: string; party: string; name: string; federation: string | null; seats: number; nominal: number; label: number | null }[];
+  /** Senate: every candidate; deputies: the elected only (the files carry ~1,000). By votes. */
+  cand: (Omit<CandidateData, 'seq'> & { alternates: { role: string; name: string; party: string }[] })[];
+}
+
+export type FileData = ResultData | LegislativeData | CoverageData | IndexData;
 
 const pct = (d: { raw: string }): Pct => ({ raw: d.raw });
 
@@ -120,8 +152,11 @@ export function extractResult(f: TseResultFile, office: Office, place: StampPlac
     }
   }
   cand.sort((a, b) => a.seq - b.seq || cmp(a.n, b.n));
+  return { kind: 'result', ...totals(f, place), cand };
+}
+
+function totals(f: TseResultFile, place: StampPlace): Omit<ResultData, 'kind' | 'cand'> {
   return {
-    kind: 'result',
     generatedAt: tseInstant(f.dg, f.hg),
     totalizedAt: f.dt && f.ht ? totalizationInstant(f.dt, f.ht, f.dg, f.hg, place) : null,
     tf: f.tf,
@@ -140,6 +175,58 @@ export function extractResult(f: TseResultFile, office: Office, place: StampPlac
       vn: f.v.vn,
       vnt: f.v.vnt,
     },
+  };
+}
+
+export function extractLegislative(f: TseResultFile, office: LegislativeOffice, uf: string): LegislativeData {
+  const code = legislativeCode(office, uf);
+  const carg = f.carg.find((c) => Number(c.cd) === code);
+  if (!carg) throw new Error(`no office ${code} in the file`);
+  const parties: LegislativeData['parties'] = [];
+  const cand: LegislativeData['cand'] = [];
+  for (const agr of carg.agr) {
+    for (const par of agr.par) {
+      let seats = 0;
+      for (const c of par.cand) {
+        const elected = c.e === 's';
+        if (elected) seats++;
+        if (office !== 'senate' && !elected) continue;
+        const vs = (c.vs ?? []) as { tp?: unknown; nmu?: unknown; sgp?: unknown }[];
+        cand.push({
+          n: c.n,
+          name: c.nmu,
+          party: par.sg,
+          votes: c.vap,
+          pct: pct(c.pvap),
+          elected,
+          situation: c.st,
+          destination: c.dvt ?? null,
+          alternates: vs.map((a) => ({ role: String(a.tp ?? ''), name: String(a.nmu ?? ''), party: String(a.sgp ?? '') })),
+        });
+      }
+      parties.push({
+        n: par.n,
+        party: par.sg,
+        name: par.nm,
+        federation: par.nfed === '' ? null : par.nfed,
+        seats,
+        nominal: par.tvtn ?? par.cand.filter((c) => c.dvt === 'Válido').reduce((t, c) => t + c.vap, 0),
+        label: office === 'senate' ? null : (par.tvtl ?? 0),
+      });
+    }
+  }
+  const partyVotes = (p: LegislativeData['parties'][number]) => p.nominal + (p.label ?? 0);
+  parties.sort((a, b) => b.seats - a.seats || partyVotes(b) - partyVotes(a) || cmp(a.party, b.party));
+  cand.sort((a, b) => b.votes - a.votes || cmp(a.n, b.n));
+  return {
+    kind: 'legislative',
+    ...totals(f, { uf }),
+    officeName: carg.nmn,
+    nv: carg.nv ?? null,
+    qe: carg.qe ?? null,
+    vnom: f.v.vnom,
+    vl: office === 'senate' ? null : (f.v.vl ?? 0),
+    parties,
     cand,
   };
 }

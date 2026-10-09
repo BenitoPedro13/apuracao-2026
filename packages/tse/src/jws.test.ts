@@ -15,7 +15,7 @@ const flipChar = (s: string, i: number) => s.slice(0, i) + (s[i] === 'A' ? 'B' :
 
 test('the pinned key is the key the TSE app serves', () => {
   expect(pinned).toEqual(JSON.parse(readFileSync(new URL('app_assets_assinatura-jws_prod.jwk.json', SAMPLES), 'utf8')));
-  expect(JWS).toHaveLength(10);
+  expect(JWS).toHaveLength(14);
 });
 
 describe.each(JWS)('%s', (name) => {

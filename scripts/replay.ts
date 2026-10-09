@@ -41,7 +41,7 @@ const speed = Number(values.speed);
 const S3_ENDPOINT = 'http://localhost:9000';
 const creds = { AWS_ACCESS_KEY_ID: 'apuracao', AWS_SECRET_ACCESS_KEY: 'apuracao-local-only', AWS_REGION: 'us-east-1' };
 const s3 = new S3Client({ region: creds.AWS_REGION, endpoint: S3_ENDPOINT, forcePathStyle: true, credentials: { accessKeyId: creds.AWS_ACCESS_KEY_ID, secretAccessKey: creds.AWS_SECRET_ACCESS_KEY } });
-const VIEWS = { elections: { president: '6257', governor: '6259' }, governorUfs: UFS } as const;
+const VIEWS = { elections: { president: '6257', governor: '6259' }, governorUfs: UFS, legislative: true } as const;
 const NATIONAL = 'result/president/br';
 
 execFileSync('docker', ['compose', '-f', join(ROOT, 'infra/docker-compose.yml'), 'up', '-d', '--wait', 'rustfs'], { stdio: 'inherit' });

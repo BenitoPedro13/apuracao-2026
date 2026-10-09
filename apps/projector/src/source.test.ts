@@ -28,6 +28,8 @@ test('config: ELECTIONS is required; governor UFs follow the election', () => {
   expect(() => loadConfig({ RAW_BUCKET: 'raw' })).toThrow();
   expect(loadConfig({ RAW_BUCKET: 'raw', ELECTIONS: 'president=6258,governor=6260' }).governorUfs).toEqual(['ac', 'am', 'df', 'es', 'rj', 'rn', 'to']);
   expect(loadConfig({ RAW_BUCKET: 'raw', ELECTIONS: 'president=6257,governor=6259' }).governorUfs).toHaveLength(27);
+  expect(loadConfig({ RAW_BUCKET: 'raw', ELECTIONS: 'president=6257,governor=6259' }).legislative).toBe(true);
+  expect(loadConfig({ RAW_BUCKET: 'raw', ELECTIONS: 'president=6258,governor=6260' }).legislative).toBe(false);
   expect(() => loadConfig({ RAW_BUCKET: 'raw', ELECTIONS: 'president=6257,governor=6259', GOVERNOR_UFS: 'xx' })).toThrow();
 });
 

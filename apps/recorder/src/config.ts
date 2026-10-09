@@ -3,18 +3,23 @@ import { refuseTestKeyInProduction } from '@apuracao/s3kit';
 import { ELECTION_CODES, TSE_BASE_URL, type Election } from '@apuracao/tse';
 import { z } from 'zod';
 
-/** election:office:cadence, cadence = 'expires' or a minimum re-poll interval in seconds. */
+/**
+ * election:office:cadence[:uf], cadence = 'expires' or a minimum re-poll interval in seconds.
+ * `:uf` = aggregate-only: the UF result files, no municipality or coverage files
+ * (TASK-legislative-archive.md §2.1).
+ */
 export interface Target {
   election: Election;
   office: number;
   /** null = poll at each file's Expires; a number = no more often than every N seconds. */
   minIntervalS: number | null;
+  ufOnly: boolean;
 }
 
 const TargetList = z.string().transform((s, ctx) =>
   s.split(',').map((part): Target => {
-    const [election, office, cadence] = part.trim().split(':');
-    if (!ELECTION_CODES.includes(election as Election) || !/^\d+$/.test(office ?? '') || !cadence) {
+    const [election, office, cadence, scope, ...rest] = part.trim().split(':');
+    if (!ELECTION_CODES.includes(election as Election) || !/^\d+$/.test(office ?? '') || !cadence || (scope !== undefined && scope !== 'uf') || rest.length) {
       ctx.addIssue({ code: 'custom', message: `bad target ${part}` });
       return z.NEVER;
     }
@@ -22,6 +27,7 @@ const TargetList = z.string().transform((s, ctx) =>
       election: election as Election,
       office: Number(office),
       minIntervalS: cadence === 'expires' ? null : Number(cadence),
+      ufOnly: scope === 'uf',
     };
   }),
 );
@@ -29,8 +35,12 @@ const TargetList = z.string().transform((s, ctx) =>
 const Env = z.object({
   RECORDER_ID: z.string().default(hostname()),
   // 1st round: captured once, then a slow soak (frozen files). 2nd round: discovery, then
-  // each file at its Expires (TASK-recorder.md §2.1).
-  RECORDER_TARGETS: z.string().default('6257:1:600,6259:3:600,6258:1:expires,6260:3:expires').pipe(TargetList),
+  // each file at its Expires (TASK-recorder.md §2.1). Senate and deputies: 1st-round UF
+  // files only, soaked like the rest (TASK-legislative-archive.md §2.1).
+  RECORDER_TARGETS: z
+    .string()
+    .default('6257:1:600,6259:3:600,6258:1:expires,6260:3:expires,6259:5:600:uf,6259:6:600:uf,6259:7:600:uf,6259:8:600:uf')
+    .pipe(TargetList),
   RATE_MAX: z.coerce.number().positive().default(10),
   CONCURRENCY: z.coerce.number().int().positive().default(16),
   RAW_BUCKET: z.string().min(3),

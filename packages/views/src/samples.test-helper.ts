@@ -7,7 +7,7 @@ import type { ViewsConfig } from './model.js';
 // Real captured TSE files (docs/research/samples/), named as the URL path with '/' → '_'.
 const SAMPLES = new URL('../../../docs/research/samples/', import.meta.url);
 
-export const CFG: ViewsConfig = { elections: { president: '6257', governor: '6259' }, governorUfs: ['rj'] };
+export const CFG: ViewsConfig = { elections: { president: '6257', governor: '6259' }, governorUfs: ['rj'], legislative: true };
 
 export const keyring = () => importKeys([jwk as TseJwk]);
 

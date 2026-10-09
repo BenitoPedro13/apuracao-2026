@@ -107,7 +107,7 @@ export function createRecorder(deps: RecorderDeps) {
     if (known) return known;
     const info = parsePath(path);
     const target = config.RECORDER_TARGETS.find((t) => t.election === info.election && t.office === info.office);
-    if (!target || info.scope?.level !== 'mu') return undefined;
+    if (!target || target.ufOnly || info.scope?.level !== 'mu') return undefined;
     const file = municipalFile(target, info.scope.uf as Area, info.scope.mu!);
     tracked.set(path, file);
     return file;

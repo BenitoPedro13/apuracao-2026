@@ -43,6 +43,7 @@ export const TseElectorate = z.looseObject({
 export const TseVotes = z.looseObject({
   ...ints('tv', 'vvc', 'vv', 'vnom', 'van', 'vansj', 'vb', 'tvn', 'vn', 'vnt', 'vsan', 'vscv'),
   ...decimals('pvvc', 'pvv', 'pvnom', 'pvan', 'pvansj', 'pvb', 'ptvn', 'pvn', 'pvnt'),
+  vl: TseInt.optional(), // party-label (legenda) votes: deputies only, vv = vnom + vl
 });
 
 export const TseCandidate = z.looseObject({
@@ -68,8 +69,12 @@ export const TseParty = z.looseObject({
   sg: z.string(),
   nm: z.string(),
   nfed: z.string(), // federation number, "" when none
+  // Party totals. On every sample (TASK-legislative-archive.md §1.1): tvtn = Σ vap of its
+  // "Válido" candidates, tvan = Σ vap of all of them, tvtl = its legenda votes (deputies);
+  // Σ (tvtn + tvtl) over the parties = v.vv.
   tvtn: TseInt.optional(),
   tvan: TseInt.optional(),
+  tvtl: TseInt.optional(),
   cand: z.array(TseCandidate),
 });
 
@@ -78,13 +83,15 @@ export const TseCoalition = z.looseObject({
   nm: z.string(),
   tp: z.string(),
   com: z.string(),
+  vag: TseInt.optional(), // seats won by the list (senate/deputies)
   par: z.array(TseParty),
 });
 
 export const TseOffice = z.looseObject({
   cd: TseId,
   nmn: z.string(),
-  nv: z.string().optional(),
+  nv: TseInt.optional(), // seats at stake
+  qe: TseInt.optional(), // electoral quotient (deputies)
   fed: z.array(z.looseObject({})).optional(),
   agr: z.array(TseCoalition),
 });

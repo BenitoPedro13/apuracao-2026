@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
-import { MapIndexView, MapView, MunicipalityView, RegionsView, ResultView, type Observation } from '@apuracao/contracts';
+import { LegislativeBrView, LegislativeUfView, MapIndexView, MapView, MunicipalityView, RegionsView, ResultView, type Observation } from '@apuracao/contracts';
 import type { Keyring } from '@apuracao/tse';
 import { beforeAll, describe, expect, test } from 'vitest';
 import { emptyState, fold, needsBlob, type ViewState } from './fold.js';
@@ -122,6 +122,55 @@ describe('views from the real 1st-round samples', () => {
     expect(report.identityFailures).toEqual([]);
     const brSum = report.sums.find((s) => s.parts === 'ufs')!;
     expect(brSum).toMatchObject({ comparable: false }); // 27 UF files missing from the samples
+  });
+});
+
+// TASK-legislative-archive.md §5 item 1.
+describe('senate and deputies from the real samples', () => {
+  test('SP senate: every candidate, the 2 elected first, with their alternates', () => {
+    const sp = view(foldAll(inputs), 'legislative/senate/sp', LegislativeUfView);
+    expect(sp).toMatchObject({ status: 'final', officeName: 'Senador', seats: 2, quotient: null, label: null });
+    expect(sp.candidates).toHaveLength(13);
+    expect(sp.candidates.slice(0, 2).map((c) => [c.elected, c.situation])).toEqual([[true, 'Eleito'], [true, 'Eleito']]);
+    expect(sp.candidates.slice(2).every((c) => !c.elected)).toBe(true);
+    expect(sp.candidates.find((c) => c.name === 'ANDRÉ DO PRADO')).toMatchObject({ votes: 12_703_089, pct: { raw: '29,28' } });
+    expect(sp.candidates[0]!.alternates.map((a) => a.role)).toEqual(['s1', 's2']);
+  });
+
+  test('SP federal deputies: 70 elected = Σ party seats; the quotient; elected only', () => {
+    const sp = view(foldAll(inputs), 'legislative/federal-deputy/sp', LegislativeUfView);
+    expect([sp.seats, sp.quotient]).toEqual([70, 338_203]);
+    expect(sp.candidates).toHaveLength(70);
+    expect(sp.candidates.every((c) => c.elected && c.situation.startsWith('Eleito'))).toBe(true);
+    expect(sp.parties.reduce((t, p) => t + p.seats, 0)).toBe(70);
+    expect(sp.parties[0]).toMatchObject({ party: 'PL', seats: 19 });
+    expect(sp.parties.reduce((t, p) => t + p.nominal + (p.label ?? 0), 0)).toBe(sp.votes!.valid);
+  });
+
+  test('DF is office 8 (Deputado Distrital) under state-deputy; AC Assembleia is office 7', () => {
+    const state = foldAll(inputs);
+    expect(view(state, 'legislative/state-deputy/df', LegislativeUfView)).toMatchObject({ officeName: 'Deputado Distrital', seats: 24 });
+    expect(view(state, 'legislative/state-deputy/ac', LegislativeUfView)).toMatchObject({ officeName: 'Deputado Estadual', seats: 24 });
+    expect(classify('ele2026/6259/dados/df/df-c0007-e006259-u.jws', CFG)).toBeNull();
+    expect(classify('ele2026/6259/dados/sp/sp-c0008-e006259-u.jws', CFG)).toBeNull();
+    expect(classify('ele2026/6259/dados/sp/sp71072-c0006-e006259-u.jws', CFG)).toBeNull();
+  });
+
+  test('the br sum is partial while UFs are missing, never the chamber size (invariant 6)', () => {
+    const br = view(foldAll(inputs), 'legislative/federal-deputy/br', LegislativeBrView);
+    expect(br.complete).toBe(false);
+    expect(br.ufs).toHaveLength(27);
+    expect(br.ufs.filter((u) => u.status === 'not_published')).toHaveLength(26);
+    expect(br.seatsCalc).toBe(70);
+    const pl = br.parties.find((p) => p.party === 'PL')!;
+    expect(pl.byUf[br.ufs.findIndex((u) => u.uf === 'sp')]).toBe(19);
+    expect(pl.byUf.filter((x) => x === null)).toHaveLength(26);
+  });
+
+  test('no legislative views for a 2nd-round projector', () => {
+    const names = [...render(foldAll(inputs), { ...CFG, legislative: false }).objects.keys()];
+    expect(names.filter((n) => n.startsWith('legislative/'))).toEqual([]);
+    expect([...render(foldAll(inputs), CFG).objects.keys()].filter((n) => n.startsWith('legislative/'))).toHaveLength(84);
   });
 });
 

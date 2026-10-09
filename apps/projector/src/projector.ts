@@ -67,7 +67,7 @@ export function createProjector(deps: ProjectorDeps) {
   const { config, s3, publisher } = deps;
   const now = deps.now ?? Date.now;
   const log = deps.log ?? ((e) => console.log(JSON.stringify({ t: new Date(now()).toISOString(), ...e })));
-  const views: ViewsConfig = { elections: config.ELECTIONS, governorUfs: config.governorUfs };
+  const views: ViewsConfig = { elections: config.ELECTIONS, governorUfs: config.governorUfs, legislative: config.legislative };
   const source = new SegmentSource(s3, config.RAW_BUCKET, config.LOOKBACK_MS);
   const blobs = new BlobReader(s3, config.RAW_BUCKET, config.BLOB_CACHE_MB * 1024 * 1024);
   const timings: Timings = { listMs: 0, segmentsMs: 0, blobsMs: 0, foldMs: 0, renderMs: 0, publishMs: 0 };

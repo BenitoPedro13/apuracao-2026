@@ -9,10 +9,14 @@ import { GenericContainer, Wait, type StartedTestContainer } from 'testcontainer
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { gunzipSync } from 'node:zlib';
-import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 import { loadConfig } from '../src/config.js';
 import { createProjector, type Projector } from '../src/projector.js';
 import { POINTER_KEY, S3Publisher, manifestKey, viewKey } from '../src/publisher.js';
+
+// Real containers (RustFS): these tests take 5–6 s each on the CI runner, past Vitest's
+// 5 s default (38ab10b, 89a6b61). Hooks and the slow ones keep their own, longer timeouts.
+vi.setConfig({ testTimeout: 30_000 });
 
 const SAMPLES_DIR = fileURLToPath(new URL('../../../docs/research/samples', import.meta.url));
 const USER = 'apuracao';
@@ -151,13 +155,13 @@ describe('one projector, live', () => {
     const before = pointer.refreshedAt;
     await sleep(2_500);
     expect((await pub(b).readPointer())!.pointer.refreshedAt > before).toBe(true);
-  }, 30_000); // ~200 view GETs + a 2.5 s wait: 5.0 s on the CI runner (38ab10b)
+  });
 
   test('replay = live: a rebuild of the same log renders byte-identical views', async () => {
     const r = projector('rebuild', await bucket('pub-rebuild'), { EPOCH: 'rebuild-1' });
     await r.rebuild();
     expect(r.render().views).toEqual(p.render().views);
-  }, 30_000); // a full rebuild against RustFS: 6.0 s on the CI runner (38ab10b)
+  });
 
   test('forward-only: a pointer ahead of us (same epoch) is never moved back', async () => {
     const ahead = await bucket('pub-ahead');

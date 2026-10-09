@@ -15,7 +15,7 @@ import { createInterface } from 'node:readline';
 import { parseArgs } from 'node:util';
 import { gzipSync } from 'node:zlib';
 import { HistoryFile, HistoryMunicipalities, TseMunicipalityIndex, type HistoryRound } from '@apuracao/contracts';
-import { candidateReader, detailReader, presidentCsvName, withoutGeneration, type OdseleType } from '@apuracao/tse';
+import { candidateReader, detailReader, presidentCsvName, RowSetHash, withoutGeneration, type OdseleType } from '@apuracao/tse';
 import { computeInsights, HistoryFold, type Place } from '@apuracao/views';
 import { CACHE, HISTORY_TYPES, HISTORY_YEARS, readCapture } from './capture-history.ts';
 
@@ -33,7 +33,7 @@ async function readZip(zip: string, type: OdseleType, onLine: (line: string, hea
   const csv = presidentCsvName(execFileSync('unzip', ['-Z1', zip], { encoding: 'utf8' }).trim().split('\n'));
   const child = spawn('unzip', ['-p', zip, csv], { stdio: ['ignore', 'pipe', 'inherit'] });
   child.stdout.setEncoding('latin1');
-  const content = createHash('sha256');
+  const content = new RowSetHash(sha256);
   let header = '';
   let strip: (l: string) => string = (l) => l;
   let generatedAt = '';
@@ -47,11 +47,11 @@ async function readZip(zip: string, type: OdseleType, onLine: (line: string, hea
       if (!generatedAt) generatedAt = /^"?([\d/]+)"?;"?([\d:]+)"?/.exec(line)?.slice(1, 3).join(' ') ?? '';
       onLine(line, header);
     }
-    content.update(strip(line) + '\n');
+    if (line !== header) content.add(strip(line));
   }
   const code = await new Promise<number>((res) => child.on('close', res));
   if (code !== 0) throw new Error(`unzip -p ${zip} ${csv}: exit ${code}`);
-  return { csv, contentId: content.digest('hex'), generatedAt, type };
+  return { csv, contentId: content.digest(), generatedAt, type };
 }
 
 const cfg = TseMunicipalityIndex.parse(JSON.parse(readFileSync(CONFIG, 'utf8')));

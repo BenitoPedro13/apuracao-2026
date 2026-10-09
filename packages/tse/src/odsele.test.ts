@@ -1,6 +1,7 @@
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { candidateReader, countOf, detailReader, municipalityCode, presidentCsvName, splitCsvLine, withoutGeneration } from './odsele.js';
+import { candidateReader, countOf, detailReader, municipalityCode, presidentCsvName, RowSetHash, splitCsvLine, withoutGeneration } from './odsele.js';
 import { SAMPLES } from './samples.test-helper.js';
 
 // Real excerpts of the TSE archive (docs/research/samples/hist/, research 05 §3), one per quirk.
@@ -98,5 +99,27 @@ describe('2006 abroad: negative QT_TOTAL_VOTOS_NULOS', () => {
     expect(r).toHaveLength(32);
     expect(r.every((x) => x.kind === 'abroad' && x.nulos >= 0)).toBe(true);
     expect(r.find((x) => x.municipalityName === 'TAILÂNDIA' && x.round === 2)).toMatchObject({ comparecimento: 15, brancos: 0, nulos: 1 });
+  });
+});
+
+describe('RowSetHash', () => {
+  const sha = (s: string) => createHash('sha256').update(s).digest('hex');
+  const id = (rows: string[]) => {
+    const h = new RowSetHash(sha);
+    for (const r of rows) h.add(r);
+    return h.digest();
+  };
+  const [header, ...rest] = lines('detalhe_votacao_munzona_2022_BR.head.csv');
+  const strip = withoutGeneration(header!);
+  it('is the same for the same rows in another order (the TSE regenerates reordered)', () => {
+    expect(id(rest.map(strip))).toBe(id([...rest].reverse().map(strip)));
+  });
+  it('changes when a row changes, is added, or is duplicated', () => {
+    const base = id(rest.map(strip));
+    expect(id(rest.slice(1).map(strip))).not.toBe(base);
+    expect(id([...rest, rest[0]!].map(strip))).not.toBe(base);
+    const changed = rest.map((r, i) => (i === 3 ? r.replace(/;(\d+);/, ';999999;') : r));
+    expect(changed[3]).not.toBe(rest[3]);
+    expect(id(changed.map(strip))).not.toBe(base);
   });
 });

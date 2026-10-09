@@ -45,7 +45,7 @@ export type HistoryRound = z.infer<typeof HistoryRound>;
 export const HistorySource = z.object({
   url: z.string(),
   sha256: Sha256,
-  /** sha256 of the CSV rows with DT_GERACAO/HH_GERACAO removed. */
+  /** Order-independent hash of the CSV rows with DT_GERACAO/HH_GERACAO removed (RowSetHash). */
   contentId: Sha256,
   bytes: Count,
   generatedAt: z.string(),

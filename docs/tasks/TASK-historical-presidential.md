@@ -231,9 +231,11 @@ Built and verified the same day. What differs from §2, and why:
   Guaribas was 18.7% PT in 2002, not 12% (that was 1994/1998).
 - **New TSE quirks** found while building (research 05 §3): negative null totals abroad in
   2006, voters of uninstalled sections, 38 exact ties.
-- **No S3 archive yet:** `capture-history.ts --bucket … --write` is a bucket write, so the
-  user runs it. Until then the zips live in `.capture/odsele/` (identical sha256 to the
-  research downloads, `samples/hist/SHA256SUMS-zips.txt`).
+- **S3 archive:** the user ran `capture-history.ts --bucket … --write` (2026-10-09): 16 zips
+  + metadata stored write-once, locked 10 years. In between, the TSE regenerated the 2022
+  detail zip with its rows reordered (research 05 §2), so the content identity became an
+  order-independent `RowSetHash`, and the site was rebuilt from the archived zip (the same
+  numbers: only `sources` changed in `history.<sha8>.json`; the 27 UF files are identical).
 - The live pointer is no longer polled on `?historico` (`app/providers.tsx`); the live page
   is the Suspense fallback around the mode switch, so its static HTML is unchanged.
 

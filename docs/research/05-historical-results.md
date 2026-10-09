@@ -45,11 +45,17 @@ Brasília, at least during this election period, and older years from time to ti
 second capture at ~06:00 BRT the same day got the same 16 sha256: no rebuild in between)
 `[VERIFY: download 2022 again on 10-10 and diff; does anything but DT/HH_GERACAO change?]`.
 
-Consequence for invariant 2: a byte-identity (SHA-256 of the zip) changes every night with
-no change in the data. Store every distinct zip we download byte-for-byte, as the recorder
-does. Also give each one a **content identity** (hash of the CSV rows with the two
-generation columns removed), so the build can tell "new day, same data" from "the TSE
-corrected a count".
+**Seen happening (2026-10-09 ~09:30 BRT):** the 2022 detail zip went from `e9545d5a…`
+(generated 08/10 03:17:17) to `8fd10a41…` (09/10 03:17:58). Same 12,567 rows, but **in a
+different order**: 0 differences sorted, 25,131 in order. So a regeneration changes the stamp
+*and the row order*.
+
+Consequence for invariant 2: a byte-identity (SHA-256 of the zip) changes with no change in
+the data. Store every distinct zip we download byte-for-byte, as the recorder does. Also give
+each one a **content identity that ignores both the stamp and the order**: `RowSetHash`
+(`packages/tse/src/odsele.ts`), the sum mod 2^256 of each row's sha256 with the two generation
+columns removed. Both 2022 zips above get `77551f93…`. That's how the build tells "new day,
+same data" from "the TSE corrected a count".
 
 ## 3. Quirks found while parsing (each one would have produced a wrong number)
 

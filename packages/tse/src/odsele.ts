@@ -204,3 +204,21 @@ export function withoutGeneration(headerLine: string) {
   const drop = new Set(GENERATION_COLUMNS.map((c) => cols.indexOf(c)).filter((i) => i >= 0));
   return (line: string) => (drop.size ? splitCsvLine(line).filter((_, i) => !drop.has(i)).join('\u001f') : line);
 }
+
+/**
+ * The content identity of an archive CSV (research 05 §2): the TSE regenerates these files
+ * with a new stamp and in a different row order (2022 detail, 08 → 09/10/2026: the same
+ * 12,567 rows, reordered). So it's a multiset hash: the sum mod 2^256 of each row's sha256,
+ * stamp removed. Order-independent, duplicates still count, any changed row changes it.
+ */
+export class RowSetHash {
+  private sum = 0n;
+  private static readonly MOD = 1n << 256n;
+  constructor(private readonly sha256: (s: string) => string) {}
+  add(row: string) {
+    this.sum = (this.sum + BigInt(`0x${this.sha256(row)}`)) % RowSetHash.MOD;
+  }
+  digest(): string {
+    return this.sum.toString(16).padStart(64, '0');
+  }
+}

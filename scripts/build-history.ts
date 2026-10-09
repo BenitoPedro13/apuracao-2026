@@ -170,7 +170,7 @@ if (values.check) {
 
 // --- write, content-addressed -------------------------------------------------------------
 mkdirSync(OUT, { recursive: true });
-for (const f of readdirSync(OUT)) if (/^history(-mun-[a-z]{2})?\.[0-9a-f]{8}\.json$/.test(f)) rmSync(join(OUT, f));
+for (const f of readdirSync(OUT)) if (/^history(-mun(-[a-z]{2})?)?\.[0-9a-f]{8}\.json$/.test(f)) rmSync(join(OUT, f));
 const write = (base: string, value: unknown, quiet = false) => {
   const body = JSON.stringify(value);
   const hash = sha256(body);

@@ -56,9 +56,11 @@ if (forbidden.length) throw new Error(`refusing to upload under data/: ${forbidd
 const unknown = files.filter((f) => !typeOf(f.key));
 if (unknown.length) throw new Error(`no content type for: ${unknown.map((f) => f.key).join(', ')}`);
 
-// Content-hashed names never change content: Next's assets and the map geometry
-// (geo/br-mun-2025.{sha8}.topo.json, TASK-map.md §2.1).
-const isHashed = (key: string) => key.startsWith('_next/static/') || /^geo\/[\w-]+\.[0-9a-f]{8}\.topo\.json$/.test(key);
+// Content-hashed names never change content: Next's assets, the map geometry
+// (geo/br-mun-2025.{sha8}.topo.json, TASK-map.md §2.1) and the 1994–2022 archive
+// (history/*.{sha8}.json, TASK-historical-presidential.md §2.2).
+const isHashed = (key: string) =>
+  key.startsWith('_next/static/') || /^geo\/[\w-]+\.[0-9a-f]{8}\.topo\.json$/.test(key) || /^history\/[\w-]+\.[0-9a-f]{8}\.json$/.test(key);
 const hashed = files.filter((f) => isHashed(f.key));
 const rest = files.filter((f) => !isHashed(f.key));
 

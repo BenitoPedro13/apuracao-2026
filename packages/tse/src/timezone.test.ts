@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { hasUtcOffset, localOffsetMinutes, totalizationInstant } from './timezone.js';
+import { assertTzdata, hasUtcOffset, localOffsetMinutes, totalizationInstant } from './timezone.js';
 import { readSample } from './samples.test-helper.js';
 
 // Stamps below are copied from real captured TSE files (`.capture/ele2026-1t`, research 03).
@@ -42,6 +42,11 @@ test('abroad uses the zone on that date: Paris is UTC+2 on 10-04 and UTC+1 on 10
   expect(localOffsetMinutes({ mu: '30287' }, '04/10/2026', '23:00:00')).toBe(120);
   expect(localOffsetMinutes({ mu: '30287' }, '25/10/2026', '23:00:00')).toBe(60);
   expect(localOffsetMinutes({ mu: '30228' }, '25/10/2026', '23:00:00')).toBe(-240); // New York: DST until 11-01
+});
+
+test('the pinned tzdata (2026c): Morocco is permanently UTC+0 from 2026-09-20, so Rabat is +00:00 on 10-05', () => {
+  expect(() => assertTzdata()).not.toThrow();
+  expect(localOffsetMinutes({ mu: '30406' }, '05/10/2026', '12:51:05')).toBe(0);
 });
 
 test('a UF stamp is in the zone of the UF capital: br-ab says ac 18:54:23 = Rio Branco local = 20:54:23 Brasília', () => {

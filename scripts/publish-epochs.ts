@@ -7,6 +7,8 @@
 //     aws login && node scripts/publish-epochs.ts --epoch 1t-final --label "1º turno" [--seq 11387]
 //   The round the pointer follows live (no fixed manifest yet):
 //     node scripts/publish-epochs.ts --epoch 2t-1 --label "2º turno" --live --president 6258 --governor 6260
+//   A re-seed under a new epoch, taking the old one's place in one write (TASK-tzdata-pin.md):
+//     node scripts/publish-epochs.ts --epoch 1t-final-2 --label "1º turno" --replaces 1t-final
 //   --dry-run prints the new index without writing it.
 import { createHash } from 'node:crypto';
 import { gunzipSync } from 'node:zlib';
@@ -33,6 +35,7 @@ const { values } = parseArgs({
     live: { type: 'boolean', default: false },
     president: { type: 'string' },
     governor: { type: 'string' },
+    replaces: { type: 'string' },
     'dry-run': { type: 'boolean', default: false },
   },
 });
@@ -81,8 +84,16 @@ if (values.live) {
 
 const existingBytes = await getBytes(EPOCHS_KEY);
 const existing = existingBytes ? EpochsIndex.parse(json(existingBytes)).epochs : [];
-const i = existing.findIndex((e) => e.epoch === epoch);
-const epochs = i >= 0 ? existing.with(i, entry) : [...existing, entry];
+let epochs: EpochEntry[];
+if (values.replaces) {
+  // The old epoch's slot (and so its order) goes to the new one; its objects stay untouched.
+  const j = existing.findIndex((e) => e.epoch === values.replaces);
+  if (j < 0) throw new Error(`--replaces ${values.replaces}: not in ${EPOCHS_KEY}`);
+  epochs = existing.with(j, entry).filter((e, k) => k === j || e.epoch !== epoch);
+} else {
+  const i = existing.findIndex((e) => e.epoch === epoch);
+  epochs = i >= 0 ? existing.with(i, entry) : [...existing, entry];
+}
 const index = EpochsIndex.parse({ v: 1, epochs });
 const body = `${JSON.stringify(index, null, 2)}\n`;
 

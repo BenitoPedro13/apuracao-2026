@@ -1,5 +1,6 @@
 import { parseArgs } from 'node:util';
 import { S3Client } from '@aws-sdk/client-s3';
+import { assertTzdata } from '@apuracao/tse';
 import { loadConfig, type ProjectorConfig } from './config.js';
 import { createProjector } from './projector.js';
 import { DirPublisher, S3Publisher, type Publisher } from './publisher.js';
@@ -19,6 +20,9 @@ function publisherFor(out: string | undefined, c: ProjectorConfig, s3: S3Client)
 }
 
 async function main(): Promise<void> {
+  // Abroad local times come from the runtime's tzdata: refuse a runtime that would render
+  // different bytes from the night's projector (TASK-tzdata-pin.md).
+  assertTzdata();
   const { positionals, values } = parseArgs({
     allowPositionals: true,
     options: { source: { type: 'string' }, epoch: { type: 'string' }, out: { type: 'string' }, promote: { type: 'boolean' } },

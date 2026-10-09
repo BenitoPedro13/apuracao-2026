@@ -131,3 +131,6 @@ in spirit). Cost: ~0.5 day; the BU downloads are public, a few GB once.
   `pnpm turbo run lint check-types test build` 34/34 (tse 63 tests; the views
   determinism test needed a cached `Intl.DateTimeFormat` per zone to stay under 5 s).
   The recorder is unchanged and not redeployed.
+
+**Later (2026-10-09):** abroad offsets depend on the runtime's tzdata; Node and tzdata are
+now pinned and checked (`TASK-tzdata-pin.md`).

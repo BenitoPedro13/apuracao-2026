@@ -10,6 +10,19 @@ import table from './data/utc-offsets.json' with { type: 'json' };
 // The table (src/data/utc-offsets.json, scripts/derive-utc-offsets.ts) holds fixed offsets
 // for Brazil (no DST since 2019) and IANA zones abroad, whose offset depends on the date
 // (Europe leaves summer time on 2026-10-25, the 2nd round's day).
+// Those come from the runtime's tzdata, so view bytes depend on it (TASK-tzdata-pin.md):
+// every place that renders views runs the same Node, and the projector checks it.
+
+/** The tzdata every runtime must carry: Node 24.21.0 (package.json devEngines, CI, images). */
+export const TZDATA = '2026c';
+
+/** Throws unless this runtime's tzdata is exactly {@link TZDATA}: same tzdata, same bytes. */
+export function assertTzdata(): void {
+  const tz = process.versions.tz;
+  if (tz !== TZDATA) {
+    throw new Error(`tzdata ${tz ?? 'unknown'} in Node ${process.versions.node}, expected ${TZDATA}: run on Node 24.21.0 (TASK-tzdata-pin.md)`);
+  }
+}
 
 const FIXED = new Map<string, number>();
 for (const [offset, codes] of Object.entries(table.byFixedOffset)) for (const mu of codes) FIXED.set(mu, Number(offset));

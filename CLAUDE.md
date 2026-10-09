@@ -102,6 +102,12 @@ verify against each tool's current docs before installing (§2.0).
   (`` `--party-${key}` ``), so `--party-*` and `--map-none` disappeared from the stylesheet.
   Write the `var(--…)` out (see `lib/party.ts`). The minified CSS also shortens colours
   (`#fff`): normalize through the canvas before doing arithmetic on them.
+- **One Node, one tzdata (2026-10-09):** abroad local times come from the runtime's
+  tzdata, so view bytes depend on it (Node 24.19 = 2026b put Rabat an hour off; 2026c
+  moved Morocco to +00). Node is pinned to **24.21.0** in `package.json` `devEngines`
+  (pnpm downloads it; scripts run on it), CI and both Dockerfiles, and the projector
+  refuses any other tzdata (`assertTzdata`). A bare `node …` uses the system Node: run ops
+  scripts as `pnpm exec node …`. Bump the four places and `TZDATA` together.
 - **Browser bundles:** import `@apuracao/tse/codes`, not `@apuracao/tse` (its index pulls the
   5,757-entry time-zone table). `contracts` and `tse` are `sideEffects: false`.
 

@@ -16,8 +16,9 @@ export) shows the night's panels from those views: headline, UF and municipality
 regions, status and freshness (`docs/tasks/TASK-web-shell-and-data-hooks.md`), and the
 municipality map (Canvas 2D over the IBGE mesh, `TASK-map.md`), in its own visual identity
 (`TASK-visual-identity.md`). Live at
-`https://apuracao26-pub-860897618882.s3.sa-east-1.amazonaws.com/index.html` (the map is in
-the next deploy). Senado and Deputados (1st-round archive) are next.
+`https://apuracao26-pub-860897618882.s3.sa-east-1.amazonaws.com/index.html`. Senado, Câmara
+and Assembleias are a 1st-round archive on the same page (`?cargo=`), from the 81 signed UF
+files the recorder captures since 2026-10-09 (`docs/tasks/TASK-legislative-archive.md`).
 **Deadline:** 2nd round, Sunday 2026-10-25.
 
 - What we know about the data: [`docs/research/01-tse-results-feed.md`](docs/research/01-tse-results-feed.md),

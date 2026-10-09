@@ -38,10 +38,15 @@ Per office, what we read:
   TSE's own flag; we compute nothing.**
 - `agr[].vag` = seats won by the list (a federation, `tp: "f"`, or a lone party, `tp: "i"`);
   in SP federal it equals the count of `e: "s"` per list on every row, and sums to `nv`.
+  **Not for the senate:** SP senate lists have `vag` 0 (or none, for coalitions) though two
+  were elected, so seats are always the count of `e: "s"`, never `vag`.
 - Senate candidates carry `vs[]` (1st and 2nd alternates, `tp: s1`/`s2`).
-- Party/list vote totals `tvtn`, `tvan`, `tvtl`, `tval` are present;
-  `[VERIFY: their exact meaning (nominal / legenda / apurados) in the TSE's EA spec,
-  research 01 §6]`. Until then the views carry no party vote totals.
+- Party vote totals, **resolved on the 4 signed samples (2026-10-09)** as exact identities
+  (tested in `packages/contracts`): `tvtn` = Σ votes of the party's "Válido" candidates,
+  `tvan` = Σ votes of all its candidates (incl. sub judice), `tvtl` = its legenda votes;
+  Σ `tvtn` = `v.vnom`, Σ `tvtl` = `v.vl`, and `v.vv = vnom + vl`. The views carry `tvtn`
+  (nominal) and `tvtl` (legenda); their sum is shown as ours. `tval` equals `tvtl` on every
+  sample `[VERIFY: tval vs tvtl when a legenda vote is annulled, in the EA spec]`.
 - All 54 files are final: `tf: "s"`, `and: "f"`, `idg` around 2.8 M (SP senate:
   `dg` 05/10/2026 11:44:31).
 
@@ -149,7 +154,6 @@ doesn't carry SP's 353 KB twice). The parser tests run on them (CLAUDE.md, Tests
   editorial classification, not TSE data (research 04 §2). Labelled bars carry the same
   numbers with the party name on every row.
 - *New routes (`/senado`):* rejected while on plan B (§1). Revisit with CloudFront.
-- *Party vote totals (`tvtn`/`tvtl`):* deferred until their meaning is verified (§1.1).
 
 ## 3. Why
 
@@ -187,8 +191,8 @@ over, the web part ships with the Câmara only and the Senado and Assembleias fo
 2. After the user's recorder deploy: within 10 min, `aws s3` shows 81 new paths under the
    `6259` offices 5–8 in the obs segments, each with a verified signature; the recorder's
    `tse_requests_total` rate rises by ≤ 0.2 req/s.
-3. Rebuild against the real log (local first, `.replay/real/pub`): 114 + 84 = **198 views**,
-   0 rejected, every president/governor view hash **unchanged** from the 10-08 seed, the
+3. Rebuild against the real log (local first, `.replay/real-legislative/pub`): 114 + 84 =
+   **198 views**, 0 rejected, every president/governor view hash **unchanged** from the 10-08 seed, the
    per-UF sums all equal; `legislative/senate/br` = **54** seats with the §1.1 party split;
    `legislative/federal-deputy/br` = **513** with PL 121, PT 70; `state-deputy/br` = the
    sum of `nv` over the 27 files (checked against the files, not memory).
@@ -199,3 +203,29 @@ over, the web part ships with the Câmara only and the Senado and Assembleias fo
    375 px.
 5. Screenshot critique (light and dark, 375 and 1440) against the reference's
    `deputados.png`/`senado.png`, recorded in §6 of this document.
+
+## 6. Outcome (2026-10-09)
+
+- **Capture.** `cdk deploy RecorderStack` (user, 2026-10-09 03:01 UTC); the new task took
+  the lease (generation 7) and activated offices 5, 6, 7 and 8 within 2 s of each other.
+- **Rebuild from the real log** (`.replay/real-legislative/pub`, `seq` 11,468): **198
+  views** (114 + 84). Senate **54** = Σ `nv` (PL 19, MDB 7, PT 6), Câmara **513** = Σ `nv`
+  (PL 121, PT 70, UNIÃO 46), Assembleias + CLDF **1,059** = Σ `nv` (PL 212, PT 141), all
+  three `complete`. 99 of the 114 older views have the seed's hashes; the other **15
+  differ only in `totalizedAt`** (`result/governor/{ac,am,ms,mt,ro,rr}`, their municipality
+  tables, `municipalities/{president,governor}/pe` and `municipalities/president/zz`): the
+  local-time fix of 845c53d (10-08 18:20) postdates the seed (10-08 13:12). The re-seed
+  publishes that correction too.
+- **Tests.** `pnpm turbo run lint check-types test build` green; CI green on `main`.
+  Playwright against the local rebuild: `legislative.spec.ts` 7/7 (513 and every party bar
+  equal to the view, SP senate 13 candidates with 2 "Eleito" and alternates, cargo links by
+  keyboard with `aria-current`, axe 0 violations light/dark at 375 and 1440 px, no page
+  scroll); `dashboard.spec.ts` + `map.spec.ts` 20/20 against the live bucket.
+- **Screenshot critique** (Câmara SP 1440 light, Senado RJ 1440 dark, Assembleias DF 375
+  light): SP's 70 elected pushed the party table far down, so for proportional offices the
+  party table now comes first (seats are won by parties); the senate keeps its 13
+  candidates first. Elected rows read by weight and the word "Eleito", never colour alone;
+  RJ's "Anulado sub judice" candidate shows the TSE's `dvt` in text. At 375 px the tables
+  scroll inside their panel, the page doesn't.
+- **Left for the user:** the re-seed of `1t-final` to the public bucket, `publish-epochs`,
+  and the web deploy (commands in the hand-over).

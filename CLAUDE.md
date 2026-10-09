@@ -30,8 +30,10 @@ and will discover the 2nd round by itself. Next: Phase 2, starting with
 `docs/tasks/TASK-projector-and-views.md`. **The web app** (`apps/web`) shows the night's
 panels from the published views (`TASK-web-shell-and-data-hooks.md`, 2026-10-08), with the
 municipality map (`TASK-map.md`) and its visual identity (`TASK-visual-identity.md`), both
-2026-10-08. Senado and Deputados (1st-round archive) come next, on 2026-10-09 (user). Read
-in this order:
+2026-10-08. Senado and Deputados are a 1st-round archive (`TASK-legislative-archive.md`,
+2026-10-09): the recorder captures their 81 UF files (`:uf` targets), the projector renders
+`legislative/*` views for the `6259` epoch only, and the page switches office with `?cargo=`.
+CI (`.github/workflows/ci.yml`) runs on every push to `main`. Read in this order:
 
 1. `docs/research/01-tse-results-feed.md` and `02-signatures-cache-and-map-mesh.md`: the
    verified facts about the TSE feed (URLs, file shapes, caching, signed `.jws` siblings,

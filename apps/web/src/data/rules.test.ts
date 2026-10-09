@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { EpochsIndex, ResultView } from "@apuracao/contracts";
 import { pointer, realView } from "../../test/real";
 import type { PointerSnapshot } from "./queries";
-import { AMBER_AFTER_MS, byVotes, difference, freshness, hasNumbers, RED_AFTER_MS, resolveRounds } from "./rules";
+import { AMBER_AFTER_MS, byVotes, difference, freshness, hasNumbers, RED_AFTER_MS, firstRoundRef, resolveRounds } from "./rules";
 
 const br = ResultView.parse(realView("result/president/br"));
 
@@ -91,5 +91,18 @@ describe("rounds", () => {
     expect(selected).toMatchObject({ epoch: "1t-final", live: false, ref: { epoch: "1t-final", seq: p1.seq } });
     // An unknown requested epoch falls back to the live round.
     expect(resolveRounds(p2, index, "nope").selected.epoch).toBe("2t-1");
+  });
+
+  it("legislative views come from the 1st round's manifest, whichever round is live", () => {
+    // Before the 2nd round: the pointer follows the 1st round (listed or not).
+    expect(firstRoundRef(p1, null, "6257")).toEqual({ epoch: "1t-final", seq: p1.seq, sha: p1.manifest });
+    expect(firstRoundRef(p1, EpochsIndex.parse({ v: 1, epochs: [entry1] }))).toEqual({ epoch: "1t-final", seq: p1.seq, sha: p1.manifest });
+    // Not known yet: no index and the live manifest not loaded.
+    expect(firstRoundRef(p1, null)).toBeNull();
+    // After promotion: the 1st round's fixed manifest.
+    const p2 = { ...pointer, epoch: "2t-1", seq: 5, manifest: "a".repeat(64) };
+    const entry2 = { epoch: "2t-1", label: "2º turno", elections: { president: "6258", governor: "6260" }, manifest: null };
+    expect(firstRoundRef(p2, EpochsIndex.parse({ v: 1, epochs: [entry1, entry2] }), "6258")).toEqual({ epoch: "1t-final", seq: p1.seq, sha: p1.manifest });
+    expect(firstRoundRef(p2, null, "6258")).toBeNull();
   });
 });

@@ -2,16 +2,20 @@
 
 import { useQueries, useQuery } from "@tanstack/react-query";
 import {
+  LegislativeBrView,
+  LegislativeUfView,
   MapIndexView,
   MapView,
   MunicipalityView,
   RegionsView,
   ResultView,
+  type LegislativeOffice,
+  type Manifest,
   type Office,
 } from "@apuracao/contracts";
 import type { z } from "zod";
 import { epochsQuery, manifestQuery, pointerPollingQuery, pointerQuery, viewQuery } from "@/data/queries";
-import { resolveRounds } from "@/data/rules";
+import { firstRoundRef, resolveRounds } from "@/data/rules";
 import { useRoundParam } from "./use-url-state";
 
 // Every data access goes through these hooks (global frontend rules). The chain is
@@ -71,7 +75,14 @@ export interface ViewState<T> {
 }
 
 function useView<S extends z.ZodType>(name: string | null, schema: S): ViewState<z.infer<S>> {
-  const manifest = useManifest();
+  return useViewIn(useManifest(), name, schema);
+}
+
+function useViewIn<S extends z.ZodType>(
+  manifest: { data?: Manifest; error: Error | null },
+  name: string | null,
+  schema: S,
+): ViewState<z.infer<S>> {
   const sha = name ? manifest.data?.views[name] : undefined;
   const q = useQuery({
     ...viewQuery(name ?? "", sha ?? "", schema),
@@ -120,3 +131,22 @@ export function useResults(office: Office, areas: readonly string[]): ViewState<
     };
   });
 }
+
+/** The 1st round's manifest, whichever round is selected (TASK-legislative-archive.md §2.4). */
+function useFirstRoundManifest() {
+  const pointer = usePointer();
+  const epochs = useQuery(epochsQuery());
+  const p = pointer.data?.pointer;
+  const liveManifest = useQuery({
+    ...manifestQuery(p ? { epoch: p.epoch, seq: p.seq, sha: p.manifest } : { epoch: "", seq: 0, sha: "" }),
+    enabled: !!p,
+  });
+  const ref = p && !epochs.isPending ? firstRoundRef(p, epochs.data ?? null, liveManifest.data?.elections.president) : null;
+  const q = useQuery({ ...manifestQuery(ref ?? { epoch: "", seq: 0, sha: "" }), enabled: !!ref });
+  return { data: q.data, error: q.error ?? pointer.error };
+}
+
+export const useLegislativeBr = (office: LegislativeOffice) =>
+  useViewIn(useFirstRoundManifest(), `legislative/${office}/br`, LegislativeBrView);
+export const useLegislativeUf = (office: LegislativeOffice, uf: string | null) =>
+  useViewIn(useFirstRoundManifest(), uf ? `legislative/${office}/${uf}` : null, LegislativeUfView);

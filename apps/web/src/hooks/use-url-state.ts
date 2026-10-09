@@ -22,6 +22,14 @@ function useUrlParam(name: string): [string | null, (value: string | null) => vo
 /** The requested round's epoch; null = follow the live pointer. */
 export const useRoundParam = () => useUrlParam("turno");
 
+/** Which office the page shows (?cargo=); the president is the default and isn't written. */
+export const CARGOS = ["presidente", "senado", "camara", "assembleias"] as const;
+export type Cargo = (typeof CARGOS)[number];
+export function useCargo(): Cargo {
+  const [v] = useUrlParam("cargo");
+  return CARGOS.find((c) => c === v) ?? "presidente";
+}
+
 /** The UF whose municipalities are listed (two lowercase letters, or "zz" for abroad). */
 export function useSelectedUf(): [string | null, (uf: string | null) => void] {
   const [uf, setUf] = useUrlParam("uf");

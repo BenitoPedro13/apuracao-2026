@@ -51,7 +51,7 @@ aux  <base>/<ambiente>/<ciclo>/arquivo-urna/<cd_pleito>/dados/<uf>/<municipio>/<
 | Election | 1st round | 2nd round (`cdt2`) | Offices |
 |---|---|---|---|
 | Federal | `6257` | **`6258`** | Presidente (`c0001`) |
-| State | `6259` | **`6260`** | Governador (`c0003`), Senador, Dep. Federal, Dep. Estadual, Dep. Distrital |
+| State | `6259` | **`6260`** | Governador (`c0003`), Senador (`c0005`), Dep. Federal (`c0006`), Dep. Estadual (`c0007`), Dep. Distrital (`c0008`) |
 
 **2nd-round files (`6258`/`6260`) currently 404** (re-checked 2026-10-07 13:00 UTC). They will appear closer to the day.
 `[VERIFY: re-check daily from 2026-10-20; confirm the same naming carries over]`
@@ -83,6 +83,18 @@ Shape notes (from `br-c0001-e006257-u.json`):
   turnout, `a` abstention), `v` = votes (valid `vv`, blank `vb`, null `vn`, …).
 - The cross-check matches the dashboard screenshot: Flávio 56,104,503 (47.03%), Lula 53,879,538 (45.16%),
   valid votes 119,300,788, turnout 78.92%.
+
+### 4.1 Senate and deputies (verified 2026-10-08/09, `TASK-legislative-archive.md` §1.1)
+
+One `-u` file per UF, same shape; **no national file** (`br-c0005-…`, `br-c0006-…` 404).
+Senate (`c0005`) and federal deputies (`c0006`) in all 27 UFs; state deputies (`c0007`) in
+26 (`df-c0007` 404); district deputies (`c0008`) in DF only (`sp-c0008` 404). Municipality
+files exist too (`sp71072-c0006-…`, 274 KB). `carg[0].nv` = seats (2 per UF for the senate
+in 2026: 54; 513 federal), `qe` = electoral quotient (deputies); each candidate's `e`/`st`
+says who was elected (`Eleito`, `Eleito por QP`, `Eleito por média`, `Suplente`, `Não
+eleito`); senate candidates carry their alternates in `vs[]`. Party totals: `tvtn` nominal
+(valid), `tvtl` legenda, Σ over parties = `v.vnom` / `v.vl`, `v.vv = vnom + vl`. Samples:
+SP senate and federal, AC state, DF district, each with its `.jws`.
 
 ## 5. What this implies for the design (findings, not decisions)
 

@@ -35,7 +35,9 @@ Build order and dates: `docs/tasks/TASK-implementation-plan.md`.
 
 - 1st-round history. It no longer exists at the TSE (research 01 §5.3). We only hold the
   final 1st-round state.
-- Senate, federal/state deputies. The 2nd round has none.
+- Senate, federal/state deputies *live*. The 2nd round has none. They are shown as a static
+  1st-round archive from their signed UF files (`TASK-legislative-archive.md`, user scope
+  change 2026-10-08), with no municipality files and no live path.
 - Projections, forecasts, "who will win" calls, interpolation between observed versions.
   Forbidden by invariant 1.
 - Per-section ballot-box data (`arquivo-urna`, dadosabertos). Only the seam is designed

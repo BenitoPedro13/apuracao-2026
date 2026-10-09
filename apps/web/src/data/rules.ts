@@ -128,3 +128,18 @@ export function resolveRounds(
   const selected = rounds.find((r) => r.epoch === requested) ?? live;
   return { rounds, selected };
 }
+
+// --- Senate and deputies: a 1st-round archive (TASK-legislative-archive.md §2.4) -------
+
+/**
+ * The manifest that carries the legislative views: the 1st round's, whichever round is
+ * selected (the 2nd round elects neither). The pointer's when it still follows the 1st
+ * round, else the index's fixed manifest; null until either says which.
+ */
+export function firstRoundRef(pointer: LatestPointer, index: EpochsIndex | null, livePresident?: string): ManifestRef | null {
+  const listed = index?.epochs.find((e) => e.elections.president === ELECTIONS.federal1);
+  if (listed?.epoch === pointer.epoch || (!listed && livePresident === ELECTIONS.federal1)) {
+    return { epoch: pointer.epoch, seq: pointer.seq, sha: pointer.manifest };
+  }
+  return listed?.manifest ? { epoch: listed.epoch, ...listed.manifest } : null;
+}

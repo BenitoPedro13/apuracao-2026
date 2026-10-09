@@ -1,6 +1,9 @@
 import { Suspense } from "react";
+import { CargoNav } from "@/components/cargo-nav";
+import { CargoSwitch, LegislativeOnlyNote, PresidentOnly } from "@/components/cargo-switch";
 import { ExteriorToggle } from "@/components/exterior-toggle";
 import { Headline } from "@/components/headline";
+import { LegislativeSection } from "@/components/legislative-section";
 import { MapSection } from "@/components/map/map-section";
 import { MunicipalityTable } from "@/components/municipality-table";
 import { PageActions } from "@/components/page-actions";
@@ -33,60 +36,72 @@ export default function Home() {
           <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
             <h1 className="text-lg font-bold tracking-tight">Apuração 2026</h1>
             <span aria-hidden className="h-5 w-px bg-line" />
-            <span className="text-sm font-medium">Presidente</span>
             <Suspense>
-              <RoundSelector />
+              <CargoNav />
+              <PresidentOnly>
+                <RoundSelector />
+              </PresidentOnly>
+              <LegislativeOnlyNote />
             </Suspense>
           </div>
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <Suspense fallback={<p className="text-sm text-ink-2">Carregando…</p>}>
               <StatusLine />
-              <ExteriorToggle />
+              <PresidentOnly>
+                <ExteriorToggle />
+              </PresidentOnly>
             </Suspense>
             <PageActions />
           </div>
         </div>
       </header>
 
-      <main
-        id="conteudo"
-        className="mx-auto grid w-full max-w-[96rem] flex-1 grid-cols-1 gap-3 px-3 py-3 sm:px-4 lg:grid-cols-[minmax(0,21rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)_minmax(0,18rem)]"
-      >
-        <section
-          aria-label="Resultado nacional"
-          className="min-w-0 rounded-xl border border-line bg-panel p-4 sm:p-5 lg:row-span-2 xl:row-span-1"
-        >
-          <Suspense fallback={<Loading h="h-96" />}>
-            <Headline />
-          </Suspense>
-        </section>
+      <Suspense>
+        <CargoSwitch
+          president={
+          <main
+            id="conteudo"
+            className="mx-auto grid w-full max-w-[96rem] flex-1 grid-cols-1 gap-3 px-3 py-3 sm:px-4 lg:grid-cols-[minmax(0,21rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)_minmax(0,18rem)]"
+          >
+            <section
+              aria-label="Resultado nacional"
+              className="min-w-0 rounded-xl border border-line bg-panel p-4 sm:p-5 lg:row-span-2 xl:row-span-1"
+            >
+              <Suspense fallback={<Loading h="h-96" />}>
+                <Headline />
+              </Suspense>
+            </section>
 
-        <Panel id="mapa" title="Mapa por município" className="min-w-0 lg:row-span-2 xl:row-span-1">
-          <Suspense fallback={<Loading h="h-96" />}>
-            <MapSection />
-          </Suspense>
-        </Panel>
+            <Panel id="mapa" title="Mapa por município" className="min-w-0 lg:row-span-2 xl:row-span-1">
+              <Suspense fallback={<Loading h="h-96" />}>
+                <MapSection />
+              </Suspense>
+            </Panel>
 
-        <Panel id="regioes" title="Por região" className="min-w-0">
-          <Suspense fallback={<Loading h="h-64" />}>
-            <RegionsPanel />
-          </Suspense>
-        </Panel>
+            <Panel id="regioes" title="Por região" className="min-w-0">
+              <Suspense fallback={<Loading h="h-64" />}>
+                <RegionsPanel />
+              </Suspense>
+            </Panel>
 
-        <div className="grid min-w-0 grid-cols-1 gap-3 lg:col-span-2 xl:col-span-3 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-          <Panel id="estados" title="Por estado" className="min-w-0">
-            <Suspense fallback={<Loading h="h-96" />}>
-              <UfTable />
-            </Suspense>
-          </Panel>
+            <div className="grid min-w-0 grid-cols-1 gap-3 lg:col-span-2 xl:col-span-3 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+              <Panel id="estados" title="Por estado" className="min-w-0">
+                <Suspense fallback={<Loading h="h-96" />}>
+                  <UfTable />
+                </Suspense>
+              </Panel>
 
-          <Panel id="municipios" title="Por município" className="min-w-0">
-            <Suspense fallback={<Loading h="h-96" />}>
-              <MunicipalityTable />
-            </Suspense>
-          </Panel>
-        </div>
-      </main>
+              <Panel id="municipios" title="Por município" className="min-w-0">
+                <Suspense fallback={<Loading h="h-96" />}>
+                  <MunicipalityTable />
+                </Suspense>
+              </Panel>
+            </div>
+          </main>
+          }
+          legislative={<LegislativeSection />}
+        />
+      </Suspense>
 
       <footer className="border-t border-line">
         <div className="mx-auto flex w-full max-w-[96rem] flex-col gap-1 px-4 py-4 text-xs text-ink-2">

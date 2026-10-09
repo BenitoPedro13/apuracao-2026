@@ -105,3 +105,8 @@ repo (not shipped to readers), one PNG of ~80 KB.
 - Looked at full size and at 400 px (a WhatsApp preview): the title, the empty boxes and the
   three keys read at both; the footer was cut to one line each side ("2º turno · domingo,
   25/10/2026", "sem projeção") and the eyebrow no longer repeats "dados do TSE".
+- CI went red on this commit from an older flake, not from it: the recorder's integration test
+  slept a fixed 8 s before asserting the cold start's 8 blobs and saw 7 on the runner (twice
+  today). It now waits until 8 are stored (≤ 30 s), then 2 s more; the assertions are
+  unchanged. My gate command also piped through `tail`, so a red local run still committed;
+  fixed by checking turbo's exit status before committing.

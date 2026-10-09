@@ -92,7 +92,11 @@ describe('one recorder against fake-tse', () => {
     rec = recorder(b, 'rec-a');
     tse.log.length = 0;
     await rec.start();
-    await sleep(8_000);
+    // Until the cold start's 8 blobs are stored (a fixed 8 s was too short on the CI runner
+    // twice on 2026-10-09: 7 of 8), then 2 s more so a late duplicate would show up too.
+    const deadline = Date.now() + 30_000;
+    while ((await store.list('raw/v1/sha256/')).length < 8 && Date.now() < deadline) await sleep(250);
+    await sleep(2_000);
   }, 60_000);
 
   test('cold start: every available .jws stored once, as valid, schema-ok versions', async () => {

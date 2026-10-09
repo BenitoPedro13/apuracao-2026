@@ -45,6 +45,12 @@
     "dev": {
       "cache": false,
       "persistent": true
+    },
+    "@apuracao/web#check-types": {
+      "dependsOn": [
+        "^build",
+        "@apuracao/web#build"
+      ]
     }
   }
 }

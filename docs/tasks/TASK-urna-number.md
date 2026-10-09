@@ -101,3 +101,6 @@ same on a 375 px phone. Cost: ~half a day; no data or contract change.
   text, since the row order already says who stayed out).
 - Not visible in screenshots (the archive doesn't change): the change highlight; it's
   exercised on the 10-15 replay at ×20 and the 10-22 rehearsal.
+- CI failed once on `5b044c5`'s successor: `next typegen` (web `check-types`) and `next build`
+  wrote `.next/types` at the same time (`Cannot find module './routes.js'`); a rerun passed.
+  `turbo.json` now runs web `check-types` after web `build`.

@@ -1,8 +1,10 @@
 "use client";
 
-import { CandidateMark } from "@/components/candidate-mark";
+import { Changed } from "@/components/changed";
+import { Confirma, isElectedSituation } from "@/components/confirma";
 import { Calc, Num } from "@/components/num";
 import { UnitStatus } from "@/components/unit-status";
+import { UrnaNumber } from "@/components/urna-number";
 import { ViewError } from "@/components/view-error";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useHeadline } from "@/hooks/use-headline";
@@ -63,7 +65,7 @@ export function Headline({
             {[first, second].map((c, i) => (
               <div key={c.n} className={cn("flex flex-col gap-2", i === 1 && "items-end text-right")}>
                 <div className={cn("flex items-center gap-3", i === 1 && "flex-row-reverse")}>
-                  <CandidateMark name={c.name} party={c.party} />
+                  <UrnaNumber n={c.n} party={c.party} size="lg" />
                   <div>
                     <p className="font-semibold leading-tight">{displayName(c.name)}</p>
                     <p className="text-sm font-medium" style={{ color: partyColor(c.party) }}>
@@ -72,13 +74,21 @@ export function Headline({
                   </div>
                 </div>
                 <p className="font-mono text-[2.5rem] leading-none font-semibold tracking-tight">
-                  {c.pct.raw}
+                  <Changed value={c.pct.raw} />
                   <span className="ml-0.5 align-top text-[0.45em] leading-none font-medium">%</span>
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  <Num>{formatInt(c.votes)}</Num> votos
+                  <Num>
+                    <Changed value={formatInt(c.votes)} />
+                  </Num>{" "}
+                  votos
                 </p>
-                {c.situation && <p className="text-xs text-muted-foreground">Situação no TSE: {c.situation}</p>}
+                {c.situation &&
+                  (isElectedSituation(c.situation) ? (
+                    <Confirma>{c.situation}</Confirma>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Situação no TSE: {c.situation}</p>
+                  ))}
               </div>
             ))}
           </div>

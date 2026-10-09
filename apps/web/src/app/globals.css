@@ -199,6 +199,21 @@
   background: var(--panel);
 }
 
+/* What the last update changed (TASK-urna-number.md §2.3): a neutral wash that fades.
+   Reduced motion (below) makes it instant, so nothing flashes. */
+@keyframes changed {
+  from {
+    background-color: color-mix(in srgb, var(--ink) 14%, transparent);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+.changed {
+  border-radius: 2px;
+  animation: changed 1.2s ease-out;
+}
+
 /* WCAG 2.2 AA: honour reduced motion everywhere (tw-animate-css included). */
 @media (prefers-reduced-motion: reduce) {
   *,

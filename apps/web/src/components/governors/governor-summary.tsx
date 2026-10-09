@@ -1,13 +1,15 @@
 "use client";
 
+import { Confirma } from "@/components/confirma";
 import { Calc, Num } from "@/components/num";
+import { UrnaNumber } from "@/components/urna-number";
 import { ViewError } from "@/components/view-error";
 import { Skeleton } from "@/components/ui/skeleton";
 import { outcomeLabel, type GovernorRace } from "@/data/governors";
 import { useGovernorRaces } from "@/hooks/use-governors";
 import { setUrlParams, useSelectedUf } from "@/hooks/use-url-state";
 import { displayName, formatBp, formatTsePct } from "@/lib/format";
-import { partyColor, shortParty } from "@/lib/party";
+import { partyColor } from "@/lib/party";
 import { cn } from "@/lib/utils";
 
 const SHOWN = 6;
@@ -115,9 +117,14 @@ function Tile({ race: r, runoff, selected }: { race: GovernorRace; runoff: boole
       style={colour ? (decided ? { background: colour, borderColor: colour, color: "var(--panel)" } : { borderColor: colour }) : undefined}
     >
       <span className="font-bold tracking-wide">{r.uf.toUpperCase()}</span>
-      <span className={cn("max-w-full truncate px-0.5 text-[10px]", !decided && "text-ink-2")}>
-        {r.first ? (decided ? shortParty(r.first.party) : `${shortParty(r.first.party)} · ${r.outcome === "2turno" ? "2º t." : "…"}`) : "—"}
-      </span>
+      {r.first ? (
+        <span className="mt-0.5 flex items-center gap-1 text-[10px]">
+          <UrnaNumber n={r.first.n} party={r.first.party} />
+          {!decided && <span className="text-ink-2">{r.outcome === "2turno" ? "2º t." : "…"}</span>}
+        </span>
+      ) : (
+        <span className="text-[10px]">—</span>
+      )}
     </button>
   );
 }
@@ -132,14 +139,14 @@ function Close({ race: r, runoff }: { race: GovernorRace; runoff: boolean }) {
       >
         <span className="flex items-baseline justify-between gap-2">
           <span className="font-semibold underline-offset-4 hover:underline">{r.name}</span>
-          <span className="text-xs text-ink-2">{outcomeLabel(r.outcome, runoff)}</span>
+          {r.outcome === "eleito" ? <Confirma>{outcomeLabel(r.outcome, runoff)}</Confirma> : <span className="text-xs text-ink-2">{outcomeLabel(r.outcome, runoff)}</span>}
         </span>
         {[r.first, r.second].map(
           (c) =>
             c && (
               <span key={c.n} className="flex items-baseline justify-between gap-2">
                 <span className="flex items-center gap-1.5">
-                  <span aria-hidden className="size-2 shrink-0 rounded-full" style={{ background: partyColor(c.party) }} />
+                  <UrnaNumber n={c.n} party={c.party} />
                   {displayName(c.name)} <span className="text-xs text-ink-2">{c.party}</span>
                 </span>
                 <Num>{formatTsePct(c.pct)}</Num>

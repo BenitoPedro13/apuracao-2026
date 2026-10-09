@@ -1,12 +1,14 @@
 import type { LeaderCell as Leader } from "@/hooks/use-rows";
 import { displayName, formatTsePct } from "@/lib/format";
 import { partyColor } from "@/lib/party";
+import { Changed } from "./changed";
+import { UrnaNumber } from "./urna-number";
 
 /** Leader name + party/number in its colour, never colour alone. */
 export function LeaderCell({ leader }: { leader: Leader }) {
   return (
     <span className="inline-flex items-center gap-2">
-      <span aria-hidden className="size-2.5 shrink-0 rounded-full" style={{ background: partyColor(leader.party) }} />
+      <UrnaNumber n={leader.n} party={leader.party} />
       <span>
         {displayName(leader.name)}{" "}
         <span className="text-xs font-medium" style={{ color: partyColor(leader.party) }}>
@@ -17,4 +19,4 @@ export function LeaderCell({ leader }: { leader: Leader }) {
   );
 }
 
-export const leaderPct = (leader: Leader | null) => (leader ? formatTsePct(leader.pct) : "—");
+export const leaderPct = (leader: Leader | null) => (leader ? <Changed value={formatTsePct(leader.pct)} /> : "—");

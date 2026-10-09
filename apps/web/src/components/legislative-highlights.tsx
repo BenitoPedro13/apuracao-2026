@@ -5,7 +5,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useChamber, useSenateClosest, useTopVoted } from "@/hooks/use-legislative";
 import { setUrlParams } from "@/hooks/use-url-state";
 import { displayName, formatInt, formatTsePct } from "@/lib/format";
-import { partyColor } from "@/lib/party";
+import { Confirma } from "./confirma";
+import { UrnaNumber } from "./urna-number";
 import { areaName } from "@/lib/places";
 
 // What the right column shows with no state picked (TASK-visual-pass-2.md §2.4).
@@ -34,7 +35,7 @@ function TopVoted({ office }: { office: "federal-deputy" | "state-deputy" }) {
         {rows.map((c, i) => (
           <li key={`${c.uf}-${c.n}`} className="flex items-center gap-3 border-b border-line py-1.5 text-sm last:border-0">
             <span className="w-5 text-right font-mono text-xs text-ink-2">{i + 1}</span>
-            <span aria-hidden className="size-2 shrink-0 rounded-full" style={{ background: partyColor(c.party) }} />
+            <UrnaNumber n={c.n} party={c.party} />
             <span className="min-w-0 flex-1">
               <span className="block truncate font-medium">{displayName(c.name)}</span>
               <span className="text-xs text-ink-2">
@@ -74,15 +75,17 @@ function SenateClosest() {
                   ["não eleito", r.firstOut],
                 ] as const
               ).map(([tag, c]) => (
-                <span key={c.n} className="flex items-baseline justify-between gap-2">
-                  <span className="flex items-center gap-1.5">
-                    <span aria-hidden className="size-2 shrink-0 rounded-full" style={{ background: partyColor(c.party) }} />
-                    {displayName(c.name)}{" "}
-                    <span className="text-xs text-ink-2">
-                      {c.party} · {tag}
+                <span key={c.n} className="flex items-center justify-between gap-2">
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    <UrnaNumber n={c.n} party={c.party} />
+                    <span className="min-w-0">
+                      {displayName(c.name)} <span className="text-xs text-ink-2">{c.party}</span>
                     </span>
                   </span>
-                  <Num>{formatTsePct(c.pct)}</Num>
+                  <span className="flex shrink-0 items-center gap-2">
+                    {tag === "eleito" ? <Confirma /> : <span className="sr-only">não eleito</span>}
+                    <Num>{formatTsePct(c.pct)}</Num>
+                  </span>
                 </span>
               ))}
               <span className="text-xs text-ink-2">

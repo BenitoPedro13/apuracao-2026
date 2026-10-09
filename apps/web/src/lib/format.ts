@@ -30,13 +30,6 @@ export const formatDateTime = (t: string | number) => dateTimeFmt.format(new Dat
 
 const CONNECTORS = new Set(["DA", "DE", "DO", "DAS", "DOS", "E"]);
 
-/** "FLAVIO BOLSONARO" → "FB": the candidate's mark until photos are cleared (§2.6). */
-export function initials(name: string): string {
-  const words = name.toUpperCase().split(/\s+/).filter((w) => w && !CONNECTORS.has(w));
-  const picked = words.length >= 2 ? [words[0]!, words[words.length - 1]!] : words;
-  return picked.map((w) => w[0]).join("");
-}
-
 /** "ESCRITOR AUGUSTO CURY" → "Escritor Augusto Cury": the TSE's spelling, title-cased. */
 export function displayName(name: string): string {
   return name

@@ -4,6 +4,7 @@ import type { LegislativeUfView } from "@apuracao/contracts";
 import { X } from "lucide-react";
 import { DataTable, type DataColumn } from "@/components/data-table";
 import { Button } from "@/components/ui/button";
+import { Confirma, isElectedSituation } from "@/components/confirma";
 import { Calc, Num } from "@/components/num";
 import { UnitStatus } from "@/components/unit-status";
 import { ViewError } from "@/components/view-error";
@@ -118,7 +119,7 @@ const candidateColumns = (senate: boolean): DataColumn<Candidate>[] => [
     header: "Situação",
     cell: (c) => (
       <span className={c.elected ? "font-semibold" : "text-ink-2"}>
-        {c.situation}
+        {isElectedSituation(c.situation) ? <Confirma>{c.situation}</Confirma> : c.situation}
         {c.destination && c.destination !== "Válido" && (
           <span className="block text-xs font-normal text-warn">
             {c.destination}

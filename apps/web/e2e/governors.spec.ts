@@ -26,6 +26,8 @@ test("RJ: the runoff as the TSE has it, and its 92 municipalities", async ({ pag
   await expect(race).toContainText("Eduardo Paes");
   await expect(race).toContainText("42,76");
   await expect(race.getByText("Situação no TSE: 2º turno")).toHaveCount(2);
+  // A runoff: the TSE elected no one, so no CONFIRMA key (TASK-urna-number.md §5 item 2).
+  await expect(race.getByText("Eleito", { exact: true })).toHaveCount(0);
   await expect(page.locator("#municipios tbody tr")).toHaveCount(rj.rows.length);
   expect(rj.rows.length).toBe(92);
 });
@@ -53,3 +55,13 @@ for (const colorScheme of ["light", "dark"] as const) {
     });
   }
 }
+
+test("the candidate's number as the urna shows it, and Bahia's CONFIRMA key", async ({ page }) => {
+  await page.goto("/index.html");
+  const head = page.locator("section[aria-labelledby='headline-title']");
+  await expect(head.locator("[aria-hidden] > span.font-mono")).toHaveText(["2", "2", "1", "3"]);
+  await page.goto("/index.html?cargo=governador&uf=ba");
+  const race = page.locator("#governador-uf");
+  await expect(race).toContainText("Governador · Bahia");
+  await expect(race.getByText("Eleito", { exact: true })).toHaveCount(1);
+});

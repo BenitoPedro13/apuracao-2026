@@ -253,3 +253,115 @@ key, an anonymous `PUT` and a listing are all 403. The 114 published view hashes
 local real-log rebuild's (`.replay/real/pub`). Template tests 11/11; full suite 34/34
 (projector 14 tests, with the gzip one against RustFS). CloudFront (`cdn=on`) and the
 projector on Fargate wait for the support case.
+
+## 9. The projector on Fargate, smoke test without CloudFront (2026-10-09)
+
+### 9.1 Current scenario
+
+`ProjectorStack` has never been deployed. §7 held it back for the support case, but it only
+depends on the public bucket, which exists since plan B (§8.3). Not running the projector
+before 10-18 is by design (§2.6, §6 decision (a)): the 1st round is final, and the
+`1t-final` seed is what the site shows. What's missing is §5 item 4: no proof yet that the
+image, the role, the lease and the checkpoints work **on Fargate** against the real log. If
+that breaks, better to find out on 10-10 than on 10-18.
+
+### 9.2 Planned changes
+
+No code changes expected. Context values only:
+
+- `cdk deploy ProjectorStack -c projector=on -c elections=president=6257,governor=6259
+  -c epoch=smoke-1t --exclusively` (no `promote`), with `ALERT_EMAIL` set as for every
+  synth. The user runs it (an outward-facing deploy); I run `cdk diff` first.
+- **`--exclusively` is required.** Without it CDK deploys the dependencies too, and
+  `cdk diff` (10-09) shows `RecorderStack`'s task definition being **replaced** (a new
+  image hash: the Docker context is the repo root, which changed since the recorder's last
+  deploy). That would restart the recorder for no reason. `RawStack` and `PublicStack`
+  show no differences; the exports `ProjectorStack` imports already exist.
+- Epoch `smoke-1t`, not `2t-1`: `2t-1` is the night's, and a checkpoint left under it
+  would be restored on 10-18. `6257/6259`, not `6258/6260`: the 2nd-round files don't
+  exist, so the night's elections would fold nothing and prove nothing.
+- The pointer stays `1t-final`: without `PROMOTE`, `advancePointer` returns `behind` for
+  another epoch (`projector.ts:157`), on every publish and every 60 s refresh.
+- After the test, `-c projector=on` is dropped (`desiredCount` 0); the stack stays, so
+  10-18 is one deploy.
+- Leftovers, kept on purpose: manifests under `data/v1/smoke-1t/m/` in the public bucket
+  (no reader looks there; `epochs.json` doesn't list it) and checkpoints under
+  `checkpoints/projector/smoke-1t/` in the raw bucket (not Object Locked). They are the
+  evidence of the run.
+
+Rejected: *a new task doc*: this is §5 item 4 of this one. *Running it with `2t-1` and
+`6258/6260` as on the night*: tests the startup only, and leaves the night's epoch dirty.
+*Waiting for CloudFront*: the projector never talks to CloudFront.
+
+### 9.3 Why
+
+It's the last piece of the night's pipeline that has never run in production. Cost: ~1 h
+of Fargate ARM 0.5 vCPU / 1 GB ≈ $0.04, plus S3 requests (a full fold is ~12k blob GETs ≈
+$0.01).
+
+### 9.4 Affected files
+
+| File | Change type | Notes |
+|---|---|---|
+| `docs/tasks/TASK-public-cdn.md` | edit | this section and its outcome |
+| `README.md`, `CLAUDE.md` status | edit | only if the outcome changes what's live |
+| `infra/*`, `apps/projector/*` | none expected | a fix found by the test gets its own note here |
+
+### 9.5 Verification
+
+1. `cdk diff ProjectorStack` with the context above: only new resources (task definition,
+   service, two roles and their policies, log group, security group); the task role's S3
+   statements are exactly those of §2.2. **Done 10-09: as expected.** After the deploy,
+   `RecorderStack`'s task definition revision is still `:4`.
+2. In `/apuracao26/projector` within 5 min of the deploy: `projector started` with
+   `epoch: smoke-1t`, `no checkpoint: folding the log from the start`, then `published`
+   lines with `pointer: "behind"`, and `checkpoint` lines; no `projector loop error`.
+3. Once caught up (no new `published` for 2 min), the newest `smoke-1t` manifest's `views`
+   map equals the `1t-final` manifest's map, view by view (same sha256: the Fargate fold
+   is byte-identical to the laptop's). A difference is explained by a TSE version
+   accepted after the 10-09 re-seed, or it's a bug.
+4. `https://apuracao26-pub-860897618882.s3.sa-east-1.amazonaws.com/data/v1/latest.json`
+   still says `epoch: "1t-final"`, same `manifest` as before the deploy.
+5. `aws ecs stop-task` on the running task: the service starts a new one, which logs
+   `restored checkpoint` (not a fold from the start) and publishes again within 60 s of
+   starting; the lease generation in `lease/projector.json` went up by 1.
+6. Deploy again without `projector=on`: the service at 0 tasks. The next day, Cost
+   Explorer's Fargate line for 10-10 under $0.10.
+
+### 9.6 Outcome (2026-10-09)
+
+The projector runs on Fargate. `cdk deploy ProjectorStack --exclusively` in 241.7 s (the
+first try stopped at CDK's IAM approval prompt, which `!` can't answer: the deploy needs
+`--require-approval never` after the diff has been reviewed).
+
+1. Diff as expected; `RecorderStack` still on task definition `:4` after the deploy.
+2. 06:21:25 UTC `lease acquired` (generation 1), `projector started` (`smoke-1t`,
+   `6257`/`6259`), `no checkpoint: folding the log from the start`; caught up at
+   06:22:54 (**89 s** for the whole real log on 0.5 vCPU), `seq` 11,468, 198 views,
+   `pointer: "behind"`, reconcile `identityFailures: 0`. No `projector loop error`.
+3. **197 of 198 views byte-identical to `1t-final`.** The one that differs is
+   `municipalities/president/zz`, one field: Rabat (`mu` 30406, `Africa/Casablanca`)
+   `totalizedAt` `…12:51:05+00:00` on Fargate, `+01:00` in `1t-final`. Cause: the IANA
+   time-zone data inside Node. The laptop's Node 24.19.0 carries tzdata **2026b**; the
+   image's `node:24-slim` is Node 24.21.0 with **2026c**, whose release note reads
+   *"Morocco moves to permanent +00 on 2026-09-20"*
+   ([tzdb NEWS](https://data.iana.org/time-zones/tzdb/NEWS)). **Fargate is right;
+   the published `1t-final` has Rabat's time one hour off** (a timestamp, not a count).
+   The deeper defect: view bytes depend on the runtime's tzdata, so "a rebuild is
+   byte-identical" only holds on the same Node version. Follow-up below.
+4. `latest.json` stayed `1t-final`, manifest `d6e1a951…`, throughout.
+5. `aws ecs stop-task` at 06:26:06: SIGTERM → `checkpoint`
+   (`checkpoints/projector/smoke-1t/000000011468.json.gz`) → lease handed over. The new
+   task: `lease acquired` generation 2 at 06:26:56, `restored checkpoint` 0.5 s later
+   (11,468 paths, no refold), `published` the **same manifest** (`a7967e46…`) 2.3 s
+   after that. Note: a checkpoint is written every 50 publishes or on SIGTERM, so a hard
+   crash after a cold start refolds from zero (89 s today); acceptable, recorded for the
+   runbook.
+6. Switch-off: pending (user runs it); cost check on 10-10.
+
+**Follow-up: tzdata.** Needs its own plan before code (CLAUDE.md §1): pin the Node
+version (and so the tzdata) identically for the laptop, CI and the images, and have the
+projector refuse to start on tzdata older than 2026c; then re-seed `1t-final` with the
+right offset. The re-seed can't reuse `1t-final`'s `seq` 11,468 (manifests are
+write-once and the bytes differ), so it needs a new epoch name and an `epochs.json`
+update.

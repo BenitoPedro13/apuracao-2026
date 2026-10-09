@@ -58,6 +58,12 @@ docs updated and a commit. Dates are the day a phase must be *done*.
 | 8 | **Election night** | **Sun 10-25** | recording from first file appearance; watch from 16:30 BRT until every file is final; recording continues to Mon 10-26 12:00 BRT | runbook |
 | 9 | **Afterwards** | Mon 10-26 → Sat 11-01 | **`night=off` Mon 10-26 12:00** (MSK + standbys deleted); primary recorder and projector stopped Tue 10-27 once the final state is confirmed (buckets and CloudFront stay, at cents/month); export, write-up, cost check against the Budget; lab and bulk seam planning | `TASK-post-election.md` |
 
+**Scope change (user, 2026-10-08):** the web's Phase 3 started early (shell, then the map
+and the visual identity, all on 10-08), and **Senado and Deputados enter on 10-09** as a
+1st-round archive (static final results; nothing live on the 25th, since the 2nd round
+elects neither), ahead of the Phase 5 should-haves. They need a one-off capture of offices
+the recorder never fetched (research 04 §2), not new live infrastructure.
+
 From **Tue 10-20**, every day: check whether `6258`/`6260` exist. The recorder discovers
 them automatically, but the first real files must be captured into
 `docs/research/samples/` and the `[VERIFY]` in `architecture.md` §4.1 resolved the same

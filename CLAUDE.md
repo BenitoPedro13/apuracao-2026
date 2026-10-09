@@ -28,8 +28,10 @@ date.
 (`TASK-recorder.md` §6): it captured all 11,443 1st-round files, soaks against the TSE CDN,
 and will discover the 2nd round by itself. Next: Phase 2, starting with
 `docs/tasks/TASK-projector-and-views.md`. **The web app** (`apps/web`) shows the night's
-panels from the published views (`TASK-web-shell-and-data-hooks.md`, 2026-10-08); the map is
-`TASK-map.md`. Read in this order:
+panels from the published views (`TASK-web-shell-and-data-hooks.md`, 2026-10-08), with the
+municipality map (`TASK-map.md`) and its visual identity (`TASK-visual-identity.md`), both
+2026-10-08. Senado and Deputados (1st-round archive) come next, on 2026-10-09 (user). Read
+in this order:
 
 1. `docs/research/01-tse-results-feed.md` and `02-signatures-cache-and-map-mesh.md`: the
    verified facts about the TSE feed (URLs, file shapes, caching, signed `.jws` siblings,
@@ -63,7 +65,7 @@ verify against each tool's current docs before installing (§2.0).
 | Projections | `packages/views` (pure fold/render) run by `apps/projector`, Fargate ×2 | no database; state checkpointed to S3 |
 | Fan-out | S3 `apuracao26-pub` + CloudFront (`*.cloudfront.net`, Origin Shield) | immutable content-addressed views, manifest per `seq`, 5 s pointer polled every 20 s; no SSE |
 | Web | Next.js 16 static export, shadcn/ui, TanStack Query; map in Canvas 2D | frontend rules are in the user's global `~/.claude/CLAUDE.md` and apply unchanged |
-| Map geometry | IBGE Malha Municipal 2025 → mapshaper → TopoJSON (~330 KB gzip) | joins 5,571/5,571 on `cdi` |
+| Map geometry | IBGE Malha Municipal 2025 → mapshaper 0.7.80 (`scripts/build-geometry.ts`) → TopoJSON, Albers, 306 KB gzip, shipped with the site | joins 5,571/5,571 on `cdi`; drawn with Canvas 2D + `d3-zoom` |
 | Contracts | Zod 4 in `packages/contracts` | no non-TS services, so nothing to hand-mirror |
 | Infra | AWS CDK (TypeScript), GitHub Actions | sa-east-1; paid from the user's AWS credits ($100, valid to ~2027-04); ≈ $40 total, CloudFront $0 at the expected ~100 viewers (`architecture.md` §11). Nothing that bills by the hour runs before it has a job |
 | Observability | CloudWatch EMF metrics, canary Lambdas (every 1 min), SNS email/SMS | `architecture.md` §10 |
@@ -86,6 +88,11 @@ verify against each tool's current docs before installing (§2.0).
   `jsx-a11y` (strict) on the Babel-parsed base config. Babel presets are resolved by path
   from the config package (`import.meta.resolve`), never by name from the cwd. `next build`
   type-checks with the `tsc` CLI (experimental `useTypeScriptCli`); `check-types` stays the gate.
+- **Docker contexts are the repo root** (recorder, projector): anything big and local
+  must be in `.dockerignore` too, not only `.gitignore`, or CDK's asset hashing reads it
+  (the 553 MB IBGE download timed the infra tests out, 2026-10-08).
+- **Browser perf tests run Chrome's new headless** (`channel: "chromium"`): the default
+  headless shell rasterizes canvas in software and misreports frame times.
 - **Browser bundles:** import `@apuracao/tse/codes`, not `@apuracao/tse` (its index pulls the
   5,757-entry time-zone table). `contracts` and `tse` are `sideEffects: false`.
 

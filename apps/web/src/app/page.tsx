@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { ExteriorToggle } from "@/components/exterior-toggle";
 import { Headline } from "@/components/headline";
+import { MapSection } from "@/components/map/map-section";
 import { MunicipalityTable } from "@/components/municipality-table";
 import { PageActions } from "@/components/page-actions";
 import { Panel } from "@/components/panel";
@@ -12,7 +13,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 // The static frame is rendered at build time; every live part is a client leaf reading the
 // published views (TASK-web-shell-and-data-hooks.md §2.4). The leaves read the query string
-// (?turno, ?uf, ?exterior), so each sits under a Suspense boundary.
+// (?turno, ?uf, ?mapa, ?exterior), so each sits under a Suspense boundary.
+// Layout: TASK-visual-identity.md §2.3. Every track is minmax(0, …) and every cell
+// min-w-0, so wide content scrolls inside its panel, never the page.
 
 const Loading = ({ h = "h-40" }: { h?: string }) => <Skeleton className={h} />;
 
@@ -21,21 +24,22 @@ export default function Home() {
     <>
       <a
         href="#conteudo"
-        className="sr-only z-50 rounded-md bg-background px-3 py-2 focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
+        className="sr-only z-50 rounded-md bg-panel px-3 py-2 focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
       >
         Pular para o conteúdo
       </a>
-      <header className="border-b">
-        <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-xl font-semibold tracking-tight">Apuração 2026</h1>
-            <span className="text-sm text-muted-foreground">Presidente</span>
+      <header className="border-b border-line bg-panel">
+        <div className="mx-auto flex w-full max-w-[96rem] flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2.5">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+            <h1 className="text-lg font-bold tracking-tight">Apuração 2026</h1>
+            <span aria-hidden className="h-5 w-px bg-line" />
+            <span className="text-sm font-medium">Presidente</span>
             <Suspense>
               <RoundSelector />
             </Suspense>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <Suspense fallback={<p className="text-sm text-muted-foreground">Carregando…</p>}>
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <Suspense fallback={<p className="text-sm text-ink-2">Carregando…</p>}>
               <StatusLine />
               <ExteriorToggle />
             </Suspense>
@@ -44,51 +48,55 @@ export default function Home() {
         </div>
       </header>
 
-      <main id="conteudo" className="mx-auto grid w-full max-w-7xl flex-1 gap-4 px-4 py-4 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)_minmax(0,20rem)]">
-        <section aria-label="Resultado nacional" className="rounded-xl border bg-card p-4 sm:p-5 lg:row-span-2">
+      <main
+        id="conteudo"
+        className="mx-auto grid w-full max-w-[96rem] flex-1 grid-cols-1 gap-3 px-3 py-3 sm:px-4 lg:grid-cols-[minmax(0,21rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)_minmax(0,18rem)]"
+      >
+        <section
+          aria-label="Resultado nacional"
+          className="min-w-0 rounded-xl border border-line bg-panel p-4 sm:p-5 lg:row-span-2 xl:row-span-1"
+        >
           <Suspense fallback={<Loading h="h-96" />}>
             <Headline />
           </Suspense>
         </section>
 
-        <Panel id="mapa" title="Mapa por município">
-          <p className="text-sm text-muted-foreground">
-            O mapa ainda não está disponível. Os mesmos resultados estão nas tabelas{" "}
-            <a href="#estados" className="underline underline-offset-4">
-              por estado
-            </a>{" "}
-            e{" "}
-            <a href="#municipios" className="underline underline-offset-4">
-              por município
-            </a>
-            .
-          </p>
+        <Panel id="mapa" title="Mapa por município" className="min-w-0 lg:row-span-2 xl:row-span-1">
+          <Suspense fallback={<Loading h="h-96" />}>
+            <MapSection />
+          </Suspense>
         </Panel>
 
-        <Panel id="regioes" title="Por região">
+        <Panel id="regioes" title="Por região" className="min-w-0">
           <Suspense fallback={<Loading h="h-64" />}>
             <RegionsPanel />
           </Suspense>
         </Panel>
 
-        <Panel id="estados" title="Por estado" className="lg:col-span-2">
-          <Suspense fallback={<Loading h="h-96" />}>
-            <UfTable />
-          </Suspense>
-        </Panel>
+        <div className="grid min-w-0 grid-cols-1 gap-3 lg:col-span-2 xl:col-span-3 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+          <Panel id="estados" title="Por estado" className="min-w-0">
+            <Suspense fallback={<Loading h="h-96" />}>
+              <UfTable />
+            </Suspense>
+          </Panel>
 
-        <Panel id="municipios" title="Por município" className="lg:col-span-3">
-          <Suspense fallback={<Loading h="h-96" />}>
-            <MunicipalityTable />
-          </Suspense>
-        </Panel>
+          <Panel id="municipios" title="Por município" className="min-w-0">
+            <Suspense fallback={<Loading h="h-96" />}>
+              <MunicipalityTable />
+            </Suspense>
+          </Panel>
+        </div>
       </main>
 
-      <footer className="border-t">
-        <p className="mx-auto w-full max-w-7xl px-4 py-4 text-xs text-muted-foreground">
-          Todos os números vêm dos arquivos publicados pelo TSE; os percentuais são os do próprio TSE. Valores marcados
-          como calculados (diferença, regiões) são somas e contas nossas sobre esses arquivos.
-        </p>
+      <footer className="border-t border-line">
+        <div className="mx-auto flex w-full max-w-[96rem] flex-col gap-1 px-4 py-4 text-xs text-ink-2">
+          <p>
+            Todos os números vêm dos arquivos publicados pelo TSE; os percentuais são os do próprio TSE. Números{" "}
+            <span className="calc">sublinhados assim</span> são calculados por nós sobre esses arquivos (diferenças,
+            regiões, vantagens e contagens de municípios); passe o mouse sobre um deles para ver como.
+          </p>
+          <p>Mapa: IBGE, Malha Municipal 2025, simplificada.</p>
+        </div>
       </footer>
     </>
   );

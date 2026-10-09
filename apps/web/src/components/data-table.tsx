@@ -126,7 +126,7 @@ export function DataTable<T extends object>({
               const content = col?.cell(row.original as T);
               const original = row.original as T;
               return (
-                <TableCell key={cell.id} className={cn(col?.numeric && "text-right tabular-nums")}>
+                <TableCell key={cell.id} className={cn(col?.numeric && "text-right font-mono")}>
                   {i === 0 && onRowClick ? (
                     <button
                       type="button"

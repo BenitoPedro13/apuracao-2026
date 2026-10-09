@@ -2,149 +2,188 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* Theme follows the system preference only (TASK-web-shell-and-data-hooks.md §2.1). */
+/* Theme follows the system preference only (TASK-web-shell-and-data-hooks.md §2.1).
+   Tokens: TASK-visual-identity.md §2.2. shadcn's variables point at ours, so its
+   components (button, table, skeleton) take the identity without being rewritten. */
 @custom-variant dark (@media (prefers-color-scheme: dark));
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-atkinson);
+  --font-mono: var(--font-atkinson-mono);
   --font-heading: var(--font-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
+
+  --color-paper: var(--paper);
+  --color-panel: var(--panel);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-pt: var(--pt);
+  --color-pl: var(--pl);
+  --color-confirma: var(--confirma);
   --color-warn: var(--warn);
   --color-warn-bg: var(--warn-bg);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+
+  --color-background: var(--paper);
+  --color-foreground: var(--ink);
+  --color-card: var(--panel);
+  --color-card-foreground: var(--ink);
+  --color-popover: var(--panel);
+  --color-popover-foreground: var(--ink);
+  --color-primary: var(--ink);
+  --color-primary-foreground: var(--paper);
+  --color-secondary: var(--wash);
+  --color-secondary-foreground: var(--ink);
+  --color-muted: var(--wash);
+  --color-muted-foreground: var(--ink-2);
+  --color-accent: var(--wash);
+  --color-accent-foreground: var(--ink);
+  --color-destructive: var(--pt);
+  --color-border: var(--line);
+  --color-input: var(--line);
+  --color-ring: var(--ink);
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+  --radius-2xl: 12px;
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-  /* Party marks (red-700 / blue-700 / neutral-600): ≥ 4.5:1 as text on the background. */
-  --party-pt: #b91c1c;
-  --party-pl: #1d4ed8;
-  --party-other: #525252;
+  --paper: #f4f6f7; /* cool paper, never cream */
+  --panel: #ffffff;
+  --wash: #eef1f3; /* hover / pressed fills */
+  --line: #d9dfe3;
+  --ink: #11171a;
+  --ink-2: #56636b; /* 6.2:1 on --panel, 5.7:1 on --paper */
+  /* The two runoff parties, as text and marks: ≥ 4.5:1 on --panel. */
+  --pt: #c62828;
+  --pl: #1d4ed8;
+  --party-pt: var(--pt);
+  --party-pl: var(--pl);
+  --party-other: #5b656c;
+  /* The urna's CONFIRMA key green: "definido" / final states only. */
+  --confirma: #1b7f4b;
   --warn: #92400e;
   --warn-bg: #fef3c7;
+  --radius: 0.5rem;
+
+  /* Map ramps (TASK-map.md §2.4): light → strong by margin; step 4 ≥ 5.3:1 on --panel in both themes. */
+  --map-pt-1: #f6d3cf;
+  --map-pt-2: #ee9c93;
+  --map-pt-3: #dd5a4f;
+  --map-pt-4: #b3241c;
+  --map-pl-1: #d3ddf8;
+  --map-pl-2: #9db4f0;
+  --map-pl-3: #5a80e3;
+  --map-pl-4: #1f48c2;
+  --map-other-1: #e3e5e7;
+  --map-other-2: #c5cace;
+  --map-other-3: #9aa2a8;
+  --map-other-4: #6b747b;
+  --map-counted-1: #eef1f2;
+  --map-counted-2: #cdd4d8;
+  --map-counted-3: #a3aeb5;
+  --map-counted-4: #6f7d86;
+  --map-counted-5: #3b4851;
+  --map-empty: #e6eaec; /* no sections counted: flat */
+  --map-waiting: #e6eaec; /* no data / fetch failed: hatched */
+  --map-tie: #ddd6c8; /* exact tie: warm neutral, hatched */
+  --map-hatch: #8e9aa1;
+  --map-line-municipal: rgb(255 255 255 / 0.6);
+  --map-line-uf: #ffffff;
+  --map-outline: #8a969d; /* 3.0:1 on --panel */
+  --map-hover: #11171a;
+  --map-selected: #11171a;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
-    /* red-400 / blue-400 / neutral-400 on the dark background. */
-    --party-pt: #f87171;
-    --party-pl: #60a5fa;
-    --party-other: #a3a3a3;
+    --paper: #0e1214; /* cool graphite, never pure black */
+    --panel: #161b1e;
+    --wash: #1f262a;
+    --line: #283036;
+    --ink: #e9eef0;
+    --ink-2: #93a0a8; /* 6.5:1 on --panel */
+    --pt: #f0605d;
+    --pl: #5b8def;
+    --party-other: #a3adb3;
+    --confirma: #3cc27e;
     --warn: #fcd34d;
     --warn-bg: #451a03;
+
+    --map-pt-1: #4a2422;
+    --map-pt-2: #7a302b;
+    --map-pt-3: #b9423a;
+    --map-pt-4: #f0605d;
+    --map-pl-1: #1e2b4d;
+    --map-pl-2: #27417f;
+    --map-pl-3: #3762c2;
+    --map-pl-4: #5b8def;
+    --map-other-1: #2a3034;
+    --map-other-2: #3d454b;
+    --map-other-3: #59636a;
+    --map-other-4: #7f8a91;
+    --map-counted-1: #1f262a;
+    --map-counted-2: #34404a;
+    --map-counted-3: #52626e;
+    --map-counted-4: #7a8d99;
+    --map-counted-5: #b7c6cf;
+    --map-empty: #222a2f;
+    --map-waiting: #222a2f;
+    --map-tie: #3a3428;
+    --map-hatch: #5d6a72;
+    --map-line-municipal: rgb(14 18 20 / 0.55);
+    --map-line-uf: #0e1214;
+    --map-outline: #66737b; /* 3.6:1 on --panel (the country's outline is a graphical object) */
+    --map-hover: #ffffff;
+    --map-selected: #e9eef0;
   }
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-line outline-ink/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-paper text-ink;
   }
   html {
     @apply font-sans;
   }
 }
+
+/* Numbers we computed (TASK-visual-identity.md §2.2): a dotted underline, never on a TSE number. */
+.calc {
+  text-decoration: underline dotted;
+  text-decoration-color: var(--ink-2);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+/* The map's box: the country's aspect ratio plus the call-out gutter, from its container. */
+.map-box {
+  --map-gutter: 116px;
+  height: min(80dvh, calc((100cqw - var(--map-gutter)) * var(--map-aspect) + 16px));
+}
+@container (width < 480px) {
+  .map-box {
+    --map-gutter: 0px;
+  }
+}
+
+/* State labels sit on their anchor and keep their size at any zoom (--k is set by the map). */
+.map-label {
+  transform: translate(-50%, -50%) scale(calc(1 / var(--k, 1)));
+  color: var(--ink);
+  padding: 2px 4px;
+  background: color-mix(in oklab, var(--panel) 78%, transparent);
+}
+.map-label-selected {
+  outline: 1.5px solid var(--ink);
+  background: var(--panel);
+}
+
 /* WCAG 2.2 AA: honour reduced motion everywhere (tw-animate-css included). */
 @media (prefers-reduced-motion: reduce) {
   *,

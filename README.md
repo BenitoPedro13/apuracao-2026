@@ -13,9 +13,11 @@ The 1st round's final results are public at
 fake-tse replays the 1st round's real files on an accelerated clock, for end-to-end runs
 before the night (`docs/tasks/TASK-fake-tse.md`). The web app (`apps/web`, Next.js static
 export) shows the night's panels from those views: headline, UF and municipality tables,
-regions, status and freshness (`docs/tasks/TASK-web-shell-and-data-hooks.md`), and is live
-at `https://apuracao26-pub-860897618882.s3.sa-east-1.amazonaws.com/index.html`; the map is
-next (`TASK-map.md`).
+regions, status and freshness (`docs/tasks/TASK-web-shell-and-data-hooks.md`), and the
+municipality map (Canvas 2D over the IBGE mesh, `TASK-map.md`), in its own visual identity
+(`TASK-visual-identity.md`). Live at
+`https://apuracao26-pub-860897618882.s3.sa-east-1.amazonaws.com/index.html` (the map is in
+the next deploy). Senado and Deputados (1st-round archive) are next.
 **Deadline:** 2nd round, Sunday 2026-10-25.
 
 - What we know about the data: [`docs/research/01-tse-results-feed.md`](docs/research/01-tse-results-feed.md),
@@ -63,6 +65,7 @@ pnpm --filter @apuracao/web build                  # → apps/web/out (static ex
 pnpm --filter @apuracao/web test:e2e               # Playwright on the build: TSE numbers, polling, states, axe, keyboard
 pnpm --filter @apuracao/web perf:build && pnpm --filter @apuracao/web test:perf   # Fast 4G + 4× CPU, median of 3
 node scripts/deploy-web.ts [--dry-run]             # upload out/ to the public bucket (never data/, never deletes)
+node scripts/build-geometry.ts                     # rebuild the map geometry from the IBGE zip in data/ibge/ (output is committed)
 node scripts/publish-epochs.ts --epoch 1t-final --label "1º turno" [--dry-run]   # the round selector's index
 ```
 

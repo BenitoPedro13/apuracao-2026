@@ -126,8 +126,13 @@ together (sample 10 pairs every 5 min during the count)]`.
   | 0.4% | 1e4 | 1.21 MB | **330 KB** |
   | 0.2% | 1e4 | 1.06 MB | 291 KB |
 
-  `[VERIFY: visual check at 0.4%/1e4 at national zoom and when zoomed into a UF — small
-  municipalities in SP/MG must stay legible]`.
+  **Visual check done (2026-10-08, `TASK-map.md` §1): 0.4% / 1e4 accepted**, national
+  silhouette and SP at state zoom both legible. As built (`scripts/build-geometry.ts`),
+  with the two lakes dropped, the ocean islands east of −31° clipped (Trindade/Martim Vaz,
+  São Pedro e São Paulo; Fernando de Noronha stays), an Albers equal-area projection and
+  only `id` + `uf` kept: **1,266,393 B raw, 306,092 B gzip -9**. Sorted by `CD_MUN`, the
+  5,571 ids equal the TSE `-cm` sample's `cdi`, and their sha256 is the `index` the
+  published `map/president` carries (`d0a3d601…`).
 
 ## 7. Hosting facts used by the architecture (verified against official pages)
 

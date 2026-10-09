@@ -1,6 +1,7 @@
 "use client";
 
 import { CandidateMark } from "@/components/candidate-mark";
+import { Calc, Num } from "@/components/num";
 import { UnitStatus } from "@/components/unit-status";
 import { ViewError } from "@/components/view-error";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -51,8 +52,13 @@ export function Headline() {
                     </p>
                   </div>
                 </div>
-                <p className="text-4xl font-semibold tracking-tight tabular-nums sm:text-5xl">{formatTsePct(c.pct)}</p>
-                <p className="text-sm text-muted-foreground tabular-nums">{formatInt(c.votes)} votos</p>
+                <p className="font-mono text-[2.5rem] leading-none font-semibold tracking-tight">
+                  {c.pct.raw}
+                  <span className="ml-0.5 align-top text-[0.45em] leading-none font-medium">%</span>
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  <Num>{formatInt(c.votes)}</Num> votos
+                </p>
                 {c.situation && <p className="text-xs text-muted-foreground">Situação no TSE: {c.situation}</p>}
               </div>
             ))}
@@ -62,9 +68,13 @@ export function Headline() {
 
           {difference && (
             <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-              <dt className="text-muted-foreground">Diferença (calculada)</dt>
-              <dd className="text-right tabular-nums">
-                {formatBp(difference.bp)} pontos · {formatInt(difference.votes)} votos
+              <dt className="text-muted-foreground">Diferença</dt>
+              <dd className="text-right">
+                <Calc how="Percentual do primeiro menos o do segundo, sobre os votos válidos do arquivo nacional do TSE.">
+                  {formatBp(difference.bp)}
+                </Calc>{" "}
+                pontos ·{" "}
+                <Calc how="Votos do primeiro menos os do segundo, no arquivo nacional do TSE.">{formatInt(difference.votes)}</Calc> votos
               </dd>
             </dl>
           )}
@@ -94,7 +104,7 @@ export function Headline() {
           {view.votes && view.electorate && (
             <dl className="grid grid-cols-2 gap-4 border-t pt-4 text-sm">
               <Stat label="Votos válidos" value={formatInt(view.votes.valid)} />
-              <Stat label="Comparecimento" value={formatTsePct(view.electorate.turnoutPct)} sub={`${formatInt(view.electorate.turnout)} eleitores`} />
+              <Stat label="Comparecimento" value={formatTsePct(view.electorate.turnoutPct)} sub={formatInt(view.electorate.turnout)} unit="eleitores" />
               <Stat label="Brancos" value={formatTsePct(view.votes.blankPct)} sub={formatInt(view.votes.blank)} />
               <Stat label="Nulos" value={formatTsePct(view.votes.nullPct)} sub={formatInt(view.votes.null)} />
             </dl>
@@ -128,17 +138,22 @@ function OtherCandidate({ c }: { c: Candidate }) {
           {c.party} {c.n}
         </span>
       </span>
-      <span className="tabular-nums">{formatTsePct(c.pct)}</span>
+      <Num>{formatTsePct(c.pct)}</Num>
     </li>
   );
 }
 
-function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function Stat({ label, value, sub, unit }: { label: string; value: string; sub?: string; unit?: string }) {
   return (
     <div>
       <dt className="text-muted-foreground">{label}</dt>
-      <dd className="text-lg font-semibold tabular-nums">{value}</dd>
-      {sub && <dd className="text-xs text-muted-foreground tabular-nums">{sub}</dd>}
+      <dd className="font-mono text-lg font-semibold">{value}</dd>
+      {sub && (
+        <dd className="text-xs text-muted-foreground">
+          <Num>{sub}</Num>
+          {unit && ` ${unit}`}
+        </dd>
+      )}
     </div>
   );
 }

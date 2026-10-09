@@ -1,5 +1,5 @@
 // Upload the web app's static export to the public bucket (TASK-web-shell-and-data-hooks.md
-// §2.5). Hashed `_next/static/**` first (immutable), then everything else (HTML and the RSC
+// §2.5). Hashed `_next/static/**` and `geo/*.topo.json` first (immutable), then everything else (HTML and the RSC
 // payloads, max-age=60), so no page ever references an asset that isn't there yet. Text is
 // stored gzipped with Content-Encoding (S3 doesn't compress; browsers decode).
 //
@@ -52,8 +52,11 @@ if (forbidden.length) throw new Error(`refusing to upload under data/: ${forbidd
 const unknown = files.filter((f) => !TYPES[extname(f.key)]);
 if (unknown.length) throw new Error(`no content type for: ${unknown.map((f) => f.key).join(', ')}`);
 
-const hashed = files.filter((f) => f.key.startsWith('_next/static/'));
-const rest = files.filter((f) => !f.key.startsWith('_next/static/'));
+// Content-hashed names never change content: Next's assets and the map geometry
+// (geo/br-mun-2025.{sha8}.topo.json, TASK-map.md §2.1).
+const isHashed = (key: string) => key.startsWith('_next/static/') || /^geo\/[\w-]+\.[0-9a-f]{8}\.topo\.json$/.test(key);
+const hashed = files.filter((f) => isHashed(f.key));
+const rest = files.filter((f) => !isHashed(f.key));
 
 async function pointerEtag(): Promise<string | undefined> {
   try {

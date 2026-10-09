@@ -13,3 +13,7 @@ allowBuilds:
   cpu-features: false
   protobufjs: false
   ssh2: false
+  # mapshaper's (scripts/build-geometry.ts): sqlite is only for GeoPackage I/O, and msgpackr
+  # falls back to pure JS. Neither is used to read a shapefile or write TopoJSON.
+  better-sqlite3: false
+  msgpackr-extract: false

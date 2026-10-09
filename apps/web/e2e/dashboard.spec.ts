@@ -149,7 +149,10 @@ test.describe("accessibility (§5 item 5)", () => {
   test("every control is reachable by keyboard, and the UF table opens its municipalities", async ({ page }) => {
     await openAndWait(page);
     await expect(page.locator("#municipios tbody tr").first()).toBeVisible();
-    const controls = await page.locator("button:visible, a[href]:visible, input:visible, summary:visible, [role=combobox]:visible").count();
+    // Map labels and call-outs are pointer shortcuts (tabindex -1); "Ir para o estado" is their keyboard route.
+    const controls = await page
+      .locator("button:visible:not([tabindex='-1']):not(:disabled), a[href]:visible, input:visible, select:visible, summary:visible")
+      .count();
     const reached = new Set<string>();
     for (let i = 0; i < controls + 10; i++) {
       await page.keyboard.press("Tab");

@@ -459,7 +459,7 @@ object already carries the `Cache-Control` below and the policy honours it from 
 | `/data/v1/o/{sha256}.json` | `max-age=31536000, immutable` | a **view** (content-addressed, gzip/brotli by CloudFront) |
 | `/data/v1/epochs.json` | `public, max-age=300` | the round selector's index: every epoch the site offers (label, elections, its fixed final manifest; `null` for the live one), so a past round stays reachable after the pointer moves on. Written by `scripts/publish-epochs.ts` (as built: `TASK-web-shell-and-data-hooks.md` §2.3) |
 | `/data/v1/{epoch}/index.json` | `max-age=30` | list of `seq`s with `tseTotalizedAt` (for the scrubber's track); also rebuilt as immutable chunks |
-| `/data/v1/geo/br-mun-2025.{sha8}.topo.json` | `immutable` | the map geometry (~330 KB gzip) |
+| `/geo/br-mun-2025.{sha8}.topo.json` | `immutable` | the map geometry (306 KB gzip). As built (`TASK-map.md` §2.1): shipped **with the site**, not under `data/`: it's versioned with the code that draws it, and one deploy puts it (`deploy-web.ts`) |
 | `/data/v1/raw/{sha256}.jws` (nice-to-have) | `immutable` | the signed TSE source of a view, so anyone can verify it (§7.3) |
 
 ### 6.3 Views (all in `packages/contracts`, §8)
@@ -477,7 +477,8 @@ object already carries the `Cache-Control` below and the policy honours it from 
 As built (`TASK-projector-and-views.md`), the manifest names are `result/{president|governor}/{br|uf|zz}`,
 `regions/president`, `map-index/president`, `map/president` and
 `municipalities/{president|governor}/{uf|zz}` (the table alternative to the map, invariant 7).
-A governor map frame is deferred to `TASK-map.md`.
+A governor map frame is deferred to the governor views (Phase 5): the renderer takes any
+`MapView`-shaped frame (`TASK-map.md`).
 
 ### 6.4 The web app
 
@@ -965,11 +966,14 @@ our current tests ran from a Brazilian residential IP]`), credits cover it, and 
 needed now. A custom domain later is a CNAME + ACM certificate, no redesign.
 
 **ADR-10 · Map: Canvas 2D with geometry pre-projected at build time.** One `Path2D` per
-municipality, recolour = refill, hit-testing via an off-screen picking canvas. *Rejected:*
+municipality, recolour = refill. As built (`TASK-map.md`): fills grouped into ~12 combined
+paths per frame; hit-testing by a 64 × 64 bbox grid + `isPointInPath` (a picking canvas
+antialiases edges into wrong colours and costs a second draw); pan/zoom by `d3-zoom`;
+Albers equal-area projection. *Rejected:*
 SVG (5,571 DOM nodes, pan/zoom janks on mid-range phones), WebGL/MapLibre/deck.gl (a large
 bundle, a tile/style pipeline, overkill for a static choropleth). Geometry: IBGE Malha
-Municipal 2025, simplified to ~0.4%, quantized 1e4, **~330 KB gzipped**, joined 5,571/5,571
-on `cdi`, with the two RS lake areas drawn as water.
+Municipal 2025, simplified to ~0.4%, quantized 1e4, **306 KB gzipped**, joined 5,571/5,571
+on `cdi`, with the two RS lake areas left as holes (water).
 
 **ADR-11 · Kafka client `@confluentinc/kafka-javascript`.** Official, librdkafka-based,
 maintained (Sept 2026 release). *Rejected:* `kafkajs` (last published Feb 2023).

@@ -9,3 +9,10 @@ infra
 # Local data: the 1st-round export and replay runs (scripts/), never in an image
 .capture
 .replay
+# Local data captures, e.g. the IBGE mesh for scripts/build-geometry.ts (553 MB), never in an image
+data
+# Web build and test output (the images are the recorder's and the projector's)
+**/.next
+**/out
+**/.perf
+**/test-results

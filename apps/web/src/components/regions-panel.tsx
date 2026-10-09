@@ -1,5 +1,6 @@
 "use client";
 
+import { Calc, Num } from "@/components/num";
 import { ViewError } from "@/components/view-error";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useHeadline, useRegionRows } from "@/hooks/use-headline";
@@ -21,18 +22,26 @@ export function RegionsPanel() {
             <div>
               <p className="font-medium">{r.name}</p>
               <p className="text-xs text-muted-foreground">
-                {r.countedBp === null ? "Aguardando dados" : `${formatBp(r.countedBp)}% das seções`}
+                {r.countedBp === null ? (
+                  "Aguardando dados"
+                ) : (
+                  <>
+                    <Calc how="Seções apuradas somadas nos arquivos dos estados da região.">{formatBp(r.countedBp)}%</Calc> apurado
+                  </>
+                )}
                 {!r.complete && r.countedBp !== null && " · faltam estados"}
               </p>
             </div>
             {r.leader ? (
-              <p className="text-right text-sm">
-                <span className="font-medium">{displayName(r.leader.name)}</span>{" "}
-                <span className="text-xs font-medium" style={{ color: partyColor(r.leader.party) }}>
-                  {r.leader.party} {r.leader.n}
-                </span>
+              <p className="text-right text-sm leading-snug">
+                <span className="font-medium">{displayName(r.leader.name)}</span>
                 <br />
-                <span className="tabular-nums">{formatBp(r.leader.pctBp)}%</span>
+                <span className="text-xs font-medium whitespace-nowrap" style={{ color: partyColor(r.leader.party) }}>
+                  {r.leader.party} {r.leader.n}
+                </span>{" "}
+                <Calc how="Soma nossa dos votos nos arquivos dos estados da região, sobre os votos válidos somados.">
+                  {formatBp(r.leader.pctBp)}%
+                </Calc>
               </p>
             ) : (
               <span className="text-sm text-muted-foreground">—</span>
@@ -42,8 +51,8 @@ export function RegionsPanel() {
         <ExteriorRow />
       </ul>
       <p className="text-xs text-muted-foreground">
-        Regiões: calculado por nós, somando os arquivos de cada estado publicados pelo TSE (o TSE não publica totais
-        por região). Exterior: o arquivo do próprio TSE.
+        O TSE não publica totais por região: estes são somas nossas dos arquivos de cada estado. O Exterior vem do
+        arquivo do próprio TSE.
       </p>
     </div>
   );
@@ -60,17 +69,23 @@ function ExteriorRow() {
       <div>
         <p className="font-medium">Exterior</p>
         <p className="text-xs text-muted-foreground">
-          {data.view.sections ? `${formatTsePct(data.view.sections.countedPct)} das seções` : "Aguardando dados do TSE"}
+          {data.view.sections ? (
+            <>
+              <Num>{formatTsePct(data.view.sections.countedPct)}</Num> apurado
+            </>
+          ) : (
+            "Aguardando dados do TSE"
+          )}
         </p>
       </div>
       {top ? (
-        <p className="text-right text-sm">
-          <span className="font-medium">{displayName(top.name)}</span>{" "}
-          <span className="text-xs font-medium" style={{ color: partyColor(top.party) }}>
-            {top.party} {top.n}
-          </span>
+        <p className="text-right text-sm leading-snug">
+          <span className="font-medium">{displayName(top.name)}</span>
           <br />
-          <span className="tabular-nums">{formatTsePct(top.pct)}</span>
+          <span className="text-xs font-medium whitespace-nowrap" style={{ color: partyColor(top.party) }}>
+            {top.party} {top.n}
+          </span>{" "}
+          <Num>{formatTsePct(top.pct)}</Num>
         </p>
       ) : (
         <span className="text-sm text-muted-foreground">—</span>

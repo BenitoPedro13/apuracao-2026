@@ -10,6 +10,7 @@ const DOT = {
   red: "bg-red-600",
   final: "bg-muted-foreground",
   past: "bg-muted-foreground",
+  pending: "bg-muted-foreground",
 } as const;
 
 /** "Atualizado às hh:mm · TSE hh:mm", amber/red when the pipeline stalls (architecture.md §6.4). */
@@ -19,7 +20,8 @@ export function StatusLine() {
 
   const tse = f.tseTotalizedAt ? `TSE ${formatDateTime(f.tseTotalizedAt)}` : "TSE: ainda não publicado";
   let text: string;
-  if (f.level === "final") text = `Apuração encerrada · ${tse}`;
+  if (f.level === "pending") text = `Atualizado às ${formatTime(f.refreshedAt)}`;
+  else if (f.level === "final") text = `Apuração encerrada · ${tse}`;
   else if (f.level === "past") text = `Resultado final · ${tse}`;
   else text = `Atualizado às ${formatTime(f.refreshedAt)} · ${tse}`;
   const warn = f.level === "amber" || f.level === "red";

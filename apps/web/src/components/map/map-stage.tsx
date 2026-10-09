@@ -23,6 +23,7 @@ const CALLOUT_GAP_PX = 30;
 const HINT_MS = 1500;
 
 function labelValue(u: UfSummary, mode: MapMode): string {
+  if (u.status === undefined) return ""; // still loading: no value yet, not "no data"
   if (mode === "apurado") return u.countedPct ? `${u.countedPct.raw}%` : "—";
   return u.leader ? `${u.leader.party} ${u.leader.pct.raw}%` : "—";
 }
@@ -138,7 +139,9 @@ export function MapStage({ model, mode }: { model: MapModel; mode: MapMode }) {
                     style={{ left: a[0], top: a[1] }}
                   >
                     <span className="text-[11px] font-bold tracking-wide">{u.uf.toUpperCase()}</span>
-                    {!compact && <span className="mt-0.5 font-mono text-[10px] whitespace-nowrap">{labelValue(u, mode)}</span>}
+                    {!compact && labelValue(u, mode) && (
+                      <span className="mt-0.5 font-mono text-[10px] whitespace-nowrap">{labelValue(u, mode)}</span>
+                    )}
                   </button>
                 );
               })}
@@ -257,7 +260,7 @@ function Chip({
       ) : (
         <span className="font-bold tracking-wide">{u.uf.toUpperCase()}</span>
       )}
-      <span className="font-mono">{value}</span>
+      <span className="font-mono">{value || "…"}</span>
     </button>
   );
 }

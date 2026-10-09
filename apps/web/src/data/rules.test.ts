@@ -65,6 +65,12 @@ describe("freshness", () => {
     expect(freshness(old, 1_000, { live: true, nationalStatus: "final" }).level).toBe("final");
     expect(freshness(old, 1_000, { live: false, nationalStatus: "counting" }).level).toBe("past");
   });
+
+  it("doesn't alarm while the national result loads, and does if it never arrives", () => {
+    const old = snap(refreshed + 60 * 60_000);
+    expect(freshness(old, 1_000, { live: true, nationalStatus: undefined, nationalLoading: true }).level).toBe("pending");
+    expect(freshness(old, 1_000, { live: true, nationalStatus: undefined, nationalLoading: false }).level).toBe("red");
+  });
 });
 
 describe("rounds", () => {

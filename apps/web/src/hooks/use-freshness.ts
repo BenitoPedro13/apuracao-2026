@@ -30,7 +30,11 @@ export function useFreshness(): FreshnessState | null {
   const national = useResult("president", "br");
   const snap = pointer.data;
   if (!snap) return null;
-  const f = freshness(snap, now, { live: selected?.live ?? true, nationalStatus: national.data?.status });
+  const f = freshness(snap, now, {
+    live: selected?.live ?? true,
+    nationalStatus: national.data?.status,
+    nationalLoading: national.isLoading,
+  });
   return {
     ...f,
     refreshedAt: snap.pointer.refreshedAt,

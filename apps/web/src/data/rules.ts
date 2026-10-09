@@ -40,7 +40,8 @@ export function hasNumbers(unit: { status: ResultStatus; votes: unknown }): bool
 export const AMBER_AFTER_MS = 3 * 60_000;
 export const RED_AFTER_MS = 10 * 60_000;
 
-export type FreshnessLevel = "ok" | "amber" | "red" | "final" | "past";
+/** "pending": the live national result is still loading, so whether it is final is unknown. */
+export type FreshnessLevel = "ok" | "amber" | "red" | "final" | "past" | "pending";
 
 export interface Freshness {
   level: FreshnessLevel;
@@ -61,7 +62,7 @@ export interface Freshness {
 export function freshness(
   snap: PointerSnapshot,
   now: number,
-  opts: { live: boolean; nationalStatus: ResultStatus | undefined },
+  opts: { live: boolean; nationalStatus: ResultStatus | undefined; nationalLoading?: boolean },
 ): Freshness {
   const serverNow = snap.serverNow + (now - snap.localNow);
   const ageMs = Math.max(0, serverNow - Date.parse(snap.pointer.refreshedAt));
@@ -69,6 +70,9 @@ export function freshness(
   const recorderAgeMs = seen ? Math.max(0, serverNow - Date.parse(seen)) : null;
   if (!opts.live) return { level: "past", ageMs, recorderAgeMs, reason: null };
   if (opts.nationalStatus === "final") return { level: "final", ageMs, recorderAgeMs, reason: null };
+  // A finished count's old heartbeats would read as a stall until the national file says
+  // "final": don't alarm while it loads. If it fails to load, the normal rule applies.
+  if (opts.nationalLoading) return { level: "pending", ageMs, recorderAgeMs, reason: null };
 
   const worst = Math.max(ageMs, recorderAgeMs ?? 0);
   const level: FreshnessLevel = worst >= RED_AFTER_MS ? "red" : worst >= AMBER_AFTER_MS ? "amber" : "ok";

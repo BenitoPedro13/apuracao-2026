@@ -328,5 +328,9 @@ Built as planned, with these changes, each found while building or testing:
    1,977 ms. **Map chunk 28.8 KB gzip** (≤ 35); first load 258.4 KB (≤ 260, was 253). ✓
 6. Screenshots in both themes at 1440 × 1000 and 412 × 915, critiqued; the fixes above
    (labels, call-outs, headline overlap) came from them. ✓
-7. Deploy: dry run only. `deploy-web.ts` now puts the geometry as `immutable`; the live
-   deploy waits for the user's go-ahead.
+7. Deploy (run by the user, 2026-10-08): `geo/br-mun-2025.5e5c8c26.topo.json` 200,
+   `immutable`, gzip, sha256 equal; pointer ETag unchanged. Headless Chromium on the live
+   URL (cold, from NL): map drawn after 7.3 s, summary "PL lidera em 2.906, PT em 2.663,
+   2 empates", 0 errors. ✓ The screenshot also showed state labels as "–" while their UF
+   results loaded (they now show nothing until loaded; a chip shows "…") and a false red
+   freshness alarm (`TASK-web-shell-and-data-hooks.md` §6).

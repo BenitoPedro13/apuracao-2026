@@ -193,6 +193,12 @@ one). What changed from the plan, and the measurements:
   heartbeats, since a quiet TSE makes no new `seq`), on the server's clock plus local
   elapsed time, and is never amber/red for a `final` national result or a past round
   (otherwise the 1st round's final, with the projector off, would show red forever).
+- **Freshness while loading (fixed 2026-10-08, after the map's deploy):** the live
+  screenshot from NL showed **red "Atualização interrompida… há 363 min"** for the
+  seconds the national file took to load. The final-result exemption needs that file, so
+  until it arrived old heartbeats read as a stall. A new level, `pending`, applies while
+  the national result is loading (neutral dot, no TSE time). If it fails to load, the
+  normal amber/red rule applies, so a real stall is never hidden.
 - **Missing ≠ zero:** numbers show for `counting`, `final`, and `fetch_failed` with its last
   good file (dimmed); never for `no_sections` or `not_published`. Missing values sort last
   in every table; an exact municipal tie shows "Empate".

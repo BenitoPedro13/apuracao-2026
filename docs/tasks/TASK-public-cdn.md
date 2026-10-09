@@ -357,7 +357,9 @@ first try stopped at CDK's IAM approval prompt, which `!` can't answer: the depl
    after that. Note: a checkpoint is written every 50 publishes or on SIGTERM, so a hard
    crash after a cold start refolds from zero (89 s today); acceptable, recorded for the
    runbook.
-6. Switch-off: pending (user runs it); cost check on 10-10.
+6. Switched off (`cdk deploy ProjectorStack --exclusively`): the service at 0/0 on task
+   definition `:2` (the defaults `2t-1`, `6258`/`6260`, ready for 10-18); the recorder still
+   1/1 on `:4`; the pointer unchanged. Cost check on 10-10.
 
 **Follow-up: tzdata.** Needs its own plan before code (CLAUDE.md §1): pin the Node
 version (and so the tzdata) identically for the laptop, CI and the images, and have the

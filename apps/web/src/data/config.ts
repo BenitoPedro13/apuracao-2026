@@ -6,3 +6,6 @@ const PLAN_B = "https://apuracao26-pub-860897618882.s3.sa-east-1.amazonaws.com";
 export const DATA_BASE_URL = (process.env.NEXT_PUBLIC_DATA_BASE_URL || PLAN_B).replace(/\/+$/, "");
 
 export const dataUrl = (key: string) => `${DATA_BASE_URL}/${key}`;
+
+/** Where the page itself is served, for absolute share URLs (TASK-share-metadata.md §2.2). */
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || PLAN_B).replace(/\/+$/, "");

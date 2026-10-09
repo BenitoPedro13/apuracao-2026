@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Atkinson_Hyperlegible_Mono, Atkinson_Hyperlegible_Next } from "next/font/google";
 import { preload } from "react-dom";
+import { SITE_URL } from "@/data/config";
 import { GEO_FILE } from "@/map/geo-file";
 import { Providers } from "./providers";
 import "./globals.css";
@@ -10,9 +11,26 @@ import "./globals.css";
 const atkinson = Atkinson_Hyperlegible_Next({ variable: "--font-atkinson", subsets: ["latin"], display: "swap" });
 const atkinsonMono = Atkinson_Hyperlegible_Mono({ variable: "--font-atkinson-mono", subsets: ["latin"], display: "swap" });
 
+// Share metadata (TASK-share-metadata.md §2.2). The image is opengraph-image.tsx; the
+// canonical is /index.html because the bucket's REST endpoint doesn't serve "/".
+const TITLE = "Apuração 2026";
+const DESCRIPTION =
+  "A apuração das eleições de 2026 ao vivo, com os arquivos publicados pelo TSE: presidente, governadores, Senado e Câmara, por estado e por município.";
+
 export const metadata: Metadata = {
-  title: "Apuração 2026",
-  description: "Apuração das eleições de 2026 com os dados publicados pelo TSE.",
+  metadataBase: new URL(`${SITE_URL}/`),
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: "/index.html" },
+  openGraph: { type: "website", locale: "pt_BR", siteName: TITLE, title: TITLE, description: DESCRIPTION, url: "/index.html" },
+  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f4f6f7" },
+    { media: "(prefers-color-scheme: dark)", color: "#0e1214" },
+  ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

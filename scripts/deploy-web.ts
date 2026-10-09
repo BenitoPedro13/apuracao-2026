@@ -37,7 +37,11 @@ const TYPES: Record<string, string> = {
   '.svg': 'image/svg+xml',
   '.woff2': 'font/woff2',
   '.png': 'image/png',
+  '.xml': 'application/xml; charset=utf-8',
 };
+// Files the export writes without an extension (TASK-share-metadata.md §2.3).
+const BY_KEY: Record<string, string> = { 'opengraph-image': 'image/png' };
+const typeOf = (key: string): string | undefined => BY_KEY[key] ?? TYPES[extname(key)];
 const IMMUTABLE = 'public, max-age=31536000, immutable';
 const SHORT = 'public, max-age=60';
 
@@ -49,7 +53,7 @@ const files = walk(values.dir).map((path) => ({ path, key: relative(values.dir, 
 if (!files.some((f) => f.key === 'index.html')) throw new Error(`${values.dir} has no index.html: run the web build first`);
 const forbidden = files.filter((f) => f.key === 'data' || f.key.startsWith('data/'));
 if (forbidden.length) throw new Error(`refusing to upload under data/: ${forbidden.map((f) => f.key).join(', ')}`);
-const unknown = files.filter((f) => !TYPES[extname(f.key)]);
+const unknown = files.filter((f) => !typeOf(f.key));
 if (unknown.length) throw new Error(`no content type for: ${unknown.map((f) => f.key).join(', ')}`);
 
 // Content-hashed names never change content: Next's assets and the map geometry
@@ -67,8 +71,8 @@ async function pointerEtag(): Promise<string | undefined> {
 }
 
 async function put(f: { path: string; key: string }, cacheControl: string) {
-  const type = TYPES[extname(f.key)]!;
-  const text = /text|javascript|json|svg/.test(type);
+  const type = typeOf(f.key)!;
+  const text = /text|javascript|json|svg|xml/.test(type);
   const raw = readFileSync(f.path);
   const body = text ? gzipSync(raw, { level: 9 }) : raw;
   if (values['dry-run']) return console.log(`would put ${f.key} (${type}, ${cacheControl}${text ? ', gzip' : ''}, ${body.length} B)`);

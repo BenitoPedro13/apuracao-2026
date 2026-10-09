@@ -20,7 +20,8 @@
       "env": [
         "ALERT_EMAIL",
         "CDK_DEFAULT_ACCOUNT",
-        "NEXT_PUBLIC_DATA_BASE_URL"
+        "NEXT_PUBLIC_DATA_BASE_URL",
+        "NEXT_PUBLIC_SITE_URL"
       ]
     },
     "lint": {

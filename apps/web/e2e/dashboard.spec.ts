@@ -189,3 +189,20 @@ test("at 375 px the UF table shows the % column without scrolling", async ({ pag
   const box = await pct.boundingBox();
   expect(box && box.x + box.width).toBeLessThanOrEqual(375);
 });
+
+test("share tags: absolute og:image of 1200 × 630, pt_BR, large card, canonical", async ({ page, request }) => {
+  await page.goto(PAGE);
+  const meta = (key: string) => page.locator(`meta[property="${key}"], meta[name="${key}"]`).first().getAttribute("content");
+  const image = (await meta("og:image"))!;
+  expect(image).toMatch(/^https:\/\/.+\/opengraph-image\?[0-9a-f]+$/);
+  expect([await meta("og:image:width"), await meta("og:image:height")]).toEqual(["1200", "630"]);
+  expect(await meta("og:image:alt")).toContain("urna");
+  expect(await meta("og:locale")).toBe("pt_BR");
+  expect(await meta("og:title")).toBe("Apuração 2026");
+  expect(await meta("twitter:card")).toBe("summary_large_image");
+  expect(await page.locator('link[rel="canonical"]').getAttribute("href")).toMatch(/\/index\.html$/);
+  // The file the tag names is in the export, and it's a PNG.
+  const res = await request.get(`/opengraph-image`);
+  expect(res.status()).toBe(200);
+  expect((await res.body()).subarray(1, 4).toString()).toBe("PNG");
+});

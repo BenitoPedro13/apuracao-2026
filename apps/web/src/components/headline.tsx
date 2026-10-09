@@ -10,16 +10,33 @@ import { useSelectedRound } from "@/hooks/use-data";
 import { displayName, formatBp, formatInt, formatTsePct, pctNumber } from "@/lib/format";
 import { partyColor } from "@/lib/party";
 import { cn } from "@/lib/utils";
+import type { Office } from "@apuracao/contracts";
 
 const SHOWN_OTHERS = 3;
 
-/** The national president headline (TASK-web-shell-and-data-hooks.md §2.4). */
-export function Headline() {
-  const { data, error, isLoading } = useHeadline("president");
+/**
+ * The national president headline (TASK-web-shell-and-data-hooks.md §2.4), or a UF's
+ * governor race (TASK-visual-pass-2.md §2.3): the same reading for any single race.
+ */
+export function Headline({
+  office = "president",
+  area = "br",
+  title = "Presidente · Brasil",
+  note,
+}: {
+  office?: Office;
+  area?: string;
+  title?: string;
+  /** A line under the title, e.g. why this race is the one shown. */
+  note?: string;
+}) {
+  const { data, error, isLoading } = useHeadline(office, area);
   const { selected } = useSelectedRound();
+  const what = office === "president" ? "o resultado nacional" : `o resultado em ${title}`;
+  const file = area === "br" ? "arquivo nacional do TSE" : "arquivo do TSE para o estado";
 
   if (isLoading) return <HeadlineSkeleton />;
-  if (!data) return error ? <ViewError what="o resultado nacional" error={error} stale={false} /> : null;
+  if (!data) return error ? <ViewError what={what} error={error} stale={false} /> : null;
 
   const { view, ranked, difference } = data;
   const [first, second, ...others] = ranked ?? [];
@@ -28,11 +45,13 @@ export function Headline() {
     <section aria-labelledby="headline-title" className="flex flex-col gap-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 id="headline-title" className="text-sm text-muted-foreground">
-          Presidente · Brasil{selected ? ` · ${selected.label}` : ""}
+          {title}
+          {selected ? ` · ${selected.label}` : ""}
         </h2>
         <UnitStatus status={view.status} countedPct={view.sections?.countedPct} failingSince={view.failingSince} />
       </div>
-      {error && <ViewError what="o resultado nacional" error={error} stale />}
+      {note && <p className="-mt-3 text-xs text-ink-2">{note}</p>}
+      {error && <ViewError what={what} error={error} stale />}
 
       {!first || !second ? (
         <p className="rounded-md border border-dashed p-6 text-center text-muted-foreground">
@@ -70,11 +89,11 @@ export function Headline() {
             <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
               <dt className="text-muted-foreground">Diferença</dt>
               <dd className="text-right">
-                <Calc how="Percentual do primeiro menos o do segundo, sobre os votos válidos do arquivo nacional do TSE.">
+                <Calc how={`Percentual do primeiro menos o do segundo, sobre os votos válidos do ${file}.`}>
                   {formatBp(difference.bp)}
                 </Calc>{" "}
                 pontos ·{" "}
-                <Calc how="Votos do primeiro menos os do segundo, no arquivo nacional do TSE.">{formatInt(difference.votes)}</Calc> votos
+                <Calc how={`Votos do primeiro menos os do segundo, no ${file}.`}>{formatInt(difference.votes)}</Calc> votos
               </dd>
             </dl>
           )}

@@ -12,14 +12,12 @@ import { cn } from "@/lib/utils";
 import { WIDTH } from "@/map/geometry";
 import type { Fit } from "@/map/renderer";
 import type { MapMode } from "@/map/style";
+import { anchorOf, CALLOUT_GAP_PX, CALLOUTS, placeCallouts } from "./callouts";
 import { MapTooltip } from "./map-tooltip";
 
 // The map itself (TASK-map.md §2.4): canvas, state labels, the small states' call-outs,
 // zoom buttons, the gesture hint and the municipality card.
 
-/** States too small for an in-place label at the national fit, north to south. */
-const CALLOUTS = ["rn", "pb", "pe", "al", "se", "df", "es", "rj"];
-const CALLOUT_GAP_PX = 30;
 const HINT_MS = 1500;
 
 function labelValue(u: UfSummary, mode: MapMode): string {
@@ -82,27 +80,14 @@ export function MapStage({ model, mode }: { model: MapModel; mode: MapMode }) {
 
   const narrow = fit !== null && fit.width < NARROW_PX;
   const showCallouts = fit !== null && !narrow && !zoomed;
-  const at = (uf: string): [number, number] | null => {
-    const p = model.geo.labels[uf];
-    return p && fit ? [fit.ox + p[0] * fit.s, fit.oy + p[1] * fit.s] : null;
-  };
+  const at = (uf: string) => anchorOf(model.geo, fit, uf);
   const compact = fit !== null && fit.width < 640;
   const pick = (uf: string) => setUrlParams({ uf, mun: null });
   const closeCard = () => store.set({ i: null, x: 0, y: 0, pinned: false });
 
-  // Call-outs stacked beside the coast in the anchors' north-to-south order, never overlapping.
-  const callouts: { u: UfSummary; y: number; anchor: [number, number] }[] = [];
-  if (showCallouts) {
-    let last = -Infinity;
-    for (const uf of CALLOUTS) {
-      const u = model.ufs.find((x) => x.uf === uf);
-      const a = at(uf);
-      if (!u || !a) continue;
-      const y = Math.max(a[1], last + CALLOUT_GAP_PX);
-      callouts.push({ u, y, anchor: a });
-      last = y;
-    }
-  }
+  const callouts = showCallouts
+    ? placeCallouts(model.geo, fit, (uf) => model.ufs.some((x) => x.uf === uf)).map((c) => ({ ...c, u: model.ufs.find((x) => x.uf === c.uf)! }))
+    : [];
   const calloutX = fit ? fit.width - CALLOUT_GUTTER_PX + 10 : 0;
   const exterior = showExterior ? model.exterior : null;
 

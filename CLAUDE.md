@@ -33,6 +33,8 @@ municipality map (`TASK-map.md`) and its visual identity (`TASK-visual-identity.
 2026-10-08. Senado and Deputados are a 1st-round archive (`TASK-legislative-archive.md`,
 2026-10-09): the recorder captures their 81 UF files (`:uf` targets), the projector renders
 `legislative/*` views for the `6259` epoch only, and the page switches office with `?cargo=`.
+Governadores and a map by state on every office, with an eight-party palette and the
+hemicycles, are `TASK-visual-pass-2.md` (2026-10-09).
 CI (`.github/workflows/ci.yml`) runs on every push to `main`. Read in this order:
 
 1. `docs/research/01-tse-results-feed.md` and `02-signatures-cache-and-map-mesh.md`: the
@@ -95,6 +97,11 @@ verify against each tool's current docs before installing (§2.0).
   (the 553 MB IBGE download timed the infra tests out, 2026-10-08).
 - **Browser perf tests run Chrome's new headless** (`channel: "chromium"`): the default
   headless shell rasterizes canvas in software and misreports frame times.
+- **CSS custom properties must be named in full somewhere in the sources** (2026-10-09):
+  the web build drops a `--foo` whose name only exists assembled at runtime
+  (`` `--party-${key}` ``), so `--party-*` and `--map-none` disappeared from the stylesheet.
+  Write the `var(--…)` out (see `lib/party.ts`). The minified CSS also shortens colours
+  (`#fff`): normalize through the canvas before doing arithmetic on them.
 - **Browser bundles:** import `@apuracao/tse/codes`, not `@apuracao/tse` (its index pulls the
   5,757-entry time-zone table). `contracts` and `tse` are `sideEffects: false`.
 

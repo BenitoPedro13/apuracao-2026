@@ -1,6 +1,6 @@
 "use client";
 
-import type { MunicipalityView, ResultStatus, TsePct } from "@apuracao/contracts";
+import type { MunicipalityView, Office, ResultStatus, TsePct } from "@apuracao/contracts";
 import { ABROAD } from "@apuracao/tse/codes";
 import { byVotes, hasNumbers } from "@/data/rules";
 import { AREAS, areaName } from "@/lib/places";
@@ -79,8 +79,8 @@ function toRow(view: MunicipalityView, r: MunicipalityView["rows"][number]): Mun
 }
 
 /** The table alternative to the map for one UF (invariant 7), searchable without accents. */
-export function useMunicipalityRows(area: string | null, search: string): ViewState<MunicipalityRowView[]> {
-  const view = useMunicipalities("president", area);
+export function useMunicipalityRows(area: string | null, search: string, office: Office = "president"): ViewState<MunicipalityRowView[]> {
+  const view = useMunicipalities(office, area);
   const q = fold(search.trim());
   const data = view.data?.rows.filter((r) => !q || fold(r.name).includes(q)).map((r) => toRow(view.data!, r));
   return { ...view, data };

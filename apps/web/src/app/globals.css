@@ -62,6 +62,13 @@
   --party-pt: var(--pt);
   --party-pl: var(--pl);
   --party-other: #5b656c;
+  /* The palette's other six parties (TASK-visual-pass-2.md §2.1): each ≥ 4.5:1 on --panel. */
+  --party-uniao: #0e7490;
+  --party-psd: #c2410c;
+  --party-pp: #7c3aed;
+  --party-republicanos: #be185d;
+  --party-mdb: #4d7c0f;
+  --party-pode: #a16207;
   /* The urna's CONFIRMA key green: "definido" / final states only. */
   --confirma: #1b7f4b;
   --warn: #92400e;
@@ -89,6 +96,7 @@
   --map-empty: #e6eaec; /* no sections counted: flat */
   --map-waiting: #e6eaec; /* no data / fetch failed: hatched */
   --map-tie: #ddd6c8; /* exact tie: warm neutral, hatched */
+  --map-none: #f1f3f4; /* no race in this UF this round: flat, lighter than "empty" */
   --map-hatch: #8e9aa1;
   --map-line-municipal: rgb(255 255 255 / 0.6);
   --map-line-uf: #ffffff;
@@ -108,6 +116,12 @@
     --pt: #f0605d;
     --pl: #5b8def;
     --party-other: #a3adb3;
+    --party-uniao: #2fb5c9;
+    --party-psd: #f38b4a;
+    --party-pp: #a98bf5;
+    --party-republicanos: #f06ba8;
+    --party-mdb: #97c255;
+    --party-pode: #d9ad3c;
     --confirma: #3cc27e;
     --warn: #fcd34d;
     --warn-bg: #451a03;
@@ -132,6 +146,7 @@
     --map-empty: #222a2f;
     --map-waiting: #222a2f;
     --map-tie: #3a3428;
+    --map-none: #1b2124;
     --map-hatch: #5d6a72;
     --map-line-municipal: rgb(14 18 20 / 0.55);
     --map-line-uf: #0e1214;

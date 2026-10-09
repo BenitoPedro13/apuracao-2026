@@ -19,6 +19,9 @@ municipality map (Canvas 2D over the IBGE mesh, `TASK-map.md`), in its own visua
 `https://apuracao26-pub-860897618882.s3.sa-east-1.amazonaws.com/index.html`. Senado, Câmara
 and Assembleias are a 1st-round archive on the same page (`?cargo=`), from the 81 signed UF
 files the recorder captures since 2026-10-09 (`docs/tasks/TASK-legislative-archive.md`).
+Governadores (`?cargo=governador`: tiles, closest races, a map by state that turns into
+municipalities for the picked state) and a map by state for every legislative office, with
+the Câmara/Senado hemicycles, are `docs/tasks/TASK-visual-pass-2.md` (2026-10-09).
 **Deadline:** 2nd round, Sunday 2026-10-25.
 
 - What we know about the data: [`docs/research/01-tse-results-feed.md`](docs/research/01-tse-results-feed.md),

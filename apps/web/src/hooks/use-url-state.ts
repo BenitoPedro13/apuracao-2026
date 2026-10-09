@@ -23,7 +23,7 @@ function useUrlParam(name: string): [string | null, (value: string | null) => vo
 export const useRoundParam = () => useUrlParam("turno");
 
 /** Which office the page shows (?cargo=); the president is the default and isn't written. */
-export const CARGOS = ["presidente", "senado", "camara", "assembleias"] as const;
+export const CARGOS = ["presidente", "governador", "senado", "camara", "assembleias"] as const;
 export type Cargo = (typeof CARGOS)[number];
 export function useCargo(): Cargo {
   const [v] = useUrlParam("cargo");
@@ -64,4 +64,15 @@ export function setUrlParams(values: Record<string, string | null>) {
   }
   const qs = next.toString();
   window.history.replaceState(null, "", `${window.location.pathname}${qs ? `?${qs}` : ""}`);
+}
+
+/** The Câmara/Assembleias map (?mapa=partido): the largest bench, or one party's share. */
+export function useChamberMapMode(): ["bancada" | "partido", (mode: "bancada" | "partido") => void] {
+  const [v, set] = useUrlParam("mapa");
+  return [v === "partido" ? "partido" : "bancada", (m) => set(m === "bancada" ? null : m)];
+}
+
+/** The party the "Um partido" map shows (?partido=PL); null: the largest. */
+export function useFocusParty(): [string | null, (party: string | null) => void] {
+  return useUrlParam("partido");
 }

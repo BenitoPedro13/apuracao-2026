@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import { CargoNav } from "@/components/cargo-nav";
-import { CargoSwitch, LegislativeOnlyNote, PresidentOnly } from "@/components/cargo-switch";
+import { CargoSwitch, LegislativeOnlyNote, PresidentOnly, RoundOffices } from "@/components/cargo-switch";
 import { ExteriorToggle } from "@/components/exterior-toggle";
+import { GovernorSection } from "@/components/governors/governor-section";
 import { Headline } from "@/components/headline";
 import { LegislativeSection } from "@/components/legislative-section";
 import { MapSection } from "@/components/map/map-section";
@@ -38,9 +39,9 @@ export default function Home() {
             <span aria-hidden className="h-5 w-px bg-line" />
             <Suspense>
               <CargoNav />
-              <PresidentOnly>
+              <RoundOffices>
                 <RoundSelector />
-              </PresidentOnly>
+              </RoundOffices>
               <LegislativeOnlyNote />
             </Suspense>
           </div>
@@ -99,6 +100,7 @@ export default function Home() {
             </div>
           </main>
           }
+          governor={<GovernorSection />}
           legislative={<LegislativeSection />}
         />
       </Suspense>

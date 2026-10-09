@@ -26,7 +26,8 @@ export interface MapControls {
 export function useMapRenderer(
   refs: { box: RefObject<HTMLDivElement | null>; base: RefObject<HTMLCanvasElement | null>; over: RefObject<HTMLCanvasElement | null> },
   geo: Geometry,
-  sync: { style: MapStyle; styleKey: string; selectedUf: string | null },
+  /** `outline: false` zooms to the selected UF without outlining it (its municipalities are drawn). */
+  sync: { style: MapStyle; styleKey: string; selectedUf: string | null; outline?: boolean },
   events: MapEvents,
 ): MapControls {
   const renderer = useRef<MapRenderer | null>(null);
@@ -84,6 +85,9 @@ export function useMapRenderer(
     r.setSelectedUf(sync.selectedUf);
     if (sync.selectedUf && sync.selectedUf !== ABROAD) r.zoomToUf(sync.selectedUf);
   }, [geo, sync.selectedUf]);
+  useEffect(() => {
+    renderer.current?.setOutline(sync.outline ?? true);
+  }, [geo, sync.outline]);
 
   return {
     zoomBy: (factor) => renderer.current?.zoomBy(factor),

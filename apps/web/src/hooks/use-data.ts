@@ -150,3 +150,24 @@ export const useLegislativeBr = (office: LegislativeOffice) =>
   useViewIn(useFirstRoundManifest(), `legislative/${office}/br`, LegislativeBrView);
 export const useLegislativeUf = (office: LegislativeOffice, uf: string | null) =>
   useViewIn(useFirstRoundManifest(), uf ? `legislative/${office}/${uf}` : null, LegislativeUfView);
+
+/** Every UF's view of a legislative office at once (the highlights and the senate map). */
+export function useLegislativeUfs(office: LegislativeOffice, ufs: readonly string[]): ViewState<LegislativeUfView>[] {
+  const manifest = useFirstRoundManifest();
+  const results = useQueries({
+    queries: ufs.map((uf) => {
+      const name = `legislative/${office}/${uf}`;
+      const sha = manifest.data?.views[name];
+      return { ...viewQuery(name, sha ?? "", LegislativeUfView), enabled: !!sha };
+    }),
+  });
+  return results.map((q, i) => {
+    const absent = !!manifest.data && !manifest.data.views[`legislative/${office}/${ufs[i]}`];
+    return {
+      data: q.data,
+      error: q.error ?? (q.data ? null : manifest.error),
+      isLoading: !absent && q.data === undefined && !q.error && !manifest.error,
+      absent,
+    };
+  });
+}

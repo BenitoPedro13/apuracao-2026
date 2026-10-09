@@ -82,7 +82,8 @@ export function DataTable<T extends object>({
   });
 
   return (
-    <Table className="min-w-[32rem]">
+    // From sm up the table keeps its columns apart; on a phone it wraps instead of hiding them.
+    <Table className="sm:min-w-[32rem]">
       <TableCaption className="sr-only">{caption}</TableCaption>
       <TableHeader>
         {table.getHeaderGroups().map((group) => (
@@ -126,7 +127,7 @@ export function DataTable<T extends object>({
               const content = col?.cell(row.original as T);
               const original = row.original as T;
               return (
-                <TableCell key={cell.id} className={cn(col?.numeric && "text-right font-mono")}>
+                <TableCell key={cell.id} className={cn("whitespace-normal sm:whitespace-nowrap", col?.numeric && "text-right font-mono")}>
                   {i === 0 && onRowClick ? (
                     <button
                       type="button"

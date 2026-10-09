@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useChamber, useNationalSeats, type UfSeatsRow } from "@/hooks/use-legislative";
 import { useSelectedUf } from "@/hooks/use-url-state";
 import { formatInt } from "@/lib/format";
+import { partyColor } from "@/lib/party";
 
 const COUNT_HOW = "Contagem dos candidatos do partido marcados como eleitos no arquivo da UF.";
 
@@ -22,7 +23,16 @@ const COLUMNS: DataColumn<UfSeatsRow>[] = [
     id: "parties",
     header: "Eleitos por partido",
     cell: (r) => (
-      <span className="text-sm">
+      <span className="flex flex-col gap-1.5 py-0.5 text-sm">
+        {/* The same numbers as the text under it, drawn to scale over the UF's seats. */}
+        {r.seats !== null && r.seats > 0 && (
+          <span aria-hidden className="flex h-2.5 w-full max-w-xl gap-px overflow-hidden rounded-sm bg-muted">
+            {r.parties.map((p) => (
+              <span key={p.party} style={{ width: `${(p.seats / r.seats!) * 100}%`, background: partyColor(p.party) }} />
+            ))}
+          </span>
+        )}
+        <span>
         {r.parties.map((p, i) => (
           <span key={p.party} className="whitespace-nowrap">
             {i > 0 && <span aria-hidden className="text-ink-2"> · </span>}
@@ -30,6 +40,7 @@ const COLUMNS: DataColumn<UfSeatsRow>[] = [
             {i < r.parties.length - 1 && <span className="sr-only">,</span>}
           </span>
         ))}
+        </span>
       </span>
     ),
   },
@@ -50,7 +61,8 @@ export function UfSeatsTable() {
       rowId={(r) => r.uf}
       onRowClick={(r) => {
         setUf(r.uf);
-        document.getElementById("disputa")?.scrollIntoView({ block: "start" });
+        // The race panel renders once a state is picked: scroll after that render.
+        requestAnimationFrame(() => document.getElementById("disputa")?.scrollIntoView({ block: "start" }));
       }}
       rowLabel={(r) => `${r.name}: ver a disputa`}
     />

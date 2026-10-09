@@ -179,3 +179,13 @@ test.describe("accessibility (§5 item 5)", () => {
     expect(parseFloat(d)).toBeLessThanOrEqual(0.00001);
   });
 });
+
+test("at 375 px the UF table shows the % column without scrolling", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 900 });
+  await page.goto("/index.html");
+  const table = page.locator("#estados table");
+  await expect(table.locator("tbody tr").first()).toBeVisible();
+  const pct = table.getByRole("columnheader", { name: "%" });
+  const box = await pct.boundingBox();
+  expect(box && box.x + box.width).toBeLessThanOrEqual(375);
+});

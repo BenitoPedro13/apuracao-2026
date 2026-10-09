@@ -63,6 +63,37 @@ test("the cargo links are reachable by keyboard and switch the page", async ({ p
   await expect(page.locator("#composicao")).toContainText("deputados estaduais e distritais eleitos");
 });
 
+test("each office has a map by state; a label opens the race, Fechar closes it", async ({ page }) => {
+  for (const cargo of ["senado", "camara", "assembleias"]) {
+    await open(page, `cargo=${cargo}`);
+    const m = map(page);
+    await expect(m.locator("canvas").first()).toBeVisible();
+    await expect(m.locator(".map-label")).toHaveCount(27 - 8); // the 8 small states are call-outs
+    await expect(page.locator("#disputa")).toHaveCount(0);
+  }
+  await map(page).locator(".map-label", { hasText: "SP" }).click();
+  await expect(page).toHaveURL(/uf=sp/);
+  const race = page.locator("#disputa");
+  await expect(race.getByRole("combobox")).toHaveValue("sp");
+  await race.getByRole("button", { name: "Fechar" }).click();
+  await expect(page.locator("#disputa")).toHaveCount(0);
+});
+
+test("Câmara: the hemicycle's groups add to 513 and the 10 most voted are in vote order", async ({ page }) => {
+  await open(page, "cargo=camara");
+  await expect(page.locator("#composicao svg circle")).toHaveCount(513);
+  const legend = page.getByRole("list", { name: "Cadeiras por partido no gráfico" });
+  const seats = await legend.locator("li .font-mono").allTextContents();
+  expect(seats.reduce((t, s) => t + Number(s), 0)).toBe(513);
+  const top = page.locator("#destaques ol > li");
+  await expect(top).toHaveCount(10);
+  const votes = (await top.locator(".font-mono.text-sm").allTextContents()).map((v) => Number(v.replace(/\./g, "")));
+  expect(votes).toEqual([...votes].sort((a, b) => b - a));
+  await expect(top.first()).toContainText("Nikolas Ferreira");
+});
+
+const map = (page: Page) => page.locator("#mapa");
+
 for (const colorScheme of ["light", "dark"] as const) {
   for (const width of [375, 1440]) {
     test(`axe and no page scroll: Câmara + SP, ${colorScheme}, ${width} px`, async ({ page }) => {

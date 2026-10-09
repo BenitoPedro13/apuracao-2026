@@ -11,6 +11,7 @@ import { useSelectedUf, useShowExterior } from "@/hooks/use-url-state";
 import { pctNumber } from "@/lib/format";
 import { AREAS, areaName } from "@/lib/places";
 import { ABROAD } from "@apuracao/tse/codes";
+import type { Office } from "@apuracao/contracts";
 
 const COLUMNS: DataColumn<MunicipalityRowView>[] = [
   {
@@ -49,14 +50,26 @@ const COLUMNS: DataColumn<MunicipalityRowView>[] = [
 
 const DEFAULT_UF = "sp";
 
-/** The map's table alternative (invariant 7): one UF at a time, searchable, sortable. */
-export function MunicipalityTable() {
+/**
+ * The map's table alternative (invariant 7): one UF at a time, searchable, sortable. For
+ * the governor, `areas` are the UFs with a race and `fallbackUf` the one shown by default.
+ */
+export function MunicipalityTable({
+  office = "president",
+  areas: only,
+  fallbackUf = DEFAULT_UF,
+}: {
+  office?: Office;
+  areas?: readonly string[];
+  fallbackUf?: string;
+}) {
   const [selectedUf, setUf] = useSelectedUf();
   const [showExterior] = useShowExterior();
   const [search, setSearch] = useState("");
-  const uf = selectedUf ?? DEFAULT_UF;
-  const { data, error, isLoading } = useMunicipalityRows(uf, search);
-  const areas = showExterior ? AREAS : AREAS.filter((a) => a !== ABROAD);
+  const areas = only ?? (showExterior ? AREAS : AREAS.filter((a) => a !== ABROAD));
+  const uf = selectedUf && areas.includes(selectedUf) ? selectedUf : fallbackUf;
+  const { data, error, isLoading } = useMunicipalityRows(uf, search, office);
+  const officeName = office === "president" ? "presidente" : "governador";
 
   return (
     <div className="flex flex-col gap-3">
@@ -105,7 +118,7 @@ export function MunicipalityTable() {
           <DataTable
             rows={data}
             columns={COLUMNS}
-            caption={`Resultado para presidente nos municípios de ${areaName(uf)}`}
+            caption={`Resultado para ${officeName} nos municípios de ${areaName(uf)}`}
             rowId={(r) => r.mu}
             initialSort={[{ id: "name", desc: false }]}
           />

@@ -2,11 +2,13 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { MapIndexView, MapView, RESULT_STATUS_CODE } from "@apuracao/contracts";
+import { LegislativeBrView, LegislativeUfView, MapIndexView, MapView, MunicipalityView, RESULT_STATUS_CODE } from "@apuracao/contracts";
+import { senateElected, ufBenches } from "@/data/chambers";
 import { realView } from "../../test/real";
 import { GEO_FILE } from "./geo-file";
 import { decodeGeometry, GeoFile, WIDTH } from "./geometry";
-import { countedStep, leaderCounts, marginStep, styleFrame, tieCount } from "./style";
+import { countedStep, leaderCounts, marginStep, mixHex, styleFrame, tieCount } from "./style";
+import { benchCell, municipalOverlay, senateCell, styleCells } from "./uf-style";
 
 // On the committed geometry and the real published 1st-round frame (never hand-built).
 
@@ -113,5 +115,51 @@ describe("style", () => {
     const style = styleFrame("lider", f, geo.ufs, {});
     expect(style.failed).toEqual([10]);
     expect(style.tokenOf[10]).toMatch(/^(pt|pl)-/);
+  });
+});
+
+// --- The per-UF maps (TASK-visual-pass-2.md §5 item 1) ------------------------------------
+
+describe("per-UF map styles", () => {
+  const ufs = [...new Set(geo.ufs)].sort();
+  const senate = ufs.map((uf) => senateCell(uf, LegislativeUfView.parse(realView(`legislative/senate/${uf}`))));
+  const benches = ufBenches(LegislativeBrView.parse(realView("legislative/federal-deputy/br")));
+
+  it("fills every municipality with its UF's colour and splits exactly the mixed senate UFs", () => {
+    const cells = Object.fromEntries(senate.map((c) => [c.uf, c]));
+    const style = styleCells(geo, cells);
+    for (let i = 0; i < geo.count; i++) expect(style.tokenOf[i]).toBe(cells[geo.ufs[i]!]!.token);
+    const mixed = ufs.filter((uf) => {
+      const [a, b] = senateElected(LegislativeUfView.parse(realView(`legislative/senate/${uf}`)));
+      return a!.party !== b!.party;
+    });
+    expect(style.splits!.map((s) => s.uf).sort()).toEqual(mixed);
+    expect(cells.ba!.label).toBe("PT ×2");
+  });
+
+  it("splits a two-way tie for the largest bench and labels the seats", () => {
+    const ac = benchCell(benches.find((b) => b.uf === "ac")!);
+    expect([ac.token, ac.split]).toEqual(["party-pp-4", "party-uniao-4"]);
+    const sp = benchCell(benches.find((b) => b.uf === "sp")!);
+    expect([sp.token, sp.split, sp.label]).toEqual(["party-pl-4", undefined, "PL 19/70"]);
+  });
+
+  it("draws a selected UF by municipality and fades the others", () => {
+    const rj = MunicipalityView.parse(realView("municipalities/governor/rj"));
+    const overlay = municipalOverlay(geo, rj);
+    expect(overlay.tokenOf.size).toBe(92);
+    const cells = Object.fromEntries(ufs.map((uf) => [uf, { uf, token: "party-pl-4" as const, label: "", party: "PL", lines: [] }]));
+    const style = styleCells(geo, cells, overlay);
+    geo.ufs.forEach((uf, i) => {
+      if (uf === "rj") expect(style.tokenOf[i]).toBe(overlay.tokenOf.get(i));
+      else expect(style.tokenOf[i]).toBe("party-pl-1");
+    });
+    const first = [...overlay.tokenOf.keys()][0]!;
+    expect(overlay.describe(first)!.lines.join(" ")).toMatch(/lidera com \d+,\d+%/);
+  });
+
+  it("mixes a step the way CSS color-mix(in srgb) does", () => {
+    expect(mixHex("#c62828", "#ffffff", 1)).toBe("#c62828");
+    expect(mixHex("#000000", "#ffffff", 0.5)).toBe("#808080");
   });
 });

@@ -2,8 +2,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { LatestPointer, Manifest } from "@apuracao/contracts";
 
-// Real published files from the 1st round's final seed (copied from `.replay/real/pub`,
-// whose 114 view hashes equal the live bucket's, TASK-public-cdn.md §8.3). Never hand-built.
+// Real published files: the live bucket's 1st-round final (epoch 1t-final, seq 11468), each
+// object checked against its hash when copied (TASK-visual-pass-2.md §4). Never hand-built.
 
 export const REAL_DIR = join(import.meta.dirname, "real");
 export const readReal = (key: string) => readFileSync(join(REAL_DIR, key));

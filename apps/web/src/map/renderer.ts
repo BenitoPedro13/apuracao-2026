@@ -2,7 +2,7 @@ import { select, type Selection } from "d3-selection";
 import "d3-transition"; // adds selection.transition(), used for animated zooms
 import { zoom, zoomIdentity, type D3ZoomEvent, type ZoomBehavior, type ZoomTransform } from "d3-zoom";
 import { WIDTH, type Geometry } from "./geometry";
-import { HATCHED, type FillToken, type MapStyle } from "./style";
+import { HATCHED, mixHex, parsePartyToken, STEP_MIX, type FillToken, type MapStyle } from "./style";
 
 // The map's canvas (TASK-map.md §2.2): framework-free and imperative, owned by one React
 // leaf through an effect. Two stacked canvases: the base (fills and borders, redrawn on a
@@ -33,6 +33,9 @@ export interface MapEvents {
 
 interface Theme {
   fill: Map<FillToken, string>;
+  /** `--party-<key>` and `--panel`, for the per-UF maps' party steps. */
+  party(key: string): string;
+  panel: string;
   hatch: string;
   lineMunicipal: string;
   lineUf: string;
@@ -53,6 +56,8 @@ export class MapRenderer {
   private readonly sel: Selection<HTMLCanvasElement, unknown, null, undefined>;
   private bucketPaths: [FillToken, Path2D][] = [];
   private failedPath: Path2D | null = null;
+  private splits: { uf: string; token: FillToken }[] = [];
+  private readonly ufPaths = new Map<string, { path: Path2D; bbox: [number, number, number, number] }>();
   private theme: Theme | null = null;
   private fit: Fit = { s: 1, ox: 0, oy: 0, width: 0, height: 0 };
   private t: ZoomTransform = zoomIdentity;
@@ -63,6 +68,8 @@ export class MapRenderer {
   private hintAt = 0;
   private drawn = false;
   private styleKey = "";
+  /** A zoom asked for before the first resize: applied once the box has a size. */
+  private pendingUf: string | null = null;
 
   constructor(
     private readonly baseCanvas: HTMLCanvasElement,
@@ -120,8 +127,20 @@ export class MapRenderer {
     for (const p of ["pt", "pl", "other"] as const) for (const s of [1, 2, 3, 4] as const) fill.set(`${p}-${s}`, v(`${p}-${s}`));
     for (const s of [1, 2, 3, 4, 5] as const) fill.set(`counted-${s}`, v(`counted-${s}`));
     for (const t of ["tie", "empty", "waiting"] as const) fill.set(t, v(t));
+    // Named in full so the CSS build keeps the property (it drops names it never sees).
+    fill.set("none", cs.getPropertyValue("--map-none").trim() || "#888");
+    const party = new Map<string, string>();
     this.theme = {
       fill,
+      party: (key) => {
+        let c = party.get(key);
+        if (!c) {
+          c = cs.getPropertyValue(`--party-${key}`).trim() || cs.getPropertyValue("--party-other").trim() || "#888888";
+          party.set(key, c);
+        }
+        return c;
+      },
+      panel: cs.getPropertyValue("--panel").trim() || "#ffffff",
       hatch: v("hatch"),
       lineMunicipal: v("line-municipal"),
       lineUf: v("line-uf"),
@@ -144,9 +163,19 @@ export class MapRenderer {
     });
     this.failedPath = style.failed.length ? new Path2D() : null;
     for (const i of style.failed) this.failedPath!.addPath(this.paths[i]!);
+    this.splits = style.splits ?? [];
     this.draw();
     performance.measure(this.drawn ? "map:recolour" : "map:first-draw", "map:style-start");
     this.drawn = true;
+  }
+
+  private outline = true;
+
+  /** Whether the selected UF gets its outline (not when its municipalities are drawn). */
+  setOutline(on: boolean) {
+    if (on === this.outline) return;
+    this.outline = on;
+    this.drawOverlay();
   }
 
   setSelectedUf(uf: string | null) {
@@ -173,6 +202,11 @@ export class MapRenderer {
     this.zoomer.extent([[0, 0], [width, height]]).translateExtent([[0, 0], [width, height]]);
     this.events.onTransform(this.t, this.fit);
     this.draw();
+    if (this.pendingUf && width > 0) {
+      const uf = this.pendingUf;
+      this.pendingUf = null;
+      this.zoomToUf(uf);
+    }
   }
 
   zoomBy(factor: number) {
@@ -189,6 +223,10 @@ export class MapRenderer {
 
   /** Zoom so a UF fills ~85% of the box. */
   zoomToUf(uf: string) {
+    if (this.fit.width <= 0 || this.fit.height <= 0) {
+      this.pendingUf = uf;
+      return;
+    }
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
     this.geo.ufs.forEach((u, i) => {
       if (u !== uf) return;
@@ -241,12 +279,28 @@ export class MapRenderer {
 
     const hatch = this.hatchPattern(ctx, theme.hatch);
     for (const [token, path] of this.bucketPaths) {
-      ctx.fillStyle = theme.fill.get(token) ?? "#888";
+      ctx.fillStyle = this.colour(theme, token);
       ctx.fill(path);
       if (HATCHED.has(token) && hatch) {
         ctx.fillStyle = hatch;
         ctx.fill(path);
       }
+    }
+    // A UF in two colours: the second over the lower-right half of its box, clipped to it.
+    for (const { uf, token } of this.splits) {
+      const u = this.ufPath(uf);
+      if (!u) continue;
+      const [x0, y0, x1, y1] = u.bbox;
+      ctx.save();
+      ctx.clip(u.path);
+      ctx.beginPath();
+      ctx.moveTo(x1, y0);
+      ctx.lineTo(x1, y1);
+      ctx.lineTo(x0, y1);
+      ctx.closePath();
+      ctx.fillStyle = this.colour(theme, token);
+      ctx.fill();
+      ctx.restore();
     }
     if (this.failedPath && hatch) {
       ctx.fillStyle = hatch;
@@ -269,6 +323,45 @@ export class MapRenderer {
     this.drawOverlay();
   }
 
+  private colour(theme: Theme, token: FillToken): string {
+    const known = theme.fill.get(token);
+    if (known) return known;
+    const p = parsePartyToken(token);
+    if (!p) return "#888";
+    // The stylesheet is minified ("#fff"): let the canvas normalize both to #rrggbb first.
+    const c = mixHex(this.hex(theme.party(p.key)), this.hex(theme.panel), STEP_MIX[p.step]);
+    theme.fill.set(token, c);
+    return c;
+  }
+
+  private hex(colour: string): string {
+    this.hit.fillStyle = "#000000";
+    this.hit.fillStyle = colour;
+    return String(this.hit.fillStyle);
+  }
+
+  /** A UF's outline as one path, and its box, built on first use. */
+  private ufPath(uf: string) {
+    let u = this.ufPaths.get(uf);
+    if (!u) {
+      const path = new Path2D();
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      const b = this.geo.bbox;
+      this.geo.ufs.forEach((v, i) => {
+        if (v !== uf) return;
+        path.addPath(this.paths[i]!);
+        x0 = Math.min(x0, b[i * 4]!);
+        y0 = Math.min(y0, b[i * 4 + 1]!);
+        x1 = Math.max(x1, b[i * 4 + 2]!);
+        y1 = Math.max(y1, b[i * 4 + 3]!);
+      });
+      if (!Number.isFinite(x0)) return null;
+      u = { path, bbox: [x0, y0, x1, y1] };
+      this.ufPaths.set(uf, u);
+    }
+    return u;
+  }
+
   private drawOverlay() {
     const ctx = this.over;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -277,7 +370,7 @@ export class MapRenderer {
     const k = this.applyTransform(ctx);
     const px = this.dpr / k;
     ctx.lineJoin = "round";
-    if (this.selectedUf) {
+    if (this.selectedUf && this.outline) {
       ctx.strokeStyle = this.theme.selected;
       ctx.lineWidth = 2 * px;
       this.geo.ufs.forEach((u, i) => {

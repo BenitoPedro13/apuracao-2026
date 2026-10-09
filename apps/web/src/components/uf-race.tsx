@@ -1,7 +1,9 @@
 "use client";
 
 import type { LegislativeUfView } from "@apuracao/contracts";
+import { X } from "lucide-react";
 import { DataTable, type DataColumn } from "@/components/data-table";
+import { Button } from "@/components/ui/button";
 import { Calc, Num } from "@/components/num";
 import { UnitStatus } from "@/components/unit-status";
 import { ViewError } from "@/components/view-error";
@@ -140,6 +142,7 @@ export function UfRace() {
   if (!chamber) return null;
 
   const picker = (
+    <div className="flex flex-wrap items-center justify-between gap-2">
     <label className="flex items-center gap-2 text-sm">
       <span>Estado</span>
       <select
@@ -155,6 +158,11 @@ export function UfRace() {
         ))}
       </select>
     </label>
+    <Button variant="outline" size="sm" onClick={() => setUf(null)}>
+      <X aria-hidden />
+      Fechar
+    </Button>
+    </div>
   );
 
   const v = view.data;

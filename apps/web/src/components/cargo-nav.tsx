@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 
 const LABELS: Record<Cargo, string> = {
   presidente: "Presidente",
+  governador: "Governadores",
   senado: "Senado",
   camara: "Câmara",
   assembleias: "Assembleias",

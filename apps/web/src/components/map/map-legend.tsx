@@ -1,23 +1,53 @@
 import { Calc } from "@/components/num";
 import type { MapModel } from "@/hooks/use-map";
 import { formatInt } from "@/lib/format";
-import { partyKey, type FillToken, type MapMode } from "@/map/style";
+import { keyColor } from "@/lib/party";
+import type { LegendItem } from "@/map/uf-style";
+import { parsePartyToken, partyKey, STEP_MIX, type FillToken, type MapMode } from "@/map/style";
 
 // What each colour means, in words (invariant 7: colour is never the only carrier).
 
-export function Swatch({ token, failed = false }: { token: FillToken; failed?: boolean }) {
+/** A token's colour in CSS: the same mix the canvas computes (renderer.ts `colour`). */
+export function tokenColor(token: FillToken): string {
+  const p = parsePartyToken(token);
+  if (!p) return token === "none" ? "var(--map-none)" : `var(--map-${token})`;
+  return p.step === 4 ? keyColor(p.key) : `color-mix(in srgb, ${keyColor(p.key)} ${STEP_MIX[p.step] * 100}%, var(--panel))`;
+}
+
+export function Swatch({ token, split, failed = false }: { token: FillToken; split?: FillToken; failed?: boolean }) {
   const hatched = token === "waiting" || token === "tie" || failed;
   return (
     <span
       aria-hidden
       className="inline-block size-3 shrink-0 rounded-[3px] ring-1 ring-line ring-inset"
       style={{
-        backgroundColor: `var(--map-${token})`,
+        backgroundColor: tokenColor(token),
         backgroundImage: hatched
           ? "repeating-linear-gradient(-45deg, var(--map-hatch) 0 1.25px, transparent 1.25px 5px)"
-          : undefined,
+          : split
+            ? `linear-gradient(to bottom right, transparent 50%, ${tokenColor(split)} 50%)`
+            : undefined,
       }}
     />
+  );
+}
+
+/** The per-UF maps' legend: one swatch and its words per item, then the note. */
+export function UfLegend({ items, note }: { items: readonly LegendItem[]; note: string | null }) {
+  return (
+    <div className="flex flex-col gap-2 text-xs">
+      {items.length > 0 && (
+        <ul className="flex flex-wrap gap-x-3 gap-y-1.5">
+          {items.map((it) => (
+            <li key={`${it.token}${it.split ?? ""}${it.label}`} className="flex items-center gap-1.5">
+              <Swatch token={it.token} split={it.split} />
+              <span>{it.label}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {note && <p className="text-ink-2">{note}</p>}
+    </div>
   );
 }
 

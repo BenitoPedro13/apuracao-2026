@@ -21,8 +21,30 @@ export type FillToken =
   | "tie"
   | "empty"
   | "waiting"
-  | `counted-${1 | 2 | 3 | 4 | 5}`;
+  | "none"
+  | `counted-${1 | 2 | 3 | 4 | 5}`
+  | PartyFillToken;
 export const HATCHED: ReadonlySet<FillToken> = new Set(["waiting", "tie"]);
+
+/**
+ * Any party's colour at a step (TASK-visual-pass-2.md §2.2): `--party-<key>` mixed over
+ * `--panel` at 25/50/75/100%, for the per-UF maps. The president's map keeps its ramps.
+ */
+export type PartyFillToken = `party-${string}-${1 | 2 | 3 | 4}`;
+/** How much of the party colour each step mixes over the panel (evenly spaced to the eye). */
+export const STEP_MIX = { 1: 0.2, 2: 0.45, 3: 0.7, 4: 1 } as const;
+export const partyToken = (key: string, step: 1 | 2 | 3 | 4): PartyFillToken => `party-${key}-${step}`;
+export function parsePartyToken(token: string): { key: string; step: 1 | 2 | 3 | 4 } | null {
+  const m = /^party-([a-z]+)-([1-4])$/.exec(token);
+  return m ? { key: m[1]!, step: Number(m[2]) as 1 | 2 | 3 | 4 } : null;
+}
+
+/** A sRGB mix of two #rrggbb colours, `t` of `a` (what CSS color-mix(in srgb) computes). */
+export function mixHex(a: string, b: string, t: number): string {
+  const ch = (h: string, i: number) => parseInt(h.slice(1 + 2 * i, 3 + 2 * i), 16);
+  if (!/^#[0-9a-f]{6}$/i.test(a) || !/^#[0-9a-f]{6}$/i.test(b)) return a;
+  return `#${[0, 1, 2].map((i) => Math.round(ch(a, i) * t + ch(b, i) * (1 - t)).toString(16).padStart(2, "0")).join("")}`;
+}
 
 /** Margin breaks in basis points (the reference site's 10/25/45 points). */
 export const MARGIN_BREAKS = [1000, 2500, 4500] as const;
@@ -46,6 +68,8 @@ export interface MapStyle {
   failed: number[];
   /** Per municipality, its token (for the tooltip's swatch and tests). */
   tokenOf: FillToken[];
+  /** UFs drawn in a second colour over their lower-right half (two senators, a tied bench). */
+  splits?: { uf: string; token: FillToken }[];
 }
 
 const S = RESULT_STATUS_CODE;

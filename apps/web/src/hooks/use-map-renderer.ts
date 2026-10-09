@@ -29,6 +29,8 @@ export function useMapRenderer(
   /** `outline: false` zooms to the selected UF without outlining it (its municipalities are drawn). */
   sync: { style: MapStyle; styleKey: string; selectedUf: string | null; outline?: boolean },
   events: MapEvents,
+  /** false: no right gutter (a map without the small states' call-outs). */
+  gutter = true,
 ): MapControls {
   const renderer = useRef<MapRenderer | null>(null);
   const onHover = useEffectEvent(events.onHover);
@@ -58,7 +60,7 @@ export function useMapRenderer(
     r.setTheme();
     const ro = new ResizeObserver(([entry]) => {
       const { width, height } = entry!.contentRect;
-      r.resize(width, height, width < NARROW_PX ? 0 : CALLOUT_GUTTER_PX);
+      r.resize(width, height, !gutter || width < NARROW_PX ? 0 : CALLOUT_GUTTER_PX);
     });
     ro.observe(box);
     const onTheme = () => r.setTheme();
@@ -73,7 +75,7 @@ export function useMapRenderer(
       r.destroy();
       renderer.current = null;
     };
-  }, [refs.box, refs.base, refs.over, geo]);
+  }, [refs.box, refs.base, refs.over, geo, gutter]);
 
   // `geo` is in both lists so a new renderer gets the current colours and selection.
   useEffect(() => {

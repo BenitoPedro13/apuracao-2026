@@ -2,7 +2,10 @@
   "extends": "@apuracao/config/tsconfig/node.json",
   "compilerOptions": {
     "noEmit": true,
-    "erasableSyntaxOnly": true
+    "erasableSyntaxOnly": true,
+    "allowImportingTsExtensions": true
   },
-  "include": ["*.ts"]
+  "include": [
+    "*.ts"
+  ]
 }

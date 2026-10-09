@@ -1,7 +1,10 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { CargoNav } from "@/components/cargo-nav";
 import { CargoSwitch, LegislativeOnlyNote, PresidentOnly, RoundOffices } from "@/components/cargo-switch";
 import { ExteriorToggle } from "@/components/exterior-toggle";
+import { HistoryPage } from "@/components/history/history-page";
+import { ModeSwitch } from "@/components/history/mode-switch";
 import { GovernorSection } from "@/components/governors/governor-section";
 import { Headline } from "@/components/headline";
 import { LegislativeSection } from "@/components/legislative-section";
@@ -22,16 +25,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 // min-w-0, so wide content scrolls inside its panel, never the page.
 
 const Loading = ({ h = "h-40" }: { h?: string }) => <Skeleton className={h} />;
-
 export default function Home() {
-  return (
+  const live = (
     <>
-      <a
-        href="#conteudo"
-        className="sr-only z-50 rounded-md bg-panel px-3 py-2 focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
-      >
-        Pular para o conteúdo
-      </a>
       <header className="border-b border-line bg-panel">
         <div className="mx-auto flex w-full max-w-[96rem] flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2.5">
           <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
@@ -52,6 +48,9 @@ export default function Home() {
                 <ExteriorToggle />
               </PresidentOnly>
             </Suspense>
+            <Link href="/?historico" className="text-sm font-medium underline underline-offset-4">
+              Eleições anteriores
+            </Link>
             <PageActions />
           </div>
         </div>
@@ -115,6 +114,21 @@ export default function Home() {
           <p>Mapa: IBGE, Malha Municipal 2025, simplificada.</p>
         </div>
       </footer>
+    </>
+  );
+  return (
+    <>
+      <a
+        href="#conteudo"
+        className="sr-only z-50 rounded-md bg-panel px-3 py-2 focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
+      >
+        Pular para o conteúdo
+      </a>
+      {/* The live page is also the boundary's fallback, so its static HTML is unchanged;
+          ?historico swaps in the 1994–2022 archive on the client (TASK-historical-presidential.md §2.3). */}
+      <Suspense fallback={live}>
+        <ModeSwitch live={live} history={<HistoryPage />} />
+      </Suspense>
     </>
   );
 }

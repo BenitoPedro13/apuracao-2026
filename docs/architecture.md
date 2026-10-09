@@ -506,6 +506,31 @@ A governor map frame is deferred to the governor views (Phase 5): the renderer t
 - Analytics: **cookieless page counts (Umami)**, no ads, no consent banner needed
   `[VERIFY: reuse the user's existing Umami setup; Umami script on a cloudfront.net host]`.
 
+### 6.5 The presidential archive, 1994–2022 (`?historico`)
+
+Added 2026-10-09 (`docs/tasks/TASK-historical-presidential.md`, research 05). Static, off the
+live path: no recorder, broker or projector.
+
+- **Source:** the TSE's archive zips (`cdn.tse.jus.br/estatistica/sead/odsele/`), two per
+  year, captured by `scripts/capture-history.ts` into `.capture/odsele/` (sequential,
+  conditional GETs). Every distinct zip is kept under its sha256 and, user-run, archived
+  write-once and governance-locked to `hist/odsele/v1/sha256/<aa>/<sha256>.zip` in the raw
+  bucket (invariant 2). The TSE regenerates some of them; each also gets a content identity
+  without the generation stamp.
+- **Fold:** `packages/tse/src/odsele.ts` (header-keyed rows, the research 05 §3 quirks as named
+  rules) → `packages/views/src/history/` (`HistoryFold`: sums per round × municipality ×
+  candidate; `computeInsights`: one function per question) → `scripts/build-history.ts`,
+  which is deterministic and whose `--check` re-derives research 05's numbers independently.
+- **Published with the site**, content-addressed like the map geometry:
+  `apps/web/public/history/history.<sha8>.json` (rounds, national/UF/abroad/transit totals,
+  per-municipality insight arrays; 419 KB gzip) and one `history-mun-<uf>.<sha8>.json` per UF
+  (every TSE number per municipality and round; ≤ 214 KB gzip, loaded on the first search).
+  Contracts: `packages/contracts/src/views/history.ts`.
+- **Web:** `?historico` swaps the page for the archive on the client (the live page is the
+  Suspense fallback, so its static HTML is unchanged; the pointer isn't polled there).
+  Missing ≠ zero: a municipality that didn't exist in an election is `null` in the files and
+  hatched (`--map-absent`) on the maps.
+
 ---
 
 ## 7. Correctness and trust

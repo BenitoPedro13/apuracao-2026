@@ -13,7 +13,8 @@ export type PartyKey = "pt" | "pl" | "other";
 export const partyKey = (party: string): PartyKey => (party === "PT" ? "pt" : party === "PL" ? "pl" : "other");
 
 /**
- * Palette tokens: `--map-{token}` in globals.css. Hatched tokens are drawn as a fill plus a
+ * Palette tokens: `--map-{token}` in globals.css. `absent`: not a municipality in that
+ * election (the history maps, TASK-historical-presidential.md §2.3). Hatched tokens are drawn as a fill plus a
  * diagonal hatch, so a missing value never looks like a lighter colour (invariant 6).
  */
 export type FillToken =
@@ -22,9 +23,10 @@ export type FillToken =
   | "empty"
   | "waiting"
   | "none"
+  | "absent"
   | `counted-${1 | 2 | 3 | 4 | 5}`
   | PartyFillToken;
-export const HATCHED: ReadonlySet<FillToken> = new Set(["waiting", "tie"]);
+export const HATCHED: ReadonlySet<FillToken> = new Set(["waiting", "tie", "absent"]);
 
 /**
  * Any party's colour at a step (TASK-visual-pass-2.md §2.2): `--party-<key>` mixed over

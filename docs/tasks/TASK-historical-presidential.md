@@ -42,7 +42,7 @@ research 05 §6, and they become test expectations (§5).
 |---|---|---|---|---|
 | P1 | **Como a sua cidade votou desde 1994?** | "Itaquaquecetuba votou no vencedor nas 8 eleições." / "Votou mais no PT que o Brasil em 6 de 8." | municipality search (combobox), then a 14-round strip (winner, margin, turnout vs Brazil), electorate growth, and **"cidades que votam como a sua"** (nearest neighbours on the 8-election vector, often in another state) | results |
 | P2 | **Quem decidiu 2022?** (any year with a 2nd round) | "Lula venceu por 2.139.645 votos, menos que os 32,2 milhões que não foram votar." | diverging bars: net margin by UF; Nordeste vs rest; margin vs abstentions vs São Paulo city | results |
-| P3 | **Existem cidades que sempre acertam?** | "113 de 5.019 municípios votaram no vencedor em todas as 8 eleições, e 66 deles são mineiros." | map of hits 0–8 (sequential); list; "espelho do Brasil" ranking | results |
+| P3 | **Existem cidades que sempre acertam?** | "112 de 5.019 municípios votaram no vencedor em todas as 8 eleições, e 66 deles são mineiros." | map of hits 0–8 (sequential); list; "espelho do Brasil" ranking | results |
 | P4 | **O que aconteceu em 2006?** | "Lula ganhou duas vezes, com eleitores diferentes: a correlação entre o mapa de 2002 e o de 2006 é zero." | persistence line (r per pair), 2002 × 2006 scatter, the Guaribas story, flipped-municipality counts | results |
 | P5 | **De onde veio o eleitor de Bolsonaro?** | "Do mapa de Aécio: a correlação entre Aécio 2014 e Bolsonaro 2018 é 0,87; com Marina, 0,11." | two scatters side by side; rival-map persistence line | results |
 | P6 | **O Brasil está mais dividido?** | "Em 2022, só 22% dos eleitores viviam em cidades com vitória de 70/30, o menor índice da série. Em 2018 eram 38%." | line over years + margin map for the chosen year | results |
@@ -187,7 +187,7 @@ apps/web/public/history/<name>.<hash>.json  (committed, content-addressed, like 
    unless:
    - all 14 national rows of research 05 §5 match to the vote;
    - joins: the research 05 §4 table exactly;
-   - insights: 113 bellwethers (66 MG); r 2002→2006 = −0.013 ± 0.001; Aécio 2014 →
+   - insights: 112 bellwethers (66 MG; research 05 first said 113, see its §6.1); r 2002→2006 = −0.013 ± 0.001; Aécio 2014 →
      Bolsonaro 2018 r = 0.874; landslide shares 34.2 / 23.0 / 26.0 / 38.3 / 22.0%;
      2022 margin 2,139,645, abstentions 32,200,558; SP city 9,320,706 > 23 UFs; abroad
      47,469 → 695,355.
@@ -200,7 +200,7 @@ apps/web/public/history/<name>.<hash>.json  (committed, content-addressed, like 
    existia em 1994" on hover and in the table, hatched on the map, and appears in no sum.
 6. **Web:** `pnpm turbo run lint check-types test build`; e2e (Playwright): `?historico`
    renders P1–P10 with no network beyond the site; search "itaqua" finds Itaquaquecetuba
-   and shows "8 de 8"; `?ano=2006&turno=2` headline reads Lula 60,83% × Alckmin 39,17%;
+   and shows "8 de 8"; `?historico&ano=2006` shows Lula 58.295.042 votos, 60,8%;
    axe: 0 violations, light and dark; at 412 px no horizontal scroll; every chart has its table.
 7. **Size:** first load of `?historico` ≤ 150 KB of history JSON gzip (insights + index);
    the municipality file loads only on the first search.
@@ -210,3 +210,41 @@ apps/web/public/history/<name>.<hash>.json  (committed, content-addressed, like 
 The 2nd round is 2026-10-25. Recommendation: **land the additive parts now** (packages,
 scripts, capture; nothing on the live path) and **merge the `apps/web` mode switch after
 the 10-22 rehearsal or after 10-26**, so the night's page is not changed in its last week.
+
+## 7. Outcome (2026-10-09)
+
+Built and verified the same day. What differs from §2, and why:
+
+- **Year view:** built inside the archive page (`components/history/year-view.tsx`: national
+  result, the decisive round's winner per municipality on the map, a UF table) instead of
+  feeding the live panels through the live view contracts. Those contracts carry
+  2026-feed fields (TSE percentage strings, `idg`, signatures, sections counted) that have no
+  meaning for the archive. Faking them would have weakened the live contracts in their last
+  two weeks. `?historico&ano=YYYY` selects the year; the round is a local toggle.
+- **Per-municipality numbers are split per UF** (`history-mun-<uf>.<sha8>.json`, 27 files,
+  ≤ 214 KB gzip), loaded only after a search. One file would have been 1.36 MB gzip. The
+  questions page loads `history.<sha8>.json`, **419 KB gzip** (the §5.7 budget of 150 KB was
+  a guess: the per-municipality arrays the maps and scatters need are most of it).
+- **Two research numbers corrected** by the independent rebuild (research 05 §6): 112
+  bellwethers, not 113 (an exact tie had counted as a win), and the flips are 1,373 / 389 over
+  every municipality present in 2002 and 2022 (1,191 / 358 was over the 8-election universe).
+  Guaribas was 18.7% PT in 2002, not 12% (that was 1994/1998).
+- **New TSE quirks** found while building (research 05 §3): negative null totals abroad in
+  2006, voters of uninstalled sections, 38 exact ties.
+- **No S3 archive yet:** `capture-history.ts --bucket … --write` is a bucket write, so the
+  user runs it. Until then the zips live in `.capture/odsele/` (identical sha256 to the
+  research downloads, `samples/hist/SHA256SUMS-zips.txt`).
+- The live pointer is no longer polled on `?historico` (`app/providers.tsx`); the live page
+  is the Suspense fallback around the mode switch, so its static HTML is unchanged.
+
+Verification run:
+- `pnpm turbo run lint check-types test build`: 38/38 tasks.
+- `node scripts/build-history.ts --check`: "research 05 reproduced"; two builds,
+  identical sha256 for all 28 files.
+- `pnpm --filter @apuracao/web test:e2e`: 46/46, including `e2e/history.spec.ts` (every
+  question renders from the site's own files, accent-free search, year view, missing
+  municipality shown as "não era município", axe 0 violations light and dark, no horizontal
+  scroll at 412 px) and the unchanged live suites.
+- Screenshots reviewed at 1440 px light and 412 px dark; fixed: clipped scatter axis,
+  over-heavy highlight dots, negative-bar labels, a ✓/✗ for "votou no eleito" (not weight
+  alone), an empty-state line for the town search.

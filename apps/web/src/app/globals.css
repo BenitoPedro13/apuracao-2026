@@ -97,6 +97,7 @@
   --map-waiting: #e6eaec; /* no data / fetch failed: hatched */
   --map-tie: #ddd6c8; /* exact tie: warm neutral, hatched */
   --map-none: #f1f3f4; /* no race in this UF this round: flat, lighter than "empty" */
+  --map-absent: #f1f3f4; /* history: not a municipality in that election, hatched */
   --map-hatch: #8e9aa1;
   --map-line-municipal: rgb(255 255 255 / 0.6);
   --map-line-uf: #ffffff;
@@ -147,6 +148,7 @@
     --map-waiting: #222a2f;
     --map-tie: #3a3428;
     --map-none: #1b2124;
+    --map-absent: #1b2124;
     --map-hatch: #5d6a72;
     --map-line-municipal: rgb(14 18 20 / 0.55);
     --map-line-uf: #0e1214;
@@ -174,6 +176,11 @@
   text-decoration-color: var(--ink-2);
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
+}
+
+/* History maps' legend: "not a municipality in that election", hatched like the map. */
+.legend-absent {
+  background: repeating-linear-gradient(45deg, var(--map-hatch) 0 1px, var(--map-absent) 1px 4px);
 }
 
 /* The map's box: the country's aspect ratio plus the call-out gutter, from its container. */

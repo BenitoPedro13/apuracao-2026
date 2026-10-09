@@ -8,7 +8,9 @@
     "check-types": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
     "export-capture": "node export-capture.ts",
-    "replay": "node replay.ts"
+    "replay": "node replay.ts",
+    "capture-history": "node capture-history.ts",
+    "build-history": "node build-history.ts"
   },
   "devDependencies": {
     "@apuracao/config": "workspace:*",
@@ -22,6 +24,7 @@
     "@apuracao/fake-tse": "workspace:*",
     "@apuracao/projector": "workspace:*",
     "@apuracao/recorder": "workspace:*",
+    "@apuracao/s3kit": "workspace:*",
     "@apuracao/tse": "workspace:*",
     "@apuracao/views": "workspace:*",
     "@aws-sdk/client-s3": "^3.1147.0"

@@ -22,10 +22,15 @@ files the recorder captures since 2026-10-09 (`docs/tasks/TASK-legislative-archi
 Governadores (`?cargo=governador`: tiles, closest races, a map by state that turns into
 municipalities for the picked state) and a map by state for every legislative office, with
 the Câmara/Senado hemicycles, are `docs/tasks/TASK-visual-pass-2.md` (2026-10-09).
+**Eleições anteriores** (`?historico`): the presidential elections 1994–2022, municipality by
+municipality, from the TSE's archive files, organised as questions (your town, who decided,
+bellwethers, the 2006 realignment, where the 3rd candidates' votes go, …) with a year view
+(`?ano=`): `docs/tasks/TASK-historical-presidential.md` (2026-10-09).
 **Deadline:** 2nd round, Sunday 2026-10-25.
 
 - What we know about the data: [`docs/research/01-tse-results-feed.md`](docs/research/01-tse-results-feed.md),
-  [`docs/research/02-signatures-cache-and-map-mesh.md`](docs/research/02-signatures-cache-and-map-mesh.md)
+  [`docs/research/02-signatures-cache-and-map-mesh.md`](docs/research/02-signatures-cache-and-map-mesh.md),
+  and for 1994–2022 [`docs/research/05-historical-results.md`](docs/research/05-historical-results.md)
 - The system design: [`docs/architecture.md`](docs/architecture.md)
 - The build order to 2026-10-25: [`docs/tasks/TASK-implementation-plan.md`](docs/tasks/TASK-implementation-plan.md)
 - How to work in this repo: [`CLAUDE.md`](CLAUDE.md)
@@ -70,6 +75,8 @@ pnpm --filter @apuracao/web test:e2e               # Playwright on the build: TS
 pnpm --filter @apuracao/web perf:build && pnpm --filter @apuracao/web test:perf   # Fast 4G + 4× CPU, median of 3
 node scripts/deploy-web.ts [--dry-run]             # upload out/ to the public bucket (never data/, never deletes)
 node scripts/build-geometry.ts                     # rebuild the map geometry from the IBGE zip in data/ibge/ (output is committed)
+pnpm exec node scripts/capture-history.ts [--bucket <raw> [--write]]   # the TSE's 1994–2022 president zips → .capture/odsele/ (2 GB; S3 archive user-run)
+pnpm exec node scripts/build-history.ts --check     # → apps/web/public/history/ (committed); --check re-derives research 05's numbers
 pnpm exec node scripts/publish-epochs.ts --epoch 1t-final-2 --label "1º turno" [--replaces <old>] [--dry-run]   # the round selector's index
 # Ops scripts: `pnpm exec node`, so they run on the pinned Node 24.21.0 (tzdata 2026c, docs/tasks/TASK-tzdata-pin.md)
 ```

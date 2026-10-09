@@ -41,7 +41,8 @@ Every row carries `DT_GERACAO`/`HH_GERACAO`. The 2022 candidate file downloaded 
 on 2026-10-09 says `09/10/2026 03:16:47`; the 2022 detail file says `08/10/2026 03:17:17`;
 the 1994 detail file `12/02/2026`. `Last-Modified` agrees (2022 candidates:
 `Fri, 09 Oct 2026 07:18:46 GMT`). So **the 2022 files are rebuilt nightly**, around 03:17
-Brasília, at least during this election period, and older years from time to time
+Brasília, at least during this election period, and older years from time to time (a
+second capture at ~06:00 BRT the same day got the same 16 sha256: no rebuild in between)
 `[VERIFY: download 2022 again on 10-10 and diff; does anything but DT/HH_GERACAO change?]`.
 
 Consequence for invariant 2: a byte-identity (SHA-256 of the zip) changes every night with
@@ -60,6 +61,10 @@ corrected a count".
 | 2010 | 27 pseudo-municipalities `99901`–`99927`, UF `VT`, one per capital: **transit votes** (voto em trânsito) | count them in national totals; never draw or rank them as municipalities | `detalhe_votacao_munzona_2010_BR.VT.csv` |
 | 1998+ | `ZZ` = abroad: one "municipality" per city abroad (1994 has none) | in national totals; a separate "abroad" view; not on the map | — |
 | 2002 | `91065` BOA ESPERANÇA DO NORTE (MT) votes as a municipality; absent from 2026's TSE config; the IBGE 2025 mesh has `5101837` Boa Esperança do Norte | shown as "not a municipality in this election" for every other year `[VERIFY: TSE history of 91065 vs IBGE 5101837 (created 2000, annulled, re-installed 2025?)]` | `votacao_candidato_munzona_2002_BR.91065.csv` |
+
+| 2006 | `QT_TOTAL_VOTOS_NULOS` is **−2** on 32 rows abroad; `QT_VOTOS_NULOS` holds the count (Tailândia, 2nd round: 14 valid + 0 blank + 1 null = turnout 15) | a negative total is "not given": null = max(total, `QT_VOTOS_NULOS`) | `detalhe_votacao_munzona_2006_BR.negative-nulos.csv` |
+| 2022 (any year) | `QT_APTOS` = `QT_COMPARECIMENTO` + `QT_ABSTENCOES` + **`QT_ELEITORES_SECOES_NAO_INSTALADAS`** (Conakry: 2 voters, a section never installed, 0 turnout, 0 abstentions) | carry the uninstalled-section voters as their own count | `detalhe_votacao_munzona_2022_BR.head.csv` |
+| all | **38 exact ties** for first place over all rounds, in municipalities, cities abroad and one 2010 transit capital (e.g. TSE `64556`, 2022 2nd round, 5,529 × 5,529; `37230`, 1994, 3,960 × 3,960) | a tie has no winner: never a "hit", drawn as its own state | — |
 
 ## 4. Joining to the map
 
@@ -107,16 +112,20 @@ Each finding below is a candidate panel. Exact method: the scratch scripts summa
 the task doc §2.3. Shares are over valid votes.
 
 1. **Bellwethers ("does my town pick the president?").** Of the 5,019 municipalities that
-   voted in all 8 elections, **113** voted for the national winner in the decisive round
-   every time. **66 of them are in Minas Gerais.** Largest: Itaquaquecetuba (SP, 251k
+   voted in all 8 elections, **112** voted for the national winner in the decisive round
+   every time. **66 of them are in Minas Gerais.** (First written as 113: the scratch script
+   counted an exact tie as a win; there are 38 exact ties in the archive, e.g. TSE `64556`
+   in the 2022 2nd round, 5,529 × 5,529.) Largest: Itaquaquecetuba (SP, 251k
    voters), Ribeirão das Neves (MG), Itapevi (SP), Ferraz de Vasconcelos (SP), Teófilo
    Otoni (MG). The "mirror of Brazil" (smallest mean gap between its winner share and the
    national one): Guarani d'Oeste (SP), 2.3 p.p.; among cities over 200k voters,
    Itaquaquecetuba (4.0) and Carapicuíba (4.1).
 2. **The 2002 → 2006 break.** Correlation of municipal PT share between consecutive
    elections: 0.74, 0.63, **−0.01 (2002→2006)**, 0.84, 0.89, 0.89, 0.92. Guaribas (PI):
-   12% → 89%. 1,191 municipalities went from more than 5 p.p. below the national PT share
-   (2002) to more than 5 above (2022); 358 went the other way.
+   18.7% (2002) → 89.1% (2006); it was 12% in 1994 and 1998. Of the municipalities that
+   voted in both 2002 and 2022, 1,373 went from more than 5 p.p. below the national PT share
+   to more than 5 above; 389 went the other way. (First written as 1,191/358, counted only
+   over the 5,019 that voted in all 8 elections; the page uses both-years, 2026-10-09.)
 3. **The anti-PT map is older than Bolsonaro.** Correlation of the main rival's share:
    Aécio 2014 → Bolsonaro 2018 = **0.87** in the 1st round, **0.93** in the 2nd; Marina 2014 →
    Bolsonaro 2018 = 0.11. The rival map was redrawn once, in 2006 (Serra 2002 → Alckmin 2006 =

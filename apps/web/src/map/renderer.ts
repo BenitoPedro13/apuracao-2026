@@ -129,6 +129,7 @@ export class MapRenderer {
     for (const t of ["tie", "empty", "waiting"] as const) fill.set(t, v(t));
     // Named in full so the CSS build keeps the property (it drops names it never sees).
     fill.set("none", cs.getPropertyValue("--map-none").trim() || "#888");
+    fill.set("absent", cs.getPropertyValue("--map-absent").trim() || "#888");
     const party = new Map<string, string>();
     this.theme = {
       fill,

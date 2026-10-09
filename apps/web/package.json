@@ -21,6 +21,7 @@
     "@tanstack/react-query": "5.104.1",
     "@tanstack/react-table": "^9.2.6",
     "class-variance-authority": "^0.7.1",
+    "cmdk": "^1.1.1",
     "cn": "^0.4.0",
     "d3-selection": "3.0.0",
     "d3-transition": "3.0.1",

@@ -35,11 +35,17 @@ municipality map (`TASK-map.md`) and its visual identity (`TASK-visual-identity.
 `legislative/*` views for the `6259` epoch only, and the page switches office with `?cargo=`.
 Governadores and a map by state on every office, with an eight-party palette and the
 hemicycles, are `TASK-visual-pass-2.md` (2026-10-09).
+**Eleições anteriores** (`?historico`, `TASK-historical-presidential.md`, 2026-10-09): the
+presidential elections 1994–2022 from the TSE's archive zips (research 05), built by
+`scripts/build-history.ts` into files shipped with the site, as question panels plus a year
+view. Off the live path: no recorder, broker or projector involved.
 CI (`.github/workflows/ci.yml`) runs on every push to `main`. Read in this order:
 
 1. `docs/research/01-tse-results-feed.md` and `02-signatures-cache-and-map-mesh.md`: the
    verified facts about the TSE feed (URLs, file shapes, caching, signed `.jws` siblings,
    codes) and the IBGE map mesh, with real captured files in `docs/research/samples/`.
+   `05-historical-results.md`: the 1994–2022 archive files and their quirks (samples in
+   `samples/hist/`).
 2. `docs/architecture.md`: the system design (capacity numbers, components, storage keys,
    contracts, failure modes, testing, cost, ADRs, decisions).
 3. `docs/tasks/TASK-implementation-plan.md`: the phased build order to 2026-10-25, the
@@ -108,6 +114,12 @@ verify against each tool's current docs before installing (§2.0).
   (pnpm downloads it; scripts run on it), CI and both Dockerfiles, and the projector
   refuses any other tzdata (`assertTzdata`). A bare `node …` uses the system Node: run ops
   scripts as `pnpm exec node …`. Bump the four places and `TZDATA` together.
+- **TSE archive CSVs (2026-10-09, research 05 §3):** parse by header name (column order
+  changes by year); 1998 keeps votes in `QT_VOTOS_NOMINAIS_VALIDOS`; 2018/2022 drop leading
+  zeros from `CD_MUNICIPIO`; 2006 abroad has negative `QT_TOTAL_VOTOS_NULOS`. Each rule is a
+  named function in `packages/tse/src/odsele.ts` with a test on a real excerpt.
+- **Scripts importing scripts:** `scripts/tsconfig.json` has `allowImportingTsExtensions`
+  (Node runs them by type stripping, so sibling imports end in `.ts`).
 - **Browser bundles:** import `@apuracao/tse/codes`, not `@apuracao/tse` (its index pulls the
   5,757-entry time-zone table). `contracts` and `tse` are `sideEffects: false`.
 

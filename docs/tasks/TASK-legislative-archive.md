@@ -227,5 +227,7 @@ over, the web part ships with the Câmara only and the Senado and Assembleias fo
   candidates first. Elected rows read by weight and the word "Eleito", never colour alone;
   RJ's "Anulado sub judice" candidate shows the TSE's `dvt` in text. At 375 px the tables
   scroll inside their panel, the page doesn't.
-- **Left for the user:** the re-seed of `1t-final` to the public bucket, `publish-epochs`,
-  and the web deploy (commands in the hand-over).
+- **Published (user, 2026-10-09):** the re-seed of `1t-final` gave the same manifest as the
+  local rebuild (`d6e1a951…`, `seq` 11,468; 198 views, 0 rejected, 56/56 sums equal, 101 s);
+  `epochs.json` now pins `1t-final` to it; the web deploy's `index.html` equals the build
+  byte for byte. `legislative.spec.ts` 7/7 against the live bucket.

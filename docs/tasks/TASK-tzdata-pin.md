@@ -134,7 +134,7 @@ isn't redeployed for this (it doesn't render times); its next deploy picks up th
 
 ## 6. Outcome (2026-10-09)
 
-Code side done; the re-seed (§2.3) waits for the user.
+Done. CI green on `a868a17`.
 
 1. `pnpm turbo run lint check-types test build`: 38/38 on Node 24.21.0 via `devEngines`
    (`pnpm exec node -p process.versions.tz` → `2026c`; bare `node` is still 24.19.0). The
@@ -145,5 +145,14 @@ Code side done; the re-seed (§2.3) waits for the user.
    --out <dir>` against the real raw log: `seq` 11,468 in 45.5 s; **all 198 view hashes
    equal the Fargate `smoke-1t` manifest's**; vs `1t-final` only
    `municipalities/president/zz` differs, Rabat `2026-10-05T12:51:05+00:00`.
-4. Pending (user): the re-seed and `epochs.json`.
+4. The re-seed, run by the user: `rebuild … --epoch 1t-final-2 --promote` in 43.7 s,
+   `seq` 11,468, 198 views put, 0 rejected, reconcile 56/56 sums equal, pointer `moved`,
+   manifest `9bf5506c…`; `publish-epochs --replaces 1t-final` wrote one entry. Live:
+   `latest.json` → `1t-final-2`; `epochs.json` → `[1t-final-2, "1º turno"]`; the live
+   manifest's views equal the Fargate `smoke-1t`'s, Rabat `+00:00`. Headless Chrome on
+   `index.html` and on `index.html?turno=1t-final`: both load the 1st round, no page error.
+   Found on the way, **not from this task**: on the S3 REST endpoint (plan B) the office
+   links are `/?cargo=…`; clicking works (client-side), but the address bar then holds a
+   URL that answers **403** on reload or when shared, and Next's prefetch of `/` logs 403s.
+   CloudFront's default root object fixes it; until then it needs its own small fix.
 5. `docker build` of the projector image: `node -p` inside → `24.21.0 2026c`.

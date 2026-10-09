@@ -70,7 +70,8 @@ pnpm --filter @apuracao/web test:e2e               # Playwright on the build: TS
 pnpm --filter @apuracao/web perf:build && pnpm --filter @apuracao/web test:perf   # Fast 4G + 4× CPU, median of 3
 node scripts/deploy-web.ts [--dry-run]             # upload out/ to the public bucket (never data/, never deletes)
 node scripts/build-geometry.ts                     # rebuild the map geometry from the IBGE zip in data/ibge/ (output is committed)
-node scripts/publish-epochs.ts --epoch 1t-final --label "1º turno" [--dry-run]   # the round selector's index
+pnpm exec node scripts/publish-epochs.ts --epoch 1t-final-2 --label "1º turno" [--replaces <old>] [--dry-run]   # the round selector's index
+# Ops scripts: `pnpm exec node`, so they run on the pinned Node 24.21.0 (tzdata 2026c, docs/tasks/TASK-tzdata-pin.md)
 ```
 
 Layout: `apps/{recorder,projector,fake-tse,web}`, `packages/{contracts,tse,views,s3kit,config}`,

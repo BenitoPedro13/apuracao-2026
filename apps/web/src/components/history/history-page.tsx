@@ -5,6 +5,7 @@ import { Question } from "./question";
 import { Abroad, Bellwethers, Divided, InvalidVotes, Realignment, RivalMap, Transfers, WhoDecided, Weight } from "./questions";
 import { YearView } from "./year-view";
 import { YourTown } from "./your-town";
+import { StudioCredit } from "@/components/studio-credit";
 
 // The presidential archive, 1994–2022 (TASK-historical-presidential.md): questions first,
 // each with its answer, chart, method and table. Server component: the frame and the
@@ -138,6 +139,7 @@ export function HistoryPage() {
             ver como.
           </p>
           <p>Mapa: IBGE, Malha Municipal 2025. Municípios criados depois de uma eleição aparecem hachurados nela, nunca como zero.</p>
+          <StudioCredit />
         </div>
       </footer>
     </>

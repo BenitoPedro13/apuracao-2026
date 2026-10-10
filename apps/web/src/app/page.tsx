@@ -17,6 +17,7 @@ import { RoundSelector } from "@/components/round-selector";
 import { StatusLine } from "@/components/status-line";
 import { UfTable } from "@/components/uf-table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StudioCredit } from "@/components/studio-credit";
 
 // The static frame is rendered at build time; every live part is a client leaf reading the
 // published views (TASK-web-shell-and-data-hooks.md §2.4). The leaves read the query string
@@ -112,6 +113,7 @@ export default function Home() {
             regiões, vantagens e contagens de municípios); passe o mouse sobre um deles para ver como.
           </p>
           <p>Mapa: IBGE, Malha Municipal 2025, simplificada.</p>
+          <StudioCredit />
         </div>
       </footer>
     </>

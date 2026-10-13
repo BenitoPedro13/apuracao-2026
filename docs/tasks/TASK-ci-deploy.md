@@ -176,4 +176,8 @@ recreated under the same name doesn't inherit the trust. The `cdk diff` is that 
   the direct call said `allowed` and the loop was rerun under bash.)
 - **Gate inert without the variable:** the push before `AWS_DEPLOY_ROLE_ARN` existed ran
   `check` green and `deploy` skipped.
-- **Kill switch:** see the next run in this section's last line.
+- **Kill switch:** with `DEPLOY_WEB=off` set, a push to `main` ran `check` green and `deploy`
+  skipped; the variable was then deleted and automatic deploys resumed.
+- Not exercised live: the freeze window (its edges were checked with GNU `date`; the real
+  window starts 2026-10-24) and the `pull_request` case (the job's `if` excludes it and the
+  role's trust only accepts `refs/heads/main`).

@@ -39,4 +39,4 @@ new ProjectorStack(app, 'ProjectorStack', {
   running: app.node.tryGetContext('projector') === 'on',
 });
 // The role the CI deploys the site with (TASK-ci-deploy.md). Free; deployed once by hand.
-new CiStack(app, 'CiStack', { env, repo: 'BenitoPedro13/apuracao-2026' });
+new CiStack(app, 'CiStack', { env, subjectPrefix: 'repo:BenitoPedro13@74267887/apuracao-2026@1408788185' });

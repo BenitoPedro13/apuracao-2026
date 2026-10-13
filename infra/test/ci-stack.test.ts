@@ -5,7 +5,7 @@ import { CiStack } from '../lib/ci-stack';
 
 const env = { account: '111111111111', region: 'sa-east-1' };
 const app = new cdk.App();
-const t = Template.fromStack(new CiStack(app, 'Ci', { env, repo: 'owner/repo' }));
+const t = Template.fromStack(new CiStack(app, 'Ci', { env, subjectPrefix: 'repo:owner@1/repo@2' }));
 
 type Statement = { Effect: string; Action: string | string[]; Resource: unknown };
 const statements = (): Statement[] =>
@@ -29,7 +29,7 @@ test('only a run on main of this repository can assume the role, for one hour', 
           Condition: {
             StringEquals: {
               'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com',
-              'token.actions.githubusercontent.com:sub': 'repo:owner/repo:ref:refs/heads/main',
+              'token.actions.githubusercontent.com:sub': 'repo:owner@1/repo@2:ref:refs/heads/main',
             },
           },
         }),

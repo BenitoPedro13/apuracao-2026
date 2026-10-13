@@ -147,3 +147,16 @@ template has no `GetStackOutput`); `cdk synth CiStack`; the whole gate green.
 **One-time setup, done by the user 2026-10-13:** `cdk deploy CiStack` (created the provider,
 the role and its policy; nothing else changed) and `gh variable set AWS_DEPLOY_ROLE_ARN`. The
 first push to `main` after that is §5 item 4.
+
+### 6.1 First live run (2026-10-13): refused, and why
+
+The first push after the setup failed in `configure-aws-credentials`:
+`Not authorized to perform sts:AssumeRoleWithWebIdentity`, every retry. The trust condition
+(§2.1) assumed the OIDC subject `repo:BenitoPedro13/apuracao-2026:ref:refs/heads/main`, but this
+repository uses **immutable subjects** (`gh api repos/…/actions/oidc/customization/sub` →
+`use_immutable_subject: true`, `sub_claim_prefix: repo:BenitoPedro13@74267887/apuracao-2026@1408788185`),
+so its tokens carry the owner and repository IDs. §2.1's `[VERIFY]` covered the provider, not
+the subject format; the local tests could only check the template against my own assumption.
+Fix: `CiStack` takes the whole `subjectPrefix` (with how to read it in a comment) and the role
+trusts `<prefix>:ref:refs/heads/main`. The IDs are the safer form: a repository deleted and
+recreated under the same name doesn't inherit the trust. The `cdk diff` is that one condition.

@@ -9,8 +9,14 @@ import { Construct } from 'constructs';
  * trades GitHub's OIDC token for a one-hour session on this role.
  */
 export interface CiStackProps extends cdk.StackProps {
-  /** "owner/name" of the repository allowed to assume the role. */
-  repo: string;
+  /**
+   * The repository's OIDC subject prefix: `repo:<owner>@<owner id>/<name>@<repo id>` when the
+   * repository uses immutable subjects (GitHub's default for new repositories), else
+   * `repo:<owner>/<name>`. Read it with `gh api repos/<owner>/<name>/actions/oidc/customization/sub`
+   * (`sub_claim_prefix`). With IDs, a repository recreated under the same name doesn't inherit
+   * the trust.
+   */
+  subjectPrefix: string;
 }
 
 export class CiStack extends cdk.Stack {
@@ -30,7 +36,8 @@ export class CiStack extends cdk.Stack {
       clientIds: ['sts.amazonaws.com'],
     });
 
-    // Only a run on `main` of this repository: pull requests (forks included) and other
+    // Only a run on `main` of this repository (the first version assumed `repo:owner/name`; this
+    // repository's tokens carry the immutable form and were refused, 2026-10-13): pull requests (forks included) and other
     // branches carry a different `sub` and can't assume it. Jobs must not use a GitHub
     // `environment:`, which would change the subject.
     this.role = new iam.Role(this, 'WebDeploy', {
@@ -40,7 +47,7 @@ export class CiStack extends cdk.Stack {
       assumedBy: new iam.OpenIdConnectPrincipal(provider, {
         StringEquals: {
           'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com',
-          'token.actions.githubusercontent.com:sub': `repo:${props.repo}:ref:refs/heads/main`,
+          'token.actions.githubusercontent.com:sub': `${props.subjectPrefix}:ref:refs/heads/main`,
         },
       }),
     });

@@ -160,3 +160,20 @@ the subject format; the local tests could only check the template against my own
 Fix: `CiStack` takes the whole `subjectPrefix` (with how to read it in a comment) and the role
 trusts `<prefix>:ref:refs/heads/main`. The IDs are the safer form: a repository deleted and
 recreated under the same name doesn't inherit the trust. The `cdk diff` is that one condition.
+
+### 6.2 Verified live (2026-10-13)
+
+- **Run after the fix:** `check` and `deploy` green. The log shows `Authenticated as … :GitHubActions`,
+  the dry run, then the real run: `53 immutable + 21 short-lived objects`, the pointer's ETag
+  `fa06d220…` unchanged before and after. `index.html` and `historico.html` answer with
+  `Last-Modified` 22:15:32 GMT (the run's upload); the archive's `og:image` is live.
+- **What the role can and can't do** (`iam simulate-principal-policy` on the deployed role, read-only):
+  `PutObject` on `index.html`, `historico/opengraph-image` and `_next/static/*` allowed;
+  `GetObject` on `data/v1/latest.json` allowed; `PutObject` under `data/` **explicitDeny**;
+  `GetObject` on any other `data/` key, `DeleteObject`, `ListBucket` and `PutObject` on the raw
+  bucket all denied. (My first attempt looped in zsh, which doesn't word-split unquoted
+  variables, so every case came back `implicitDeny`, `PutObject` on `index.html` included;
+  the direct call said `allowed` and the loop was rerun under bash.)
+- **Gate inert without the variable:** the push before `AWS_DEPLOY_ROLE_ARN` existed ran
+  `check` green and `deploy` skipped.
+- **Kill switch:** see the next run in this section's last line.

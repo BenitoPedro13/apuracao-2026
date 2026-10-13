@@ -38,7 +38,9 @@ hemicycles, are `TASK-visual-pass-2.md` (2026-10-09).
 **Eleições anteriores** (`?historico`, `TASK-historical-presidential.md`, 2026-10-09): the
 presidential elections 1994–2022 from the TSE's archive zips (research 05), built by
 `scripts/build-history.ts` into files shipped with the site, as question panels plus a year
-view. Off the live path: no recorder, broker or projector involved.
+view. Off the live path: no recorder, broker or projector involved. It is its own page,
+`/historico.html`, with its own tags and Open Graph image (`TASK-history-share-image.md`,
+2026-10-13); `?historico` on `index.html` still works for links already shared.
 CI (`.github/workflows/ci.yml`) runs on every push to `main`. Read in this order:
 
 1. `docs/research/01-tse-results-feed.md` and `02-signatures-cache-and-map-mesh.md`: the

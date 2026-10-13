@@ -139,7 +139,10 @@ apps/web/public/history/<name>.<hash>.json  (committed, content-addressed, like 
 - **Estimating individual vote transfers (ecological inference models):** produces numbers
   that look like counts but are model outputs. That's against the spirit of invariant 1.
   P7 shows real sums and a labelled association only.
-- **`/historico` as a route:** impossible on plan B (no index documents).
+- **`/historico` as a route:** impossible on plan B (no index documents). *Corrected
+  2026-10-13 (`TASK-history-share-image.md`):* a directory URL is, a **file** route isn't:
+  `/historico.html` is served like `/index.html`. The archive now has that page (own tags and
+  Open Graph image); `?historico` on `index.html` still works for links already shared.
 - **A chart library (Recharts, visx):** five simple forms, all on fixed scales. The repo
   draws its charts by hand. Rejected until a form needs one.
 

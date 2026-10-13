@@ -39,9 +39,10 @@ const TYPES: Record<string, string> = {
   '.png': 'image/png',
   '.xml': 'application/xml; charset=utf-8',
 };
-// Files the export writes without an extension (TASK-share-metadata.md §2.3).
-const BY_KEY: Record<string, string> = { 'opengraph-image': 'image/png' };
-const typeOf = (key: string): string | undefined => BY_KEY[key] ?? TYPES[extname(key)];
+// Files the export writes without an extension: the Open Graph images, one per page that has
+// its own (TASK-share-metadata.md §2.3, TASK-history-share-image.md §2.3).
+const typeOf = (key: string): string | undefined =>
+  /(^|\/)opengraph-image$/.test(key) ? 'image/png' : TYPES[extname(key)];
 const IMMUTABLE = 'public, max-age=31536000, immutable';
 const SHORT = 'public, max-age=60';
 

@@ -1,5 +1,4 @@
 import { Suspense, type ReactNode } from "react";
-import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Question } from "./question";
 import { Abroad, Bellwethers, Divided, InvalidVotes, Realignment, RivalMap, Transfers, WhoDecided, Weight } from "./questions";
@@ -91,15 +90,17 @@ export function HistoryPage() {
       <header className="border-b border-line bg-panel">
         <div className="mx-auto flex w-full max-w-[72rem] flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2.5">
           <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
-            <Link href="/" className="text-lg font-bold tracking-tight underline-offset-4 hover:underline">
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- a full load, so the address bar holds a URL the bucket serves (TASK-history-share-image.md §2.1) */}
+            <a href="/index.html" className="text-lg font-bold tracking-tight underline-offset-4 hover:underline">
               Apuração 2026
-            </Link>
+            </a>
             <span aria-hidden className="h-5 w-px self-center bg-line" />
             <span className="text-sm font-medium">Eleições presidenciais, 1994–2022</span>
           </div>
-          <Link href="/" className="text-sm font-medium underline underline-offset-4">
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- a full load, so the address bar holds a URL the bucket serves (TASK-history-share-image.md §2.1) */}
+          <a href="/index.html" className="text-sm font-medium underline underline-offset-4">
             Voltar à apuração de 2026
-          </Link>
+          </a>
         </div>
       </header>
 

@@ -58,7 +58,7 @@ on the first build).
   are cached far longer than a count lasts; see §2.1. It would also put an image renderer on
   the projector's path.
 - **One image per office:** one HTML file serves every `?cargo=`; crawlers would only ever
-  see one.
+  see one. (The archive got its own file and image later: `TASK-history-share-image.md`.)
 - **Candidate faces or numbers:** partisan in a preview, and photos are unlicensed.
 
 ## 3. Why

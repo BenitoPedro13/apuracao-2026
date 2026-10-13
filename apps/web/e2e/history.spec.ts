@@ -4,7 +4,7 @@ import { expect, test, type Page } from "@playwright/test";
 // The presidential archive page (TASK-historical-presidential.md §5 item 6), on the built
 // export. Its data ships with the site, so nothing here reads the bucket.
 
-const PAGE = "/index.html?historico";
+const PAGE = "/historico.html";
 
 const QUESTIONS = [
   "Como a sua cidade votou desde 1994?",
@@ -90,5 +90,30 @@ test("the live page links to the archive and is unchanged without ?historico", a
   await page.goto("/index.html");
   await expect(page.getByRole("heading", { name: "Apuração 2026", level: 1 })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Oito eleições para presidente, município por município" })).toHaveCount(0);
-  await expect(page.getByRole("link", { name: "Eleições anteriores" })).toHaveAttribute("href", "/?historico");
+  await expect(page.getByRole("link", { name: "Eleições anteriores" })).toHaveAttribute("href", "/historico.html");
+});
+
+test("links shared before the archive had its own page still open it", async ({ page }) => {
+  await open(page, "/index.html?historico");
+  await expect(page.getByRole("link", { name: "Voltar à apuração de 2026" })).toHaveAttribute("href", "/index.html");
+});
+
+test("share tags: the archive has its own title, canonical and image, the live page keeps the home's", async ({ page, request }) => {
+  const meta = (key: string) => page.locator(`meta[property="${key}"], meta[name="${key}"]`).first().getAttribute("content");
+  await page.goto(PAGE);
+  const image = (await meta("og:image"))!;
+  expect(image).toMatch(/^https:\/\/.+\/historico\/opengraph-image\?[0-9a-f]+$/);
+  expect([await meta("og:image:width"), await meta("og:image:height")]).toEqual(["1200", "630"]);
+  expect(await meta("og:image:alt")).toContain("1994 a 2022");
+  expect(await meta("og:title")).toBe("Eleições anteriores · Apuração 2026");
+  expect(await meta("twitter:card")).toBe("summary_large_image");
+  expect(await page.locator('link[rel="canonical"]').getAttribute("href")).toMatch(/\/historico\.html$/);
+  const res = await request.get("/historico/opengraph-image");
+  expect(res.status()).toBe(200);
+  expect((await res.body()).subarray(1, 4).toString()).toBe("PNG");
+
+  await page.goto("/index.html");
+  expect(await meta("og:title")).toBe("Apuração 2026");
+  expect(await meta("og:image")).toMatch(/\/opengraph-image\?[0-9a-f]+$/);
+  expect(await meta("og:image")).not.toContain("/historico/");
 });

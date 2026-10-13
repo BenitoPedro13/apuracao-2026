@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import Link from "next/link";
 import { CargoNav } from "@/components/cargo-nav";
 import { CargoSwitch, LegislativeOnlyNote, PresidentOnly, RoundOffices } from "@/components/cargo-switch";
 import { ExteriorToggle } from "@/components/exterior-toggle";
@@ -18,6 +17,7 @@ import { StatusLine } from "@/components/status-line";
 import { UfTable } from "@/components/uf-table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StudioCredit } from "@/components/studio-credit";
+import { PointerPoller } from "./providers";
 
 // The static frame is rendered at build time; every live part is a client leaf reading the
 // published views (TASK-web-shell-and-data-hooks.md §2.4). The leaves read the query string
@@ -49,9 +49,11 @@ export default function Home() {
                 <ExteriorToggle />
               </PresidentOnly>
             </Suspense>
-            <Link href="/?historico" className="text-sm font-medium underline underline-offset-4">
+            {/* A plain anchor: the archive's own file (TASK-history-share-image.md §2.1), so the
+                address bar holds a URL the bucket can serve. */}
+            <a href="/historico.html" className="text-sm font-medium underline underline-offset-4">
               Eleições anteriores
-            </Link>
+            </a>
             <PageActions />
           </div>
         </div>
@@ -128,6 +130,10 @@ export default function Home() {
       </a>
       {/* The live page is also the boundary's fallback, so its static HTML is unchanged;
           ?historico swaps in the 1994–2022 archive on the client (TASK-historical-presidential.md §2.3). */}
+      {/* The live pointer is polled on the live page only (the archive never changes). */}
+      <Suspense>
+        <PointerPoller />
+      </Suspense>
       <Suspense fallback={live}>
         <ModeSwitch live={live} history={<HistoryPage />} />
       </Suspense>

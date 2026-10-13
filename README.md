@@ -21,7 +21,7 @@ actually observed: a gap in the record is shown as a gap.
 | Presidente | `/` | Headline (leader, %, votes, gap), UF and municipality tables, regions, turnout, blank/null votes, freshness, and a municipality map |
 | Governadores | `?cargo=governador` | Tiles, the closest races, a map by state that opens into municipalities |
 | Senado, Câmara, Assembleias | `?cargo=…` | A 1st-round archive from the 81 signed UF files, with hemicycles for the Câmara and Senado |
-| Eleições anteriores | `?historico` / `?ano=` | Presidential elections 1994–2022, municipality by municipality, organised as questions: your town, who decided, bellwethers, the 2006 realignment, where third candidates' votes went |
+| Eleições anteriores | `/historico.html` (`?ano=`; `?historico` on `index.html` still works) | Presidential elections 1994–2022, municipality by municipality, organised as questions: your town, who decided, bellwethers, the 2006 realignment, where third candidates' votes went |
 
 ## Highlights
 

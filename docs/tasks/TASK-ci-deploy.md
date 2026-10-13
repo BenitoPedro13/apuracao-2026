@@ -144,5 +144,6 @@ Built as planned, with these differences (each found while building):
 Verified: `actionlint` clean; `infra` tests 17/17 (the trust is exactly the `main` subject,
 the allowed actions are exactly `s3:PutObject` + `s3:GetObject`, the deny covers `data/*`, the
 template has no `GetStackOutput`); `cdk synth CiStack`; the whole gate green.
-**Still to do, by the user, once:** `cdk deploy CiStack`, then set `AWS_DEPLOY_ROLE_ARN`
-(`infra/README.md`). Then the first push to `main` is §5 item 4.
+**One-time setup, done by the user 2026-10-13:** `cdk deploy CiStack` (created the provider,
+the role and its policy; nothing else changed) and `gh variable set AWS_DEPLOY_ROLE_ARN`. The
+first push to `main` after that is §5 item 4.

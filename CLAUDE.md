@@ -41,7 +41,10 @@ presidential elections 1994–2022 from the TSE's archive zips (research 05), bu
 view. Off the live path: no recorder, broker or projector involved. It is its own page,
 `/historico.html`, with its own tags and Open Graph image (`TASK-history-share-image.md`,
 2026-10-13); `?historico` on `index.html` still works for links already shared.
-CI (`.github/workflows/ci.yml`) runs on every push to `main`. Read in this order:
+CI (`.github/workflows/ci.yml`) runs on every push to `main`, and its `deploy` job then
+publishes the site to the public bucket over a GitHub OIDC role (`TASK-ci-deploy.md`,
+2026-10-13; frozen 10-24 → 10-26 12:00 BRT, kill switch `DEPLOY_WEB=off`). Only the site:
+`publish-epochs.ts`, the CDK stacks and the images stay hand-run. Read in this order:
 
 1. `docs/research/01-tse-results-feed.md` and `02-signatures-cache-and-map-mesh.md`: the
    verified facts about the TSE feed (URLs, file shapes, caching, signed `.jws` siblings,

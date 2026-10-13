@@ -819,8 +819,16 @@ do the same for ~$10 more, and was dropped for cost.
   every push. On `main`: build ARM images to ECR, `cdk deploy`. The web app is built with
   `next build` (static export) and synced to the public bucket. Hashed assets go first, then
   HTML, then a CloudFront invalidation of `/index.html` and `/*.html` only.
+  *Built so far (`TASK-ci-deploy.md`, 2026-10-13):* only the web app deploys from CI. The
+  `deploy` job runs after `check` is green on `main`, ships the artifact `check` built, and
+  assumes the OIDC role `apuracao26-web-deploy` (`infra/lib/ci-stack.ts`: `PutObject` on the
+  public bucket, read of the pointer, explicit deny under `data/`, trust pinned to
+  `refs/heads/main`). The images, `cdk deploy` and `publish-epochs.ts` stay hand-run. No
+  CloudFront invalidation yet: plan B has no distribution.
 - **Freeze rule:** no deploy between 2026-10-24 00:00 and 2026-10-26 12:00 BRT except via
   the runbook.
+  The CI `deploy` job enforces it (a `freeze` step; inside the window it publishes nothing and
+  stays green); `DEPLOY_WEB=off` is the manual kill switch for any other time.
 
 ---
 

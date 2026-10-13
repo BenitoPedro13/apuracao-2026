@@ -30,6 +30,9 @@ pnpm --filter @apuracao/infra exec cdk synth BudgetStack
 pnpm --filter @apuracao/infra exec cdk bootstrap aws://<account>/sa-east-1
 ALERT_EMAIL=you@example.com pnpm --filter @apuracao/infra exec cdk deploy BudgetStack
 ALERT_EMAIL=… pnpm --filter @apuracao/infra exec cdk deploy PublicStack
+ALERT_EMAIL=… pnpm --filter @apuracao/infra exec cdk deploy CiStack   # once: the OIDC role the CI deploys the site with
+gh variable set AWS_DEPLOY_ROLE_ARN --body <WebDeployRoleArn from the CiStack output>   # once
+gh variable set DEPLOY_WEB --body off      # kill switch: no automatic site deploys (--body on to resume)
 ALERT_EMAIL=… pnpm --filter @apuracao/infra exec cdk deploy ProjectorStack -c projector=on   # from 10-18
 ALERT_EMAIL=… pnpm --filter @apuracao/infra exec cdk deploy ProjectorStack -c projector=on -c promote=true   # when 6258 appears
 

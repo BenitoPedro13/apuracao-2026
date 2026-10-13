@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Re-run a deploy by hand from the Actions tab (runs `check` first, then `deploy`).
+  workflow_dispatch:
 
 jobs:
   check:
@@ -17,3 +19,69 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm turbo run lint check-types test build
+      # The deploy ships exactly this build, not a second one (TASK-ci-deploy.md §2.2).
+      - uses: actions/upload-artifact@v7
+        with:
+          name: web-out
+          path: apps/web/out
+          retention-days: 1
+          if-no-files-found: error
+
+  # Publishes the site to the public bucket (scripts/deploy-web.ts) after `check` is green on
+  # main. Only the site: the election's own views (publish-epochs.ts), the CDK stacks and the
+  # recorder/projector stay hand-run. Kill switch: set the repository variable DEPLOY_WEB=off
+  # (`gh variable set DEPLOY_WEB --body off`) to freeze the live site without a commit.
+  # Inert until the variable AWS_DEPLOY_ROLE_ARN is set (infra/README.md). The role's trust is pinned to refs/heads/main of this repository, and a job-level
+  # `environment:` would change the OIDC subject: don't add one.
+  deploy:
+    needs: check
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && vars.DEPLOY_WEB != 'off' && vars.AWS_DEPLOY_ROLE_ARN != ''
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    concurrency:
+      group: deploy-web
+      cancel-in-progress: false
+    steps:
+      # architecture.md §10.4: no deploy from 2026-10-24 00:00 to 2026-10-26 12:00 BRT (UTC-3, no
+      # DST) except via the runbook. Inside the window the job succeeds without publishing, so a
+      # push doesn't turn CI red; the later steps are skipped.
+      - id: freeze
+        run: |
+          now=$(date -u +%s)
+          from=$(date -u -d '2026-10-24T00:00:00-03:00' +%s)
+          until=$(date -u -d '2026-10-26T12:00:00-03:00' +%s)
+          if [ "$now" -ge "$from" ] && [ "$now" -lt "$until" ]; then
+            echo "frozen=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Deploy freeze (2026-10-24 to 2026-10-26 12:00 BRT): nothing published."
+          fi
+      - if: steps.freeze.outputs.frozen != 'true'
+        uses: actions/checkout@v5
+      - if: steps.freeze.outputs.frozen != 'true'
+        uses: pnpm/action-setup@v5
+      - if: steps.freeze.outputs.frozen != 'true'
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24.21.0
+          cache: pnpm
+      - if: steps.freeze.outputs.frozen != 'true'
+        run: pnpm install --frozen-lockfile
+      # The script imports @apuracao/contracts, which is consumed from dist/.
+      - if: steps.freeze.outputs.frozen != 'true'
+        run: pnpm turbo run build --filter=@apuracao/contracts
+      - if: steps.freeze.outputs.frozen != 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: web-out
+          path: apps/web/out
+      - if: steps.freeze.outputs.frozen != 'true'
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: sa-east-1
+      # The dry run fails on a file with no content type before anything is uploaded.
+      - if: steps.freeze.outputs.frozen != 'true'
+        run: pnpm exec node scripts/deploy-web.ts --dry-run
+      - if: steps.freeze.outputs.frozen != 'true'
+        run: pnpm exec node scripts/deploy-web.ts

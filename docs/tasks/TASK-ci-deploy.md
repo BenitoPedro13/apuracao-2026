@@ -114,3 +114,35 @@ Cost: ~1 hour, $0 (OIDC and the role are free; Actions minutes are a few per pus
 5. Negative: a push to a branch or a pull request doesn't start `deploy`; with
    `DEPLOY_WEB=off` a push to `main` skips it; the role refuses a `PutObject` under `data/`
    (`aws s3api put-object` with the assumed role in a one-off check).
+
+## 6. Outcome (2026-10-13, built and verified locally; the one-time AWS setup is the user's)
+
+Built as planned, with these differences (each found while building):
+
+- **The freeze rule is enforced, not only the kill switch.** `architecture.md` §10.4 already
+  said "no deploy between 2026-10-24 00:00 and 2026-10-26 12:00 BRT except via the runbook",
+  and §2.2 would have let CI ignore it. The `deploy` job has a `freeze` step; inside the window
+  the later steps are skipped and the job stays green (bounds checked at the second on both
+  edges with GNU `date`). `workflow_dispatch` is frozen too: inside the window the runbook is
+  the hand-run script.
+- **The job is inert until `AWS_DEPLOY_ROLE_ARN` is set** (`vars.AWS_DEPLOY_ROLE_ARN != ''`
+  in the job's `if`), so pushing this commit doesn't turn CI red before the role exists.
+- **The pointer is `data/v1/latest.json`**, not the `data/pointer*` I first wrote: the role's
+  only read is that exact key (a test pins it to the contracts' `POINTER_KEY` value's path).
+- **`CiStack` doesn't depend on `PublicStack`:** the bucket is referenced by name
+  (`apuracao26-pub-<account>`); a reference made CDK add a cross-stack output to `PublicStack`,
+  which would have touched the stack that serves the site on `cdk deploy CiStack`.
+- **`PutObject` is granted explicitly**, not with `grantPut()` (which adds retention,
+  legal-hold and tagging actions the script doesn't use).
+- **Install:** the job runs the full `pnpm install --frozen-lockfile` plus
+  `turbo run build --filter=@apuracao/contracts` (the script imports it from `dist/`), not a
+  filtered install. No provider existed in the account (`aws iam list-open-id-connect-providers`
+  returned an empty list), so the stack creates it (`OidcProviderNative`, no Lambda).
+- Action majors checked against their latest releases: `configure-aws-credentials@v6`,
+  `upload-artifact@v7`, `download-artifact@v8`; the file's older `@v5` ones are unchanged.
+
+Verified: `actionlint` clean; `infra` tests 17/17 (the trust is exactly the `main` subject,
+the allowed actions are exactly `s3:PutObject` + `s3:GetObject`, the deny covers `data/*`, the
+template has no `GetStackOutput`); `cdk synth CiStack`; the whole gate green.
+**Still to do, by the user, once:** `cdk deploy CiStack`, then set `AWS_DEPLOY_ROLE_ARN`
+(`infra/README.md`). Then the first push to `main` is §5 item 4.

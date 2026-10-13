@@ -89,6 +89,7 @@ pnpm --filter @apuracao/web build                           # → apps/web/out (
 pnpm --filter @apuracao/web test:e2e                        # Playwright on the build: TSE numbers, polling, states, axe, keyboard
 pnpm --filter @apuracao/web perf:build && pnpm --filter @apuracao/web test:perf   # Fast 4G + 4× CPU, median of 3
 node scripts/deploy-web.ts [--dry-run]                      # upload out/ to the public bucket (never data/, never deletes)
+# (CI runs it after every green push to main; see docs/tasks/TASK-ci-deploy.md)
 ```
 
 ### Replaying the 1st round

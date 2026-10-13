@@ -7,7 +7,9 @@
 // bucket root would remove the published data. Old hashed assets stay; they're tiny and a
 // page cached for 60 s may still ask for them. Checks the pointer's ETag before and after.
 //
-//   pnpm --filter @apuracao/web build && aws login && node scripts/deploy-web.ts [--dry-run]
+// CI runs it after every green push to main (.github/workflows/ci.yml `deploy`, TASK-ci-deploy.md),
+// with the one-hour OIDC role of infra/lib/ci-stack.ts. By hand:
+//   pnpm --filter @apuracao/web build && aws login && pnpm exec node scripts/deploy-web.ts [--dry-run]
 import { readdirSync, readFileSync } from 'node:fs';
 import { extname, join, relative, sep } from 'node:path';
 import { gzipSync } from 'node:zlib';

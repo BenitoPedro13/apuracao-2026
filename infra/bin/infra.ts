@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import * as cdk from 'aws-cdk-lib/core';
 import { BudgetStack } from '../lib/budget-stack';
+import { CiStack } from '../lib/ci-stack';
 import { ProjectorStack } from '../lib/projector-stack';
 import { PublicStack } from '../lib/public-stack';
 import { RawStack } from '../lib/raw-stack';
@@ -37,3 +38,5 @@ new ProjectorStack(app, 'ProjectorStack', {
   promote: app.node.tryGetContext('promote') === 'true',
   running: app.node.tryGetContext('projector') === 'on',
 });
+// The role the CI deploys the site with (TASK-ci-deploy.md). Free; deployed once by hand.
+new CiStack(app, 'CiStack', { env, repo: 'BenitoPedro13/apuracao-2026' });

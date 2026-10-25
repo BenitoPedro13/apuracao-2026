@@ -44,9 +44,22 @@ export function healthKey(o: Observation): string {
 
 const HEALTH: Record<Observation['kind'], Health['kind']> = { version: 'ok', recovered: 'ok', error: 'error', absent: 'absent' };
 
-/** Would `candidate` replace `current` as the accepted version of a path? */
-function wins(candidate: Omit<Accepted, 'data'>, current: Accepted | undefined): boolean {
+/** The TSE's generation instant (dg + hg) of a result file, when it has one. */
+function generatedMs(data: FileData | undefined): number | undefined {
+  const at = data && 'generatedAt' in data ? Date.parse(data.generatedAt) : NaN;
+  return Number.isNaN(at) ? undefined : at;
+}
+
+/**
+ * Would `candidate` replace `current` as the accepted version of a path? The newer
+ * generation instant wins first: on the 2nd-round night the TSE published a 17:06 file
+ * with a *lower* idg than its 16:46 one (3948414 < 3951063), so idg alone is not an order.
+ */
+function wins(candidate: Omit<Accepted, 'data'>, candidateData: FileData, current: Accepted | undefined): boolean {
   if (!current) return true;
+  const a = generatedMs(candidateData);
+  const b = generatedMs(current.data);
+  if (a !== undefined && b !== undefined && a !== b) return a > b;
   if (candidate.idg !== current.idg) return candidate.idg > current.idg;
   if (candidate.sha256 === current.sha256) return false;
   // Same idg, different bytes (anomaly, §4.4): keep the earliest seen; sha breaks a tie.
@@ -63,6 +76,9 @@ export function needsBlob(state: ViewState, o: Observation, cfg: ViewsConfig): b
   const cur = state.paths[o.path]?.accepted;
   if (!cur) return true;
   if (cur.sha256 === o.sha256) return false;
+  const seen = o.tseGeneratedAt ? Date.parse(o.tseGeneratedAt) : NaN;
+  const held = generatedMs(cur.data);
+  if (!Number.isNaN(seen) && held !== undefined && seen !== held) return seen > held;
   return o.idg === undefined || !/^\d+$/.test(o.idg) || Number(o.idg) >= cur.idg;
 }
 
@@ -99,7 +115,7 @@ export function fold(state: ViewState, o: Observation, cfg: ViewsConfig, prepare
     if (!prepared.ok) return { changed, rejected: prepared.reason };
     if (prepared.sha256 !== o.sha256) return { changed, rejected: 'blob sha256 does not match the observation' };
     const candidate = { idg: prepared.idg, sha256: prepared.sha256, fetchedAt: o.fetchedAt };
-    if (wins(candidate, entry.accepted)) {
+    if (wins(candidate, prepared.data, entry.accepted)) {
       entry.accepted = { ...candidate, data: prepared.data };
       changed = true;
     }

@@ -247,6 +247,20 @@ describe('acceptance and fetch health', () => {
     expect(needsBlob(a, older.o, CFG)).toBe(false);
   });
 
+  test('a newer generation instant wins even with a lower idg (the 2nd-round night), in either order', () => {
+    const { o, p } = brInput();
+    if (!p.ok || !('generatedAt' in p.data)) throw new Error('unreachable');
+    // As on 2026-10-25: the 17:06 file came with a lower idg than the 16:46 one.
+    const at = new Date(Date.parse(p.data.generatedAt) + 20 * 60_000).toISOString();
+    const newer = {
+      o: { ...o, sha256: 'c'.repeat(64), idg: String(p.idg - 1), tseGeneratedAt: at, fetchedAt: '2026-10-06T00:00:00.000Z' },
+      p: { ...p, sha256: 'c'.repeat(64), idg: p.idg - 1, data: { ...p.data, generatedAt: at } },
+    };
+    expect(needsBlob(foldAll([{ o, p }]), newer.o, CFG)).toBe(true);
+    expect(foldAll([{ o, p }, newer]).paths[BR]!.accepted!.sha256).toBe(newer.o.sha256);
+    expect(foldAll([newer, { o, p }]).paths[BR]!.accepted!.sha256).toBe(newer.o.sha256);
+  });
+
   test('same idg, different bytes: the earliest fetched wins, in either order', () => {
     const { o, p } = brInput();
     const later = { o: { ...o, sha256: 'b'.repeat(64), fetchedAt: '2026-10-06T00:00:00.000Z' }, p: { ...p, sha256: 'b'.repeat(64) } };

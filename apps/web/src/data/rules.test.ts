@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { EpochsIndex, ResultView } from "@apuracao/contracts";
 import { pointer, realView } from "../../test/real";
 import type { PointerSnapshot } from "./queries";
-import { AMBER_AFTER_MS, byVotes, difference, freshness, hasNumbers, RED_AFTER_MS, firstRoundRef, resolveRounds } from "./rules";
+import { AMBER_AFTER_MS, byVotes, difference, earlyCount, freshness, hasNumbers, marginShift, RED_AFTER_MS, firstRoundRef, resolveRounds, tseQuiet } from "./rules";
 
 const br = ResultView.parse(realView("result/president/br"));
 
@@ -29,6 +29,40 @@ describe("headline rules on the real 1st-round national view", () => {
   it("has no difference without valid votes (missing is not zero)", () => {
     const [first, second] = byVotes(br.candidates);
     expect(difference(first!, second!, 0)).toBeNull();
+  });
+});
+
+describe("election-night notes (TASK-night-copy-and-shift.md)", () => {
+  const counting = { ...br, status: "counting" as const };
+  const gen = Date.parse(br.tse!.generatedAt);
+
+  it("says the TSE is quiet only after 3 min, only while counting and our pipeline is ok", () => {
+    expect(tseQuiet("ok", "counting", br.tse!.generatedAt, gen + AMBER_AFTER_MS - 1)).toBeNull();
+    expect(tseQuiet("ok", "counting", br.tse!.generatedAt, gen + AMBER_AFTER_MS)).toBe(br.tse!.generatedAt);
+    expect(tseQuiet("ok", "final", br.tse!.generatedAt, gen + RED_AFTER_MS)).toBeNull();
+    expect(tseQuiet("amber", "counting", br.tse!.generatedAt, gen + RED_AFTER_MS)).toBeNull();
+    expect(tseQuiet("ok", "counting", undefined, gen + RED_AFTER_MS)).toBeNull();
+  });
+
+  it("flags a count under 1% of sections, and nothing else", () => {
+    const at = (raw: string) => ({ ...counting, sections: { ...counting.sections!, countedPct: { raw } } });
+    expect(earlyCount(at("0,24"))).toBe(true);
+    expect(earlyCount(at("1,00"))).toBe(false);
+    expect(earlyCount(br)).toBe(false); // final
+  });
+
+  it("measures the margin's move between rounds by candidate number, in points", () => {
+    // The 1st round's real Lula 45,16 / Flávio 47,03 against the 2nd round's 17:06 file
+    // (Lula 57,66 / Flávio 42,34): (57,66 − 42,34) − (45,16 − 47,03) = 17,19 toward Lula.
+    const round2 = {
+      ...counting,
+      candidates: br.candidates.map((c) => ({ ...c, pct: { raw: c.n === "13" ? "57,66" : c.n === "22" ? "42,34" : c.pct.raw } })),
+    };
+    expect(marginShift("13", "22", br, round2)).toBe(17.19);
+    expect(marginShift("22", "13", br, round2)).toBe(-17.19);
+    expect(marginShift("13", "22", br, br)).toBe(0);
+    expect(marginShift("13", "22", br, { ...round2, status: "no_sections" })).toBeNull();
+    expect(marginShift("13", "99", br, round2)).toBeNull();
   });
 });
 

@@ -7,6 +7,7 @@ import { UnitStatus } from "@/components/unit-status";
 import { UrnaNumber } from "@/components/urna-number";
 import { ViewError } from "@/components/view-error";
 import { Skeleton } from "@/components/ui/skeleton";
+import { earlyCount } from "@/data/rules";
 import { useHeadline } from "@/hooks/use-headline";
 import { useSelectedRound } from "@/hooks/use-data";
 import { displayName, formatBp, formatInt, formatTsePct, pctNumber } from "@/lib/format";
@@ -53,6 +54,11 @@ export function Headline({
         <UnitStatus status={view.status} countedPct={view.sections?.countedPct} failingSince={view.failingSince} />
       </div>
       {note && <p className="-mt-3 text-xs text-ink-2">{note}</p>}
+      {earlyCount(view) && (
+        <p className="rounded-md bg-warn-bg px-3 py-2 text-sm font-medium text-warn">
+          Ainda é cedo: menos de 1% das seções apuradas.
+        </p>
+      )}
       {error && <ViewError what={what} error={error} stale />}
 
       {!first || !second ? (

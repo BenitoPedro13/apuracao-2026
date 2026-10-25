@@ -171,3 +171,24 @@ export function useLegislativeUfs(office: LegislativeOffice, ufs: readonly strin
     };
   });
 }
+
+/** The 1st round's result views for several areas (TASK-night-copy-and-shift.md §2.3). */
+export function useFirstRoundResults(office: Office, areas: readonly string[]): ViewState<ResultView>[] {
+  const manifest = useFirstRoundManifest();
+  const results = useQueries({
+    queries: areas.map((area) => {
+      const name = `result/${office}/${area}`;
+      const sha = manifest.data?.views[name];
+      return { ...viewQuery(name, sha ?? "", ResultView), enabled: !!sha };
+    }),
+  });
+  return results.map((q, i) => {
+    const absent = !!manifest.data && !manifest.data.views[`result/${office}/${areas[i]}`];
+    return {
+      data: q.data,
+      error: q.error ?? (q.data ? null : manifest.error),
+      isLoading: !absent && q.data === undefined && !q.error && !manifest.error,
+      absent,
+    };
+  });
+}

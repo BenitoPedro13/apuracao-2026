@@ -12,6 +12,7 @@ import { MunicipalityTable } from "@/components/municipality-table";
 import { PageActions } from "@/components/page-actions";
 import { Panel } from "@/components/panel";
 import { RegionsPanel } from "@/components/regions-panel";
+import { SinceFirstRound } from "@/components/since-first-round";
 import { RoundSelector } from "@/components/round-selector";
 import { StatusLine } from "@/components/status-line";
 import { UfTable } from "@/components/uf-table";
@@ -86,6 +87,8 @@ export default function Home() {
                 <RegionsPanel />
               </Suspense>
             </Panel>
+
+            <SinceFirstRound className="min-w-0" />
 
             <div className="grid min-w-0 grid-cols-1 gap-3 lg:col-span-2 xl:col-span-3 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
               <Panel id="estados" title="Por estado" className="min-w-0">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { freshness, type Freshness } from "@/data/rules";
+import { freshness, tseQuiet, type Freshness } from "@/data/rules";
 import { usePointer, useResult, useSelectedRound } from "./use-data";
 
 /** The clock, re-read every `intervalMs`: an Effect synchronizing with an external system. */
@@ -18,6 +18,8 @@ export interface FreshnessState extends Freshness {
   refreshedAt: string;
   /** The TSE's own totalization time of the national file; null before it's published. */
   tseTotalizedAt: string | null;
+  /** The TSE's national file unchanged for 3+ min while counting: since when (TASK-night-copy-and-shift.md). */
+  tseQuietSince: string | null;
   /** The last pointer fetch failed (the shown data is the last good one). */
   pointerError: Error | null;
 }
@@ -39,6 +41,7 @@ export function useFreshness(): FreshnessState | null {
     ...f,
     refreshedAt: snap.pointer.refreshedAt,
     tseTotalizedAt: national.data?.tse?.totalizedAt ?? null,
+    tseQuietSince: tseQuiet(f.level, national.data?.status, national.data?.tse?.generatedAt, snap.serverNow + (now - snap.localNow)),
     pointerError: pointer.error,
   };
 }

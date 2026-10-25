@@ -84,6 +84,43 @@ export function freshness(
   return { level, ageMs, recorderAgeMs, reason };
 }
 
+/**
+ * The TSE's own pause (TASK-night-copy-and-shift.md §2.1): while counting, its national file
+ * hasn't been regenerated for AMBER_AFTER_MS. Returns since when, or null.
+ */
+export function tseQuiet(level: FreshnessLevel, status: ResultStatus | undefined, generatedAt: string | undefined, serverNow: number): string | null {
+  if (level !== "ok" || status !== "counting" || !generatedAt) return null;
+  return serverNow - Date.parse(generatedAt) >= AMBER_AFTER_MS ? generatedAt : null;
+}
+
+/** Under 1% of sections counted (TASK-night-copy-and-shift.md §2.2). */
+export function earlyCount(view: Pick<ResultView, "status" | "sections">): boolean {
+  if (view.status !== "counting" || !view.sections) return false;
+  return Number(view.sections.countedPct.raw.replace(",", ".")) < 1;
+}
+
+/**
+ * How the margin between the 2nd round's two candidates moved since the 1st round, in
+ * percentage points of valid votes, from the TSE's own percentages (TASK-night-copy-and-shift.md
+ * §2.3). Positive: toward `first`. null without numbers in either round.
+ */
+export function marginShift(
+  first: string,
+  second: string,
+  round1: Pick<ResultView, "status" | "votes" | "candidates">,
+  round2: Pick<ResultView, "status" | "votes" | "candidates">,
+): number | null {
+  if (!hasNumbers(round1) || !hasNumbers(round2)) return null;
+  const pct = (v: Pick<ResultView, "candidates">, n: string) => {
+    const c = v.candidates.find((x) => x.n === n);
+    return c ? Number(c.pct.raw.replace(",", ".")) : null;
+  };
+  const [a1, b1, a2, b2] = [pct(round1, first), pct(round1, second), pct(round2, first), pct(round2, second)];
+  if (a1 === null || b1 === null || a2 === null || b2 === null) return null;
+  // In hundredths, so 0,1 + 0,2 adds up exactly.
+  return (Math.round(a2 * 100) - Math.round(b2 * 100) - (Math.round(a1 * 100) - Math.round(b1 * 100))) / 100;
+}
+
 // --- Rounds (TASK-web-shell-and-data-hooks.md §2.3) -------------------------------------
 
 export interface Round {

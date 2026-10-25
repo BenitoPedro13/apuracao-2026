@@ -39,6 +39,9 @@ export function StatusLine() {
           {Math.round(Math.max(f.ageMs, f.recorderAgeMs ?? 0) / 60_000)} min.
         </p>
       )}
+      {f.tseQuietSince && (
+        <p className="text-xs text-muted-foreground">Aguardando novos votos do TSE desde {formatTime(f.tseQuietSince)}</p>
+      )}
       {f.pointerError && (
         <p className="rounded bg-warn-bg px-2 py-0.5 text-xs font-medium text-warn">
           Sem conexão com os dados; mostrando os últimos recebidos.

@@ -32,6 +32,12 @@ user deploys it by hand.
    UF's % apurado. Marked as our calculation (`Calc`). UFs with no sections are counted,
    not listed (missing is not zero). Shown only when the live round is the 2nd.
 
+4. **Headline columns level** (`components/headline.tsx`, user, ~17:45): "Flavio Bolsonaro"
+   wraps to two lines and pushed his %/votes a line below Lula's. Both columns now share one
+   row grid (`grid-rows-subgrid`, 4 rows); the inner column is `minmax(0,1fr)` so the
+   unbreakable urna boxes + "Bolsonaro" (154 px in a 147 px column at xl) spill into the gap,
+   not past the panel. Measured: equal tops for % and votes at 1600/1280/390 px.
+
 Rejected: pandora's "Projeção" (an extrapolated final result: not a TSE number, breaks
 invariant 1). Comparing each candidate's own % across rounds: both always "grow" (the 1st
 round split valid votes among more candidates), so the margin is the honest measure.
@@ -51,7 +57,7 @@ cached).
 | `apps/web/src/data/rules.test.ts` | edit | tests on the real 1st-round views |
 | `apps/web/src/hooks/use-freshness.ts` | edit | exposes `tseQuietSince` |
 | `apps/web/src/components/status-line.tsx` | edit | the waiting line |
-| `apps/web/src/components/headline.tsx` | edit | the early-count note |
+| `apps/web/src/components/headline.tsx` | edit | the early-count note; columns on a shared subgrid |
 | `apps/web/src/hooks/use-data.ts` | edit | `useFirstRoundResults` |
 | `apps/web/src/hooks/use-since-first-round.ts` | new | rows for the panel |
 | `apps/web/src/components/since-first-round.tsx` | new | the panel |

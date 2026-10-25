@@ -67,10 +67,11 @@ export function Headline({
         </p>
       ) : (
         <div className={cn("flex flex-col gap-5", view.status === "fetch_failed" && "opacity-70")}>
-          <div className="grid grid-cols-2 gap-4">
+          {/* One shared row grid (subgrid): a name that wraps on one side keeps both sides' numbers level. */}
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2">
             {[first, second].map((c, i) => (
-              <div key={c.n} className={cn("flex flex-col gap-2", i === 1 && "items-end text-right")}>
-                <div className={cn("flex items-center gap-3", i === 1 && "flex-row-reverse")}>
+              <div key={c.n} className={cn("row-span-4 grid grid-cols-[minmax(0,1fr)] grid-rows-subgrid content-start", i === 1 && "justify-items-end text-right")}>
+                <div className={cn("flex items-center gap-3 self-end", i === 1 && "flex-row-reverse")}>
                   <UrnaNumber n={c.n} party={c.party} size="lg" />
                   <div>
                     <p className="font-semibold leading-tight">{displayName(c.name)}</p>

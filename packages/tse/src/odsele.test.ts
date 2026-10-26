@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { candidateReader, countOf, detailReader, municipalityCode, presidentCsvName, RowSetHash, splitCsvLine, withoutGeneration } from './odsele.js';
+import { candidateReader, countOf, detailReader, municipalityCode, presidentCsvName, RowSetHash, splitCsvLine, totalizationHistoryReader, withoutGeneration } from './odsele.js';
 import { SAMPLES } from './samples.test-helper.js';
 
 // Real excerpts of the TSE archive (docs/research/samples/hist/, research 05 §3), one per quirk.
@@ -121,5 +121,27 @@ describe('RowSetHash', () => {
     const changed = rest.map((r, i) => (i === 3 ? r.replace(/;(\d+);/, ';999999;') : r));
     expect(changed[3]).not.toBe(rest[3]);
     expect(id(changed.map(strip))).not.toBe(base);
+  });
+});
+
+describe('totalizationHistoryReader', () => {
+  // The 2022 2nd round's history: header, its first five rows and its last three, as published.
+  const [header, ...rest] = lines('Historico_Totalizacao_Presidente_BR_2T_2022.head-tail.csv');
+  const { candidates, read } = totalizationHistoryReader(header!);
+  const parsed = rest.map(read);
+
+  it('finds the candidates in column order, blank and null aside', () => {
+    expect(candidates).toEqual(['LULA', 'JAIR BOLSONARO']);
+  });
+
+  it('trims the padded fields and reads the instant as Brasília time', () => {
+    expect(parsed[0]).toEqual({ at: '2022-10-30T17:00:51-03:00', sectionsTotal: 472075, sections: 55, valid: 20341, votes: [10291, 10050] });
+  });
+
+  it('ends on the 2022 final result (research 05 §5)', () => {
+    const last = parsed.at(-1)!;
+    expect(last.sections).toBe(472075);
+    expect(last.votes).toEqual([60345999, 58206354]);
+    expect(last.valid).toBe(60345999 + 58206354);
   });
 });

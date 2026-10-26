@@ -94,6 +94,20 @@ are published (the 1st round's appeared the next day).
   UF, 10-06) so far.** If the 1st round's history follows 2022's lag, it appears around
   10-18/10-20, before the 2nd round `[VERIFY: daily from 10-12]`. The BU-receipt curve
   (§3) stands in until it does, and becomes a cross-check after.
+- **The 2022 2nd round's file, read (2026-10-25, `TASK-over-the-count.md`):**
+  `Historico_Totalizacao_Presidente_BR_2T_2022.zip`, 825,276 B, `last-modified:
+  Tue, 01 Nov 2022 20:01:54 GMT`, sha256 `1f12128f…1dda3c` (`samples/hist/SHA256SUMS-zips.txt`);
+  CSV 3,700,882 B, 5,286 rows (30/10/2022 17:00:51 → 31/10/2022 00:18:04), excerpt in
+  `samples/hist/Historico_Totalizacao_Presidente_BR_2T_2022.head-tail.csv`, leiame in
+  `samples/hist/leiame_historico_totalizacao_2022.pdf`. Unlike the leiame says, fields are
+  **not quoted and space-padded** (header names too: `"  CD_CARGO"`), CRLF. Columns: totals
+  (`QT_SECOES_TOTAL`, `QT_SECOES_TOT_ACUMULADO`, `PE_SECOES_TOT_ACUMULADO` as a 0–1 fraction,
+  `QT_VOTOS_CONCORRENTES_ACUMULADO` = the candidates' sum), then per candidate and for
+  `BRANCO`/`NULO` `<NAME>_QT_VOTOS_TOT[_ACUMULADO]` and `<NAME>_PE_VOTOS_TOT_ACUMULADO`. The
+  leiame gives no time zone; the first row, 51 s after the unified 17:00 close, says Brasília.
+  The last row equals the archive's final result (Lula 60,345,999 × Bolsonaro 58,206,354,
+  research 05 §5). Rows are in time order, sections never decrease, and Lula first leads
+  Bolsonaro again at 66.79% of sections (18:42:54).
 - **Old elections don't disappear, they move:** the live feed's catalog (`comum/config/ele-c`)
   now lists only the 2024 and 2026 cycles, while `resultados-2022` keeps per-candidate
   results for every office ("Votação nominal por município e zona", with each candidate's

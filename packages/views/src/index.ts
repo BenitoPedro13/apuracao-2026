@@ -8,3 +8,4 @@ export * from './publish.js';
 export { REGIONS } from './regions.js';
 export * from './history/fold.js';
 export * from './history/insights.js';
+export * from './timeline.js';

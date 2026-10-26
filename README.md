@@ -114,6 +114,7 @@ a production bucket.
 node scripts/build-geometry.ts                                       # map geometry from the IBGE zip in data/ibge/ (output committed)
 pnpm exec node scripts/capture-history.ts [--bucket <raw> [--write]] # TSE 1994–2022 president zips → .capture/odsele/ (2 GB; S3 archive user-run)
 pnpm exec node scripts/build-history.ts --check                      # → apps/web/public/history/ (committed); --check re-derives research 05's numbers
+pnpm exec node scripts/build-count-timeline.ts [--epoch 6258 --days 2026-10-25,2026-10-26]   # "Ao longo da apuração" → apps/web/public/timeline/ (committed); 2026 reads the raw log (aws login, read-only)
 pnpm exec node scripts/publish-epochs.ts --epoch 1t-final-2 --label "1º turno" [--replaces <old>] [--dry-run]   # the round selector's index
 ```
 

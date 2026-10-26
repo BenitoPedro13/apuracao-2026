@@ -5,3 +5,4 @@ export * from './publish.js';
 export * from './epochs.js';
 export * from './legislative.js';
 export * from './history.js';
+export * from './timeline.js';

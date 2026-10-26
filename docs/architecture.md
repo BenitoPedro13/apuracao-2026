@@ -641,7 +641,9 @@ Observation = {
 // which seq a view belongs to.
 LatestPointer, Manifest, ResultView (br, UF, zz; president and governor), RegionsView,
 MapIndexView, MapView, MunicipalityView, ResultStatus
-// Deferred: TimelineChunk, FeedChunk (rebuildable from the raw log at any time)
+// Deferred: TimelineChunk, FeedChunk (rebuildable from the raw log at any time).
+// CountTimeline (TASK-over-the-count.md): the national president series, built offline from
+// the raw log by scripts/build-count-timeline.ts and shipped with the site, not per seq.
 ```
 
 `MapView` is columnar, so 5,571 rows stay small:

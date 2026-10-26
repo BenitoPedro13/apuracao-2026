@@ -35,6 +35,10 @@ municipality map (`TASK-map.md`) and its visual identity (`TASK-visual-identity.
 `legislative/*` views for the `6259` epoch only, and the page switches office with `?cargo=`.
 Governadores and a map by state on every office, with an eight-party palette and the
 hemicycles, are `TASK-visual-pass-2.md` (2026-10-09).
+**Ao longo da apuração** (`TASK-over-the-count.md`, 2026-10-25): the 2nd round's national
+count as real points (every stored version of `br-c0001-e006258-u`), with 2022's 2nd round
+dashed from the TSE's totalization history, built offline by `scripts/build-count-timeline.ts`
+and shipped with the site like the history files. Not live: rebuilt after the night.
 **Eleições anteriores** (`?historico`, `TASK-historical-presidential.md`, 2026-10-09): the
 presidential elections 1994–2022 from the TSE's archive zips (research 05), built by
 `scripts/build-history.ts` into files shipped with the site, as question panels plus a year

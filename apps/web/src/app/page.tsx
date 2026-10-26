@@ -9,6 +9,7 @@ import { Headline } from "@/components/headline";
 import { LegislativeSection } from "@/components/legislative-section";
 import { MapSection } from "@/components/map/map-section";
 import { MunicipalityTable } from "@/components/municipality-table";
+import { OverTheCount } from "@/components/over-the-count";
 import { PageActions } from "@/components/page-actions";
 import { Panel } from "@/components/panel";
 import { RegionsPanel } from "@/components/regions-panel";
@@ -87,6 +88,8 @@ export default function Home() {
                 <RegionsPanel />
               </Suspense>
             </Panel>
+
+            <OverTheCount className="min-w-0" />
 
             <SinceFirstRound className="min-w-0" />
 

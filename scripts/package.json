@@ -10,7 +10,8 @@
     "export-capture": "node export-capture.ts",
     "replay": "node replay.ts",
     "capture-history": "node capture-history.ts",
-    "build-history": "node build-history.ts"
+    "build-history": "node build-history.ts",
+    "build-count-timeline": "node build-count-timeline.ts"
   },
   "devDependencies": {
     "@apuracao/config": "workspace:*",

@@ -2,6 +2,7 @@
 // `detalhe_votacao_munzona_<year>.zip` on cdn.tse.jus.br/estatistica/sead/odsele/. Latin-1,
 // `;`-separated, quoted; the column order changes between years, so rows are read by
 // header name, never by position. Pure: the caller streams the zip and hands over lines.
+import { tseInstant } from '@apuracao/contracts';
 
 export const ODSELE_BASE = 'https://cdn.tse.jus.br/estatistica/sead/odsele';
 export type OdseleType = 'votacao_candidato_munzona' | 'detalhe_votacao_munzona';
@@ -221,4 +222,54 @@ export class RowSetHash {
   digest(): string {
     return this.sum.toString(16).padStart(64, '0');
   }
+}
+
+/** The 2022 totalization histories (research 03 §4): one file per round, next to the odsele archive. */
+export const totalizationHistoryUrl = (year: number, round: 1 | 2) =>
+  `https://cdn.tse.jus.br/estatistica/sead/eleicoes/eleicoes${year}/Historico_Totalizacao_Presidente_BR_${round}T_${year}.zip`;
+
+export interface TotalizationRow {
+  /** `DT_TOTALIZACAO`, Brasília (the first 2022 2nd-round row is 17:00:51, right after the 17:00 close). */
+  at: string;
+  sectionsTotal: number;
+  /** `QT_SECOES_TOT_ACUMULADO`. */
+  sections: number;
+  /** `QT_VOTOS_CONCORRENTES_ACUMULADO`: the candidates' sum. */
+  valid: number;
+  /** Cumulative votes per candidate, in column order; aligned with the reader's `candidates`. */
+  votes: number[];
+}
+
+const NOT_CANDIDATES = new Set(['BRANCO', 'NULO']);
+
+/**
+ * `Historico_Totalizacao_Presidente_BR_<n>T_<year>.csv`. Unlike the leiame says, fields are
+ * neither quoted nor trimmed: every value and header name is space-padded (`"  CD_CARGO"`,
+ * `"       55"`). Candidates are the `<NAME>_QT_VOTOS_TOT_ACUMULADO` columns, blank and null
+ * aside, named as in the header (`JAIR_BOLSONARO` → "JAIR BOLSONARO").
+ */
+export function totalizationHistoryReader(headerLine: string) {
+  const cols = splitCsvLine(headerLine).map((c) => c.trim());
+  const at = new Map(cols.map((c, i) => [c, i]));
+  const SUFFIX = '_QT_VOTOS_TOT_ACUMULADO';
+  const prefixes = cols.filter((c) => c.endsWith(SUFFIX)).map((c) => c.slice(0, -SUFFIX.length)).filter((p) => !NOT_CANDIDATES.has(p));
+  const required = ['DT_TOTALIZACAO', 'QT_SECOES_TOTAL', 'QT_SECOES_TOT_ACUMULADO', 'QT_VOTOS_CONCORRENTES_ACUMULADO'];
+  const missing = required.filter((c) => !at.has(c));
+  if (missing.length || prefixes.length === 0) throw new Error(`missing columns ${[...missing, ...(prefixes.length ? [] : ['<candidate>' + SUFFIX])].join(', ')}`);
+  const candidates = prefixes.map((p) => p.replace(/_/g, ' '));
+  const read = (line: string): TotalizationRow => {
+    const f = splitCsvLine(line).map((v) => v.trim());
+    if (f.length !== cols.length) throw new Error(`${f.length} fields, header has ${cols.length}: ${line.slice(0, 120)}`);
+    const get = (name: string) => f[at.get(name)!]!;
+    const count = (name: string) => must(countOf(get(name)), name);
+    const [date = '', time = ''] = get('DT_TOTALIZACAO').split(' ');
+    return {
+      at: tseInstant(date, time),
+      sectionsTotal: count('QT_SECOES_TOTAL'),
+      sections: count('QT_SECOES_TOT_ACUMULADO'),
+      valid: count('QT_VOTOS_CONCORRENTES_ACUMULADO'),
+      votes: prefixes.map((p) => count(p + SUFFIX)),
+    };
+  };
+  return { candidates, read };
 }

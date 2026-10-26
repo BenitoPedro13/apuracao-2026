@@ -90,15 +90,21 @@ describe('decide (architecture.md §4.4)', () => {
     expect(decide(emptyState(), ok(real), '2026-10-05T12:00:00-03:00').pending).toBe(false);
   });
 
-  test('the accepted version keeps its totalization instant; a 304 to a trigger confirms it', () => {
+  test('totalizedAt: the latest instant of any trusted version, even one with a lower idg; never from a 304', () => {
     const d = decide(emptyState(), ok(real));
     expect(d.state.totalizedAt).toBe(real.tseTotalizedAt);
-    // Nothing pending, the TSE answers "not modified": we hold its current file.
     const later = '2026-10-05T13:00:00-03:00';
-    expect(decide(d.state, { kind: 'not_modified' }, later).state.totalizedAt).toBe(later);
-    // Still pending (the CDN served an older body after the trigger): nothing is confirmed.
-    const stale = decide(emptyState(), ok(real), later);
-    expect(decide(stale.state, { kind: 'not_modified' }, later).state.totalizedAt).toBe(real.tseTotalizedAt);
+    expect(decide(d.state, { kind: 'not_modified' }, later).state.totalizedAt).toBe(real.tseTotalizedAt);
+    // 2026-10-25: a newer file with a lower idg is not accepted, but its instant is ours to know.
+    const s: PathState = { ...emptyState(), everSeen: true, sha256: 'x', maxIdg: 3_000_000, shaAtMaxIdg: 'x', totalizedAt: '2026-10-05T12:00:00-03:00' };
+    const r = decide(s, ok(real), real.tseTotalizedAt);
+    expect(r).toMatchObject({ accept: false, pending: false });
+    expect(r.state.totalizedAt).toBe(real.tseTotalizedAt);
+    // A same-bytes re-fetch of a snapshot from before the field fills it in.
+    const old: PathState = { ...d.state, totalizedAt: undefined };
+    expect(decide(old, ok(real)).state.totalizedAt).toBe(real.tseTotalizedAt);
+    // An invalid signature never moves it.
+    expect(decide(emptyState(), ok({ ...real, schemaOk: false })).state.totalizedAt).toBeUndefined();
   });
 
   test(`errors: one "error" observation after ${ERROR_AFTER_FAILURES} failures, one "recovered" after`, () => {

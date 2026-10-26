@@ -17,8 +17,10 @@ export interface PathState {
   failures: number;
   pendingTries: number;
   /**
-   * The accepted version's `dt/ht` instant (tier 2): what a coverage row's instant is checked
-   * against at start-up (TASK-recorder-stuck-municipal.md). Absent in snapshots written before.
+   * The latest `dt/ht` instant of any signed, schema-valid version fetched for this path, even
+   * one not accepted for a lower idg: after the count the TSE republishes files with a newer
+   * instant and a lower idg (2026-10-25, TASK-recorder-stuck-municipal.md §6). What a coverage
+   * row's instant is checked against at start-up. Absent in snapshots written before.
    */
   totalizedAt?: string;
 }
@@ -135,9 +137,8 @@ export function decide(prev: PathState, fetched: Fetched, trigger?: string): Dec
   }
 
   if (fetched.kind === 'not_modified') {
+    // Not a confirmation of anything: an edge that hasn't refreshed answers 304 too.
     const pending = trigger !== undefined && state.pendingTries > 0;
-    // A trigger answered 304 with nothing pending: the TSE confirms we hold its current file.
-    if (trigger !== undefined && !pending && (state.totalizedAt === undefined || state.totalizedAt < trigger)) state.totalizedAt = trigger;
     return { ...none, state, pending, observation: recovered };
   }
 
@@ -147,6 +148,9 @@ export function decide(prev: PathState, fetched: Fetched, trigger?: string): Dec
   state.absent = false;
   state.everSeen = true;
 
+  const trusted = a.sig.status === 'valid' && a.schemaOk;
+  if (trusted && a.tseTotalizedAt !== undefined && (state.totalizedAt === undefined || a.tseTotalizedAt > state.totalizedAt)) state.totalizedAt = a.tseTotalizedAt;
+
   const olderThanTrigger = trigger !== undefined && a.tseTotalizedAt !== undefined && a.tseTotalizedAt < trigger;
   state.pendingTries = olderThanTrigger ? state.pendingTries + 1 : 0;
 
@@ -155,7 +159,6 @@ export function decide(prev: PathState, fetched: Fetched, trigger?: string): Dec
   }
   state.sha256 = a.sha256;
 
-  const trusted = a.sig.status === 'valid' && a.schemaOk;
   let regression: boolean | undefined;
   let anomaly: string | undefined;
   let accept = trusted;
@@ -172,7 +175,6 @@ export function decide(prev: PathState, fetched: Fetched, trigger?: string): Dec
     state.maxIdg = a.idg;
     state.shaAtMaxIdg = a.sha256;
   }
-  if (accept && a.tseTotalizedAt !== undefined) state.totalizedAt = a.tseTotalizedAt;
 
   return {
     state,

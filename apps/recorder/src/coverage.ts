@@ -32,6 +32,29 @@ export function changedMunicipalities(
 }
 
 /**
+ * The coverage index after one more signed, schema-valid version, accepted or not: each row is
+ * kept from whichever version has its latest instant. On 2026-10-25 the TSE published BA's
+ * 23:27 coverage with a lower idg than an earlier one, so the accepted-only index never saw
+ * Salvador's 23:21 row and the municipality was never re-fetched. Rows only move forward, so
+ * the order versions arrive in doesn't matter. `changed`: the rows that moved.
+ */
+export function mergeCoverage(
+  previous: Record<string, CoverageRowKey> | undefined,
+  next: Record<string, CoverageRowKey>,
+): { index: Record<string, CoverageRowKey>; changed: { mu: string; instant?: string }[] } {
+  const index = { ...previous };
+  const changed: { mu: string; instant?: string }[] = [];
+  for (const [mu, row] of Object.entries(next)) {
+    const p = index[mu];
+    const later = !p || (row.instant ?? '') > (p.instant ?? '') || (row.instant === p.instant && row.key !== p.key);
+    if (!later) continue;
+    index[mu] = row;
+    changed.push({ mu, instant: row.instant });
+  }
+  return { index, changed };
+}
+
+/**
  * A tier-2 file still older than its trigger (TASK-recorder-stuck-municipal.md): the first
  * `fastTries` on its Expires, then every `STUCK_RETRY_S` for `slowTries` more, then give up.
  * On 2026-10-25 the CDN served 224 municipal files stale for all 5 fast tries; once a

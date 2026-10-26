@@ -5,7 +5,7 @@ import pinnedKey from '@apuracao/tse/keys/prod.jwk.json' with { type: 'json' };
 import { Lease, RECORDER_LEASE_KEY } from '@apuracao/s3kit';
 import { backoffMs, Budget } from './budget.js';
 import type { RecorderConfig, Target } from './config.js';
-import { changedMunicipalities, indexCoverage, pendingPlan, staleMunicipal, type CoverageRowKey } from './coverage.js';
+import { indexCoverage, mergeCoverage, pendingPlan, staleMunicipal, type CoverageRowKey } from './coverage.js';
 import type { Fetcher, FetchOutcome } from './fetch.js';
 import { Metrics } from './metrics.js';
 import { nextDueFromHeaders, Schedule } from './schedule.js';
@@ -254,12 +254,14 @@ export function createRecorder(deps: RecorderDeps) {
     if (outcome.kind === 'ok' && probePaths(file.target).includes(path)) activate(file.target, now() + jitter());
 
     // Tier 1 → tier 2.
-    if (decision.accept && file.kind === 'coverage' && fetched.kind === 'ok' && fetched.analysis.data) {
-      // `data` already passed TseCoverageFile in parseTseFile (accept implies schema ok).
-      const next = indexCoverage(fetched.analysis.data as TseCoverageFile);
+    // Every signed, schema-valid version, not only accepted ones: a newer coverage file can come
+    // with a lower idg (mergeCoverage).
+    const a = fetched.kind === 'ok' ? fetched.analysis : undefined;
+    if (file.kind === 'coverage' && a?.data && a.sig.status === 'valid' && a.schemaOk) {
+      // `data` already passed TseCoverageFile in parseTseFile (schemaOk).
       const area = parsePath(path).scope?.uf ?? 'br';
-      const changed = changedMunicipalities(coverage.get(path), next);
-      coverage.set(path, next);
+      const { index, changed } = mergeCoverage(coverage.get(path), indexCoverage(a.data as TseCoverageFile));
+      coverage.set(path, index);
       for (const { mu, instant } of changed) {
         const mf = municipalFile(file.target, area as Area, mu);
         tracked.set(mf.path, mf);
@@ -354,7 +356,9 @@ export function createRecorder(deps: RecorderDeps) {
         if (triggers.has(mf.path)) continue;
         tracked.set(mf.path, mf);
         triggers.set(mf.path, instant);
-        scheduleAt(mf.path, t);
+        // 30 s behind tier 1, so a coverage change seen on this start (and the municipalities it
+        // triggers) isn't queued behind thousands of re-checks at the request budget.
+        scheduleAt(mf.path, t + 30_000);
         stale++;
       }
     }

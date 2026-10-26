@@ -89,3 +89,26 @@ user.
 3. After the deploy, read-only, within 30 min: re-run `export-capture.ts --round 2`. Then
    `build-history.ts` must report that the municipal files equal every UF file and the
    national file, and se31259 must be at idg 4129590 (or later).
+
+## 6. Outcome and a second cause (2026-10-25, 23:00–23:50 BRT)
+
+- **First deploy** (task definition `:5`, 22:40): the sweep re-checked 17,041 files (the
+  1st-round targets are still active) at `RATE_MAX` 10, in ~28 min. Of the 224 stuck files,
+  all but Salvador (`ba38490`) came back final.
+- **The TSE CDN never answered 304** tonight: every conditional GET got a 200
+  `[VERIFY: If-None-Match vs the CDN's ETag]`.
+- **A second cause: `idg` isn't monotonic after the count.** BA's coverage file of
+  23:27:04 has idg 4241311, lower than an earlier version's 4247814. The recorder doesn't
+  accept a lower idg, so the coverage index kept Salvador's 21:54 row and never triggered a
+  fetch of its final file (100%, 23:26:38, idg 4254246, +39/+263 votes). There were hundreds
+  of these "regressions" tonight. The projector orders by generation time, so the live site
+  was unaffected.
+- **Fix:**
+  - `mergeCoverage`: rows are merged by their own instant, from every signed, schema-valid
+    version.
+  - `PathState.totalizedAt` is the latest instant of any trusted version, including a
+    same-bytes re-fetch.
+  - The 304 "confirmation" is removed.
+  - The sweep is scheduled 30 s behind tier 1.
+- **Also fixed by this:** the 1,003 governor 1st-round files (6259) left pending with
+  10-16 coverage instants.

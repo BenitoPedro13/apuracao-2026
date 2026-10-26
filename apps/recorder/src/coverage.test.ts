@@ -1,6 +1,6 @@
 import { TseCoverageFile } from '@apuracao/contracts';
 import { expect, test } from 'vitest';
-import { changedMunicipalities, indexCoverage, pendingPlan, staleMunicipal } from './coverage.js';
+import { changedMunicipalities, indexCoverage, mergeCoverage, pendingPlan, staleMunicipal } from './coverage.js';
 import { sample } from './test-samples.test-helper.js';
 
 const sp = () => TseCoverageFile.parse(JSON.parse(sample('ele2026_6257_dados_sp_sp-e006257-ab.json').toString('utf8')));
@@ -39,4 +39,18 @@ test('start-up sweep: rows later than the accepted version, or with no recorded 
   const [stuck, row] = withInstant[0]!;
   const at = (mu: string) => ({ totalizedAt: mu === stuck ? '2026-10-01T00:00:00-03:00' : idx[mu]!.instant });
   expect(staleMunicipal(idx, at)).toEqual([{ mu: stuck, instant: row.instant }]);
+});
+
+test('merge: an older version arriving after a newer one changes nothing; the newer row wins either way', () => {
+  const older = indexCoverage(sp());
+  const newerFile = sp();
+  const row = newerFile.abr.find((r) => r.cdabr === '71072')!;
+  row.ht = '23:59:59';
+  const newer = indexCoverage(newerFile);
+  // In order: one change.
+  const a = mergeCoverage(older, newer);
+  expect(a.changed.map((c) => c.mu)).toEqual(['71072']);
+  // Then the older version again (BA, 2026-10-25: newer instant, lower idg, arriving out of order): nothing.
+  expect(mergeCoverage(a.index, older).changed).toEqual([]);
+  expect(mergeCoverage(a.index, older).index['71072']).toEqual(newer['71072']);
 });

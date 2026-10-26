@@ -181,3 +181,11 @@ recreated under the same name doesn't inherit the trust. The `cdk diff` is that 
 - Not exercised live: the freeze window (its edges were checked with GNU `date`; the real
   window starts 2026-10-24) and the `pull_request` case (the job's `if` excludes it and the
   role's trust only accepts `refs/heads/main`).
+
+## Freeze exception (2026-10-25, ~21:40 BRT)
+
+The user lifted the 10-24 → 10-26 freeze for one hand-run site deploy, to publish "Ao longo
+da apuração" (`TASK-over-the-count.md`) on the night it's about. It's a static site change only
+(`deploy-web.ts` never touches `data/`). The gate was 38/38, e2e `over-the-count.spec.ts`
+2/2, and the dry run showed 53 immutable + 23 short-lived objects with the pointer ETag
+unchanged. CI's own deploy stays frozen until 10-26 12:00 BRT.

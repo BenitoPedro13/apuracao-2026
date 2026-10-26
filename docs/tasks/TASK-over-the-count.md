@@ -11,7 +11,7 @@ This is the "Timeline" item of `TASK-implementation-plan.md` Phase 5, which was 
 > first push after the freeze (10-26 12:00 BRT). Before that, rebuild the 2026 series on the
 > final count:
 > `pnpm exec node scripts/build-count-timeline.ts --epoch 6258 --days 2026-10-25,2026-10-26`.
-> The committed file stops at 21:16:40, at 99.79% of sections.
+> Rebuilt at 21:32:22 (99.89% of sections) for a hand-run deploy during the freeze (`TASK-ci-deploy.md`, "Freeze exception"); rebuild once more on the final count.
 
 ## 1. Current scenario
 

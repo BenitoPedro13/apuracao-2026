@@ -90,6 +90,17 @@ describe('decide (architecture.md §4.4)', () => {
     expect(decide(emptyState(), ok(real), '2026-10-05T12:00:00-03:00').pending).toBe(false);
   });
 
+  test('the accepted version keeps its totalization instant; a 304 to a trigger confirms it', () => {
+    const d = decide(emptyState(), ok(real));
+    expect(d.state.totalizedAt).toBe(real.tseTotalizedAt);
+    // Nothing pending, the TSE answers "not modified": we hold its current file.
+    const later = '2026-10-05T13:00:00-03:00';
+    expect(decide(d.state, { kind: 'not_modified' }, later).state.totalizedAt).toBe(later);
+    // Still pending (the CDN served an older body after the trigger): nothing is confirmed.
+    const stale = decide(emptyState(), ok(real), later);
+    expect(decide(stale.state, { kind: 'not_modified' }, later).state.totalizedAt).toBe(real.tseTotalizedAt);
+  });
+
   test(`errors: one "error" observation after ${ERROR_AFTER_FAILURES} failures, one "recovered" after`, () => {
     let s = decide(emptyState(), ok(real)).state;
     const kinds: (string | undefined)[] = [];

@@ -30,3 +30,33 @@ export function changedMunicipalities(
     .filter(([mu, row]) => previous?.[mu]?.key !== row.key)
     .map(([mu, row]) => ({ mu, instant: row.instant }));
 }
+
+/**
+ * A tier-2 file still older than its trigger (TASK-recorder-stuck-municipal.md): the first
+ * `fastTries` on its Expires, then every `STUCK_RETRY_S` for `slowTries` more, then give up.
+ * On 2026-10-25 the CDN served 224 municipal files stale for all 5 fast tries; once a
+ * municipality is final its coverage row never changes again, so dropping it lost it.
+ */
+export function pendingPlan(tries: number, cfg: { fastTries: number; slowTries: number }): 'fast' | 'slow' | 'give-up' {
+  if (tries < cfg.fastTries) return 'fast';
+  if (tries < cfg.fastTries + cfg.slowTries) return 'slow';
+  return 'give-up';
+}
+
+/**
+ * Municipalities whose coverage row says the TSE has totalized later than the version we
+ * accepted (or we never recorded when): what a start-up sweep must re-fetch. `stateOf` maps a
+ * municipality code to its file's accepted `totalizedAt` (undefined: none recorded).
+ */
+export function staleMunicipal(
+  rows: Record<string, CoverageRowKey>,
+  stateOf: (mu: string) => { totalizedAt?: string } | undefined,
+): { mu: string; instant: string }[] {
+  const out: { mu: string; instant: string }[] = [];
+  for (const [mu, row] of Object.entries(rows)) {
+    if (!row.instant) continue;
+    const at = stateOf(mu)?.totalizedAt;
+    if (at === undefined || at < row.instant) out.push({ mu, instant: row.instant });
+  }
+  return out;
+}

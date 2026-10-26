@@ -257,3 +257,10 @@ the real bucket, including a governance-retention write.
 - **HTTP/2** is requested via undici `allowH2`. Whether Akamai negotiates it is not yet
   observed.
 
+
+## 7. Incident (2026-10-25, 2nd-round night): stale municipal files dropped
+
+224 of 5,757 municipal president files stayed at an older version, 41 of them at the empty
+pre-election one. The CDN served the old body for all 5 pending tries, and the trigger was
+then dropped for good. Fix and verification: `TASK-recorder-stuck-municipal.md`, deployed by
+hand after the freeze.

@@ -61,6 +61,10 @@ const Env = z.object({
   DISCOVERY_PROBE_S: z.coerce.number().positive().default(60),
   ABSENT_RETRY_S: z.coerce.number().positive().default(60),
   PENDING_MAX_TRIES: z.coerce.number().int().positive().default(5),
+  /** After the fast tries, a stale tier-2 file is re-checked this often (TASK-recorder-stuck-municipal.md). */
+  STUCK_RETRY_S: z.coerce.number().positive().default(300),
+  /** …this many times (288 × 300 s = 24 h) before giving up. */
+  STUCK_MAX_TRIES: z.coerce.number().int().nonnegative().default(288),
   LEASE_TTL_MS: z.coerce.number().int().positive().default(30_000),
   LEASE_RENEW_MS: z.coerce.number().int().positive().default(10_000),
 });

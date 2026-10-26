@@ -266,7 +266,7 @@ path:
 | New bytes, `idg` greater than the max accepted | normal | store, produce `version`, accept |
 | New bytes, **`idg` lower** than the max accepted (another edge served an older copy, or a TSE rollback) | `idg` comparison | **store it** (it is a real published version), produce `version` with `regression: true`. The projector **does not move the current state backwards**. Alert if the same path regresses in 3 consecutive fetches |
 | New bytes, **same `idg`** | `idg` equal, sha differs | store, produce with `anomaly: "same-idg-different-bytes"`, page, and the projector keeps the first one |
-| Municipal `-u` is **older than the coverage row** that triggered it (`-u` `dt/ht` < `-ab` `dt/ht`): its own edge copy hasn't refreshed yet | timestamp comparison | store if new, keep the path in a **pending** set, re-fetch at its `Expires`. After 5 tries, mark it `stuck` and alert (warning only) |
+| Municipal `-u` is **older than the coverage row** that triggered it (`-u` `dt/ht` < `-ab` `dt/ht`): its own edge copy hasn't refreshed yet | timestamp comparison | store if new, keep the path in a **pending** set, re-fetch at its `Expires`. After 5 tries, mark it `stuck` (`tse_stuck_mun`) and **keep re-checking every 5 min for 24 h** (`STUCK_RETRY_S`, `STUCK_MAX_TRIES`), then page (`tse_gave_up_mun`). At start-up, every municipal file whose accepted `dt/ht` is older than its coverage row is re-checked. Until 2026-10-25 a stuck file was dropped: 224 municipalities stayed stale that night (`TASK-recorder-stuck-municipal.md`) |
 | Signature invalid, or no `kid` match | Ed25519 verify | **store it** (raw log keeps everything) with `sig: "invalid"`. The projector excludes it from views and pages, because it means either corruption or a key rotation (§7.3) |
 | Payload fails the Zod schema | parse | store with `schema: "failed"`, excluded from views, page |
 | Timeout / 5xx after retries | HTTP | produce one `error` observation on entering the error state and one on recovery (transitions only). The UI shows that path as "falha ao buscar" with its last good value |
@@ -751,7 +751,7 @@ metrics agent). Metrics:
 |---|---|---|
 | `tse_requests_total` | status class, tier | rate and errors |
 | `tse_last_success_age_s` | file class (br, uf-agg, ab, mun) | per-class freshness. Per-file freshness lives in a `/data/v1/ops/freshness.json` (private) |
-| `tse_pending_mun` / `tse_stuck_mun` | election | tier-2 backlog |
+| `tse_pending_mun` / `tse_stuck_mun` / `tse_gave_up_mun` | election | tier-2 backlog; files on the slow re-check; files given up on (pages) |
 | `ingest_lag_s` | — | now − TSE `dg/hg` of the newest national version |
 | `kafka_produce_errors`, `projector_offset_lag` | — | broker path health |
 | `publish_lag_s` | — | observation `fetchedAt` → pointer write |

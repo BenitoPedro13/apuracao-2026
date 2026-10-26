@@ -5,7 +5,7 @@ import pinnedKey from '@apuracao/tse/keys/prod.jwk.json' with { type: 'json' };
 import { Lease, RECORDER_LEASE_KEY } from '@apuracao/s3kit';
 import { backoffMs, Budget } from './budget.js';
 import type { RecorderConfig, Target } from './config.js';
-import { changedMunicipalities, indexCoverage, type CoverageRowKey } from './coverage.js';
+import { changedMunicipalities, indexCoverage, pendingPlan, staleMunicipal, type CoverageRowKey } from './coverage.js';
 import type { Fetcher, FetchOutcome } from './fetch.js';
 import { Metrics } from './metrics.js';
 import { nextDueFromHeaders, Schedule } from './schedule.js';
@@ -297,10 +297,18 @@ export function createRecorder(deps: RecorderDeps) {
         metrics.count('tse_stuck_mun');
         return void triggers.delete(file.path);
       }
-      if (decision.pending && decision.state.pendingTries < config.PENDING_MAX_TRIES) {
-        return scheduleAt(file.path, fromHeaders(config.ABSENT_RETRY_S));
+      if (decision.pending) {
+        const plan = pendingPlan(decision.state.pendingTries, { fastTries: config.PENDING_MAX_TRIES, slowTries: config.STUCK_MAX_TRIES });
+        if (plan === 'fast') return scheduleAt(file.path, fromHeaders(config.ABSENT_RETRY_S));
+        if (plan === 'slow') {
+          // Still older than its trigger after the fast tries: keep checking, slowly
+          // (TASK-recorder-stuck-municipal.md). Never dropped while the TSE may still update it.
+          if (decision.state.pendingTries === config.PENDING_MAX_TRIES) metrics.count('tse_stuck_mun');
+          return scheduleAt(file.path, Math.max(fromHeaders(config.STUCK_RETRY_S), t + config.STUCK_RETRY_S * 1000));
+        }
+        metrics.count('tse_gave_up_mun');
+        log({ msg: 'gave up on a stale municipal file', path: file.path, trigger: triggers.get(file.path), level: 'page' });
       }
-      if (decision.pending) metrics.count('tse_stuck_mun');
       notFound.delete(file.path);
       return void triggers.delete(file.path);
     }
@@ -334,6 +342,23 @@ export function createRecorder(deps: RecorderDeps) {
     for (const f of roots) tracked.set(f.path, f);
     await restore();
     const t = now();
+    // Municipal files older than their coverage row (a trigger dropped before
+    // TASK-recorder-stuck-municipal.md, or a snapshot without totalizedAt): re-check each once.
+    let stale = 0;
+    for (const [path, rows] of coverage) {
+      const cov = tracked.get(path);
+      if (!cov || cov.kind !== 'coverage') continue;
+      const area = (parsePath(path).scope?.uf ?? 'br') as Area;
+      for (const { mu, instant } of staleMunicipal(rows, (m) => states.get(municipalFile(cov.target, area, m).path))) {
+        const mf = municipalFile(cov.target, area, mu);
+        if (triggers.has(mf.path)) continue;
+        tracked.set(mf.path, mf);
+        triggers.set(mf.path, instant);
+        scheduleAt(mf.path, t);
+        stale++;
+      }
+    }
+    if (stale) log({ msg: 'stale municipal files re-checked', count: stale });
     for (const f of roots.filter((x) => x.tier === 0)) if (!schedule.has(f.path)) scheduleAt(f.path, t);
     for (const target of config.RECORDER_TARGETS) {
       if (active.has(targetKey(target))) {

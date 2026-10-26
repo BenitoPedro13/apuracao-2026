@@ -16,6 +16,11 @@ export interface PathState {
   inError: boolean;
   failures: number;
   pendingTries: number;
+  /**
+   * The accepted version's `dt/ht` instant (tier 2): what a coverage row's instant is checked
+   * against at start-up (TASK-recorder-stuck-municipal.md). Absent in snapshots written before.
+   */
+  totalizedAt?: string;
 }
 
 export const emptyState = (): PathState => ({ everSeen: false, absent: false, inError: false, failures: 0, pendingTries: 0 });
@@ -131,6 +136,8 @@ export function decide(prev: PathState, fetched: Fetched, trigger?: string): Dec
 
   if (fetched.kind === 'not_modified') {
     const pending = trigger !== undefined && state.pendingTries > 0;
+    // A trigger answered 304 with nothing pending: the TSE confirms we hold its current file.
+    if (trigger !== undefined && !pending && (state.totalizedAt === undefined || state.totalizedAt < trigger)) state.totalizedAt = trigger;
     return { ...none, state, pending, observation: recovered };
   }
 
@@ -165,6 +172,7 @@ export function decide(prev: PathState, fetched: Fetched, trigger?: string): Dec
     state.maxIdg = a.idg;
     state.shaAtMaxIdg = a.sha256;
   }
+  if (accept && a.tseTotalizedAt !== undefined) state.totalizedAt = a.tseTotalizedAt;
 
   return {
     state,

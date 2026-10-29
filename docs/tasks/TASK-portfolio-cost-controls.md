@@ -55,3 +55,5 @@ Retain the portfolio's public results and reproducible immutable history while r
 - Browser acceptance against the retained public site: dashboard, first-round selector URL and
   history page all HTTP 200, final national count visible, zero page JavaScript errors.
   Screenshots and browser report are saved outside Git with the backup evidence.
+
+- Historical tag backfill completed successfully at 2026-10-29 11:38:36 UTC.

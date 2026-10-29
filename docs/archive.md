@@ -39,7 +39,7 @@ account-total remains an account-wide $80 monthly usage budget.
 renewable-pulse-monthly now filters user:Project$renewable-pulse.
 transit-pulse-monthly filters user:project$transit-pulse.
 Both tag keys were activated and a backfill from 2026-09-01 was requested on 2026-10-29.
-Billing attribution is delayed until AWS finishes processing.
+The historical tag backfill succeeded at 2026-10-29 11:38:36 UTC; budget display refresh may lag.
 apuracao26-credit is a legacy-named, account-wide $100 annual gross-usage guardrail;
 it is neither project-only spending nor the remaining credit balance. Its existing alert
 recipients and thresholds are preserved. Read actual credit balance with:

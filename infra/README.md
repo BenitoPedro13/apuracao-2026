@@ -2,6 +2,9 @@
 
 AWS CDK app for Apuração 2026 (sa-east-1), plus the local docker compose stack.
 
+**Archived 2026-10-29:** both services have zero tasks. Recorder alarm actions are disabled.
+Public hosting and all data remain. See [archive runbook](../docs/archive.md).
+
 Stacks today:
 
 - `BudgetStack`: one calendar-year cost budget ($100 credit, measured before credits) that

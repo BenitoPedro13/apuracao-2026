@@ -1,5 +1,8 @@
 # Architecture — Apuração 2026
 
+> **Operational status (2026-10-29): archived.** Recorder and projector are stopped;
+> public views, signed raw history and frontend remain. See [archive runbook](archive.md).
+
 **Status:** accepted, 2026-10-07. Written against `docs/research/01-tse-results-feed.md` and
 `docs/research/02-signatures-cache-and-map-mesh.md` (re-verified today). Decisions the user
 made on 2026-10-07: **AWS (existing credits), no custom domain for now, cookieless analytics

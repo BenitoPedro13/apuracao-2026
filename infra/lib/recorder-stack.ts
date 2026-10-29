@@ -17,6 +17,8 @@ export interface RecorderStackProps extends cdk.StackProps {
   alertEmail: string;
   /** 10 req/s for the 1st-round capture and soak; 100 on the night (TASK-recorder.md §2.1). */
   rateMax: number;
+  /** Explicit opt-in for live collection; archived deployments maintain zero tasks. */
+  running: boolean;
 }
 
 /**
@@ -76,7 +78,7 @@ export class RecorderStack extends cdk.Stack {
     new ecs.FargateService(this, 'Service', {
       cluster,
       taskDefinition: task,
-      desiredCount: 1,
+      desiredCount: props.running ? 1 : 0,
       assignPublicIp: true,
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
       circuitBreaker: { rollback: true },
@@ -94,6 +96,7 @@ export class RecorderStack extends cdk.Stack {
     // 11.8 min (2 × 2-min periods) in the 2026-10-08 stop tests.
     new cloudwatch.Alarm(this, 'RecorderSilent', {
       alarmName: 'apuracao26-recorder-silent',
+      actionsEnabled: props.running,
       alarmDescription: 'No observation segment written for two consecutive 2-minute periods',
       metric: new cloudwatch.MathExpression({
         expression: 'FILL(m, 0)',
@@ -112,6 +115,7 @@ export class RecorderStack extends cdk.Stack {
     for (const election of ['6258', '6260']) {
       new cloudwatch.Alarm(this, `Discovered${election}`, {
         alarmName: `apuracao26-election-${election}-live`,
+        actionsEnabled: props.running,
         alarmDescription: `TSE files for election ${election} are being published; capture samples (runbook)`,
         metric: metric('targets_active', { Election: election }, 'Maximum'),
         threshold: 1,

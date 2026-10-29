@@ -11,7 +11,7 @@ const env = { account: '111111111111', region: 'sa-east-1' };
 function synth(running: boolean) {
   const app = new cdk.App();
   const raw = new RawStack(app, 'Raw', { env });
-  const rec = new RecorderStack(app, 'Rec', { env, rawBucket: raw.bucket, alertEmail: 'test@example.invalid', rateMax: 10 });
+  const rec = new RecorderStack(app, 'Rec', { env, rawBucket: raw.bucket, alertEmail: 'test@example.invalid', rateMax: 10, running: true });
   const pub = new PublicStack(app, 'Pub', { env, cdn: false });
   const stack = new ProjectorStack(app, 'Proj', {
     env,

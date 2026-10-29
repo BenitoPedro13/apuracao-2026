@@ -11,6 +11,11 @@
 
 ## 0. Project context — Apuração 2026
 
+**Operational override (2026-10-29): archived.** Both ECS services maintain zero tasks;
+recorder alarm actions are disabled. Public hosting and immutable data remain. CDK requires
+explicit recorder=on / projector=on to restart. See docs/archive.md. The historical status
+notes below describe the implementation, not the current live-task state.
+
 A live, public dashboard for counting the votes in Brazil's 2026 elections: a national
 headline, a municipality-level map, regional breakdowns, a turnout panel, an "over the count"
 chart and a **timeline scrubber that replays the count**. It also serves as a deliberate

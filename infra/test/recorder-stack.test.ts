@@ -7,7 +7,7 @@ import { RecorderStack } from '../lib/recorder-stack';
 const env = { account: '111111111111', region: 'sa-east-1' };
 const app = new cdk.App();
 const raw = new RawStack(app, 'Raw', { env });
-const rec = new RecorderStack(app, 'Rec', { env, rawBucket: raw.bucket, alertEmail: 'test@example.invalid', rateMax: 10 });
+const rec = new RecorderStack(app, 'Rec', { env, rawBucket: raw.bucket, alertEmail: 'test@example.invalid', rateMax: 10, running: true });
 
 test('raw bucket: private, versioned, Object Lock without default retention, retained', () => {
   const t = Template.fromStack(raw);
@@ -60,4 +60,19 @@ test('alarms: recorder silent for 5 min, and 2nd-round discovery, to SNS', () =>
   });
   t.resourceCountIs('AWS::CloudWatch::Alarm', 3);
   t.hasResourceProperties('AWS::SNS::Subscription', { Protocol: 'email', Endpoint: 'test@example.invalid' });
+});
+
+
+test('archived recorder has zero tasks and disabled collection alarm actions', () => {
+  const archiveApp = new cdk.App();
+  const archiveRaw = new RawStack(archiveApp, 'ArchiveRaw', { env });
+  const archive = new RecorderStack(archiveApp, 'ArchiveRec', {
+    env, rawBucket: archiveRaw.bucket, alertEmail: 'test@example.invalid', rateMax: 10, running: false,
+  });
+  const template = Template.fromStack(archive);
+  template.hasResourceProperties('AWS::ECS::Service', { DesiredCount: 0 });
+  const alarms = Object.values(template.findResources('AWS::CloudWatch::Alarm'));
+  expect(alarms).toHaveLength(3);
+  for (const alarm of alarms) expect(alarm.Properties.ActionsEnabled).toBe(false);
+  expect(template.toJSON().Resources).toHaveProperty('ClusterEB0386A7');
 });

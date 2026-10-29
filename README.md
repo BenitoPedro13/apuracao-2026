@@ -10,9 +10,9 @@ Every number on screen traces back to a TSE-signed file stored byte for byte. Th
 projections, no "who will win" calls, and no interpolation between versions that were
 actually observed: a gap in the record is shown as a gap.
 
-> **Status (2026-10-09).** The recorder has been live on AWS since 2026-10-08: it captured
-> the 1st round and will discover the 2nd-round files on its own. The dashboard shows the
-> 1st round's final results. **Deadline: 2nd round, Sunday 2026-10-25.**
+> **Archived (2026-10-29).** The public dashboard and recorded results remain online. Continuous
+> recorder and projector tasks are stopped; both rounds' published views were backed up and
+> hash-verified. See [the archive runbook](docs/archive.md) for retained data, gaps and restart.
 
 ## What's on the page
 

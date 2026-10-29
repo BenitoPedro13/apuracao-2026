@@ -11,7 +11,7 @@ export const ALERT_THRESHOLDS_USD = [60, 85] as const;
 export const CREDIT_USD = 100;
 
 /**
- * Cost guardrail for the whole project. One calendar-year cost budget, measured before
+ * Legacy-named cost guardrail for the whole AWS account; not a remaining-credit balance. One calendar-year cost budget, measured before
  * credits are applied (IncludeCredit: false), so it shows what the credit is paying for
  * instead of a net $0. Emails at each absolute threshold of actual spend.
  */
